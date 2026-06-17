@@ -113,13 +113,24 @@ export default function StudentPage() {
   const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4 pb-28">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4 pb-24">
+
+      {/* Admin button — fixed top-right */}
+      <a href="/admin"
+        className="fixed top-4 right-4 z-20 bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm transition-all duration-150 flex items-center gap-1.5">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Admin
+      </a>
+
       <div className="w-full max-w-sm space-y-4">
 
         {/* Header */}
         <div className="text-center space-y-1 anim-slide-up">
           <h1 className="text-2xl font-bold text-gray-900">บันทึกเวลาทำงาน</h1>
-          <p className="text-sm text-gray-400">CoPs — กรอกข้อมูลแล้วกดบันทึกเวลาเข้า</p>
+          <p className="text-sm text-gray-400">Cops — กรอกข้อมูลแล้วกดบันทึกเวลาเข้า</p>
         </div>
 
         {/* Alert */}
@@ -151,13 +162,12 @@ export default function StudentPage() {
           )}
 
           <div className="p-5 space-y-4">
-
-            {/* Form fields */}
             <div className="space-y-3">
+
               <div className="anim-slide-up anim-delay-1">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รหัสนิสิต</label>
                 <div className="relative">
-                  <input className={inputCls} placeholder="เช่น 6401234567"
+                  <input className={inputCls} placeholder="รหัสนิสิต"
                     value={form.student_id}
                     onChange={e => { setForm(f => ({ ...f, student_id: e.target.value })); setStudentLocked(false) }}
                     onBlur={handleStudentIdBlur} disabled={!!activeLog} />
@@ -172,14 +182,14 @@ export default function StudentPage() {
                   ชื่อ-นามสกุล
                   {studentLocked && <span className="ml-2 normal-case text-indigo-400 font-normal tracking-normal">จากระบบ</span>}
                 </label>
-                <input className={inputCls} placeholder="เช่น นายสมชาย ใจดี"
+                <input className={inputCls} placeholder="ชื่อ-นามสกุล"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   disabled={!!activeLog || studentLocked} />
               </div>
 
               <div className="anim-slide-up anim-delay-3">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ฝ่าย</label>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ฝ่าย Cops</label>
                 <select className={`${inputCls} cursor-pointer`} value={form.department}
                   onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
                   disabled={!!activeLog || studentLocked}>
@@ -200,7 +210,6 @@ export default function StudentPage() {
               </div>
             )}
 
-            {/* Action button */}
             <div className="anim-slide-up anim-delay-4">
               {!activeLog ? (
                 <button onClick={handleCheckIn} disabled={loading}
@@ -217,36 +226,27 @@ export default function StudentPage() {
           </div>
         </div>
 
-        {/* Contact / Made by */}
-        <div className="anim-fade-in anim-delay-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-4 space-y-2">
-          <p className="text-xs text-center text-gray-400 font-medium">ติดต่อผู้พัฒนาระบบ</p>
-          <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-300">โทร</span>
-              <span className="font-medium text-gray-600">063-093-6726</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-300">Line</span>
-              <span className="font-medium text-gray-600">wave13045879</span>
-            </div>
-          </div>
-          <div className="flex justify-center gap-3 pt-1">
+        {/* Contact footer */}
+        <div className="anim-fade-in anim-delay-4 text-center space-y-2 pb-2">
+          <p className="text-xs text-gray-300 font-medium">ติดต่อผู้พัฒนา</p>
+          <p className="text-xs text-gray-400">
+            <span className="text-gray-300">โทร</span> 063-093-6726
+            <span className="mx-2 text-gray-200">·</span>
+            <span className="text-gray-300">Line</span> wave13045879
+          </p>
+          <div className="flex justify-center gap-4">
             {[
               { label: 'Facebook', href: 'https://www.facebook.com/winny.5621149/' },
               { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/' },
               { label: 'About Me', href: 'https://sawaddee-khonnarak.onrender.com/' },
             ].map(l => (
               <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-indigo-400 hover:text-indigo-600 underline underline-offset-2 transition-colors">
+                className="text-xs text-gray-300 hover:text-indigo-400 transition-colors">
                 {l.label}
               </a>
             ))}
           </div>
         </div>
-
-        <p className="text-center text-xs text-gray-300">
-          <a href="/admin" className="hover:text-indigo-400 transition-colors">เข้าสู่ระบบผู้ดูแล</a>
-        </p>
 
       </div>
 
