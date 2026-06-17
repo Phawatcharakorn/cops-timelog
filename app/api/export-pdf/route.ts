@@ -35,8 +35,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Student not found' }, { status: 404 })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(
-    createElement(MonthlyReport, { student, logs: logs ?? [], month })
+    createElement(MonthlyReport as any, { student, logs: logs ?? [], month })
   )
 
   const filename = `report_${studentId}_${month}.pdf`
