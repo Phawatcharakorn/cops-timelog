@@ -34,7 +34,7 @@ export default function AdminPage() {
   const [userInput, setUserInput]     = useState('')
   const [pwInput, setPwInput]         = useState('')
   const [pwError, setPwError]         = useState(false)
-  const [tab, setTab]                 = useState<'individual' | 'overview'>('individual')
+  const [tab, setTab]                 = useState<'individual' | 'overview' | 'manage'>('individual')
 
   // Individual tab
   const [students, setStudents]               = useState<Student[]>([])
@@ -123,6 +123,15 @@ export default function AdminPage() {
       setOverview(result)
     } finally { setOverviewLoading(false) }
   }, [selectedMonth])
+
+  const handleDeleteStudent = async (student: Student) => {
+    if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
+    // ลบ time_logs ก่อน แล้วค่อยลบ student
+    await supabase.from('time_logs').delete().eq('student_id', student.student_id)
+    await supabase.from('students').delete().eq('student_id', student.student_id)
+    setStudents(prev => prev.filter(s => s.student_id !== student.student_id))
+    if (selectedStudentId === student.student_id) { setSelectedStudentId(''); setSummary(null) }
+  }
 
   const openEdit = (log: TimeLog) => {
     setEditingLog(log)
@@ -249,12 +258,12 @@ export default function AdminPage() {
             </div>
             {/* Tabs */}
             <div className="flex gap-1 ml-auto">
-              {(['individual', 'overview'] as const).map(t => (
+              {(['individual', 'overview', 'manage'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     tab === t ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}>
-                  {t === 'individual' ? 'รายบุคคล' : 'ภาพรวมทุกคน'}
+                  {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวมทุกคน' : 'จัดการนิสิต'}
                 </button>
               ))}
             </div>
@@ -445,6 +454,47 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Tab: Manage Students ── */}
+        {tab === 'manage' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-700 text-sm">จัดการนิสิต</h2>
+              <p className="text-xs text-gray-400 mt-0.5">ลบนิสิตจะลบข้อมูลลงเวลาทั้งหมดของนิสิตคนนั้นด้วย</p>
+            </div>
+            {students.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูลนิสิต</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
+                    <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
+                    <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
+                    <th className="px-4 py-3 text-left font-medium"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {students.map(s => (
+                    <tr key={s.student_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{s.student_id}</td>
+                      <td className="px-4 py-3">
+                        <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => handleDeleteStudent(s)}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium">
+                          ลบ
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
