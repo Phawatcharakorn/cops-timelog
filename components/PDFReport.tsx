@@ -35,7 +35,7 @@ const s = StyleSheet.create({
   thead:      { flexDirection: 'row', backgroundColor: '#f9fafb', borderBottom: '1 solid #e5e7eb' },
   theadCell:  { padding: '5 6', fontSize: 8, fontWeight: 700, color: '#6b7280' },
   tr:         { flexDirection: 'row', borderBottom: '1 solid #f3f4f6' },
-  td:         { padding: '7 6', fontSize: 9, lineHeight: 1.8 },
+  td:         { padding: '10 6 6 6', fontSize: 9, lineHeight: 2.0 },
   trEven:     { backgroundColor: '#fafafa' },
   thumbCell:  { width: 44, padding: '3 6' },
   thumb:      { width: 32, height: 32, borderRadius: 3, objectFit: 'cover' },
