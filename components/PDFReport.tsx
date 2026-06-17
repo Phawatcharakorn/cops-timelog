@@ -20,7 +20,7 @@ Font.register({
 const s = StyleSheet.create({
   page:       { fontFamily: 'Sarabun', fontSize: 10, padding: 40, color: '#1f2937' },
   headerBox:  { backgroundColor: '#3730a3', borderRadius: 6, padding: '12 16', marginBottom: 16 },
-  headerTitle:{ color: '#fff', fontSize: 13, fontWeight: 700 },
+  headerTitle:{ color: '#fff', fontSize: 11, fontWeight: 700 },
   headerSub:  { color: '#c7d2fe', fontSize: 9, marginTop: 2 },
   infoRow:    { flexDirection: 'row', gap: 8, marginBottom: 14 },
   infoCard:   { flex: 1, borderRadius: 6, border: '1 solid #e5e7eb', padding: '8 10' },
@@ -57,12 +57,17 @@ function calcDur(log: TimeLog) {
   return differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
 }
 
+// Convert UTC → Thai time (UTC+7)
+function toThai(iso: string) {
+  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
+}
+
 function fmtTime(iso: string) {
-  return format(new Date(iso), 'HH:mm')
+  return format(toThai(iso), 'HH:mm')
 }
 
 function fmtDate(iso: string) {
-  return format(new Date(iso), 'd MMM yy', { locale: th })
+  return format(toThai(iso), 'd MMM yy', { locale: th })
 }
 
 function monthLabel(ym: string) {

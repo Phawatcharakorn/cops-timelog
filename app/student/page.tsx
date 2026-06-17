@@ -15,10 +15,12 @@ type ActiveLog = {
 }
 
 export default function StudentPage() {
+  const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
+
   const [form, setForm] = useState<FormState>({
     name: '',
     student_id: '',
-    department: 'CoPs Marketing',
+    department: 'Marketing',
   })
   const [activeLog, setActiveLog] = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
@@ -173,11 +175,16 @@ export default function StudentPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
-            <input
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-500"
-              value="CoPs Marketing"
-              readOnly
-            />
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
+              value={form.department}
+              onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+              disabled={!!activeLog}
+            >
+              {DEPARTMENTS.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -232,6 +239,16 @@ export default function StudentPage() {
             {loading ? 'กำลังบันทึก...' : '🔴 บันทึกเวลาออก'}
           </button>
         )}
+        {/* Admin link */}
+        <div className="text-center pt-2">
+          <a
+            href="/admin"
+            className="text-xs text-gray-400 hover:text-indigo-500 transition-colors"
+          >
+            🔐 เข้าสู่ระบบผู้ดูแล
+          </a>
+        </div>
+
       </div>
     </div>
   )
