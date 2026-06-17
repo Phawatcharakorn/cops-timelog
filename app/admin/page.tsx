@@ -19,6 +19,7 @@ type Summary = {
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
+  const [userInput, setUserInput] = useState('')
   const [pwInput, setPwInput] = useState('')
   const [pwError, setPwError] = useState(false)
   const [students, setStudents] = useState<Student[]>([])
@@ -40,7 +41,8 @@ export default function AdminPage() {
   }, [authed])
 
   const handleLogin = () => {
-    if (pwInput === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+    const validUser = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin'
+    if (userInput === validUser && pwInput === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       localStorage.setItem('admin_authed', '1')
       setAuthed(true)
     } else {
@@ -64,9 +66,20 @@ export default function AdminPage() {
           </div>
           {pwError && (
             <div className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-sm text-center">
-              รหัสผ่านไม่ถูกต้อง
+              ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง
             </div>
           )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              placeholder="กรอกชื่อผู้ใช้"
+              value={userInput}
+              onChange={e => setUserInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
             <input
