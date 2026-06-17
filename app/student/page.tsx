@@ -250,7 +250,7 @@ export default function StudentPage() {
 
       {/* Toothless mascot — fixed bottom-right, won't overlap form */}
       <img
-        src="https://media.tenor.com/gp3qMqGaA_oAAAAd/toothless-dance.gif"
+        src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
         alt="toothless"
         className="fixed bottom-3 right-3 w-14 h-14 sm:w-20 sm:h-20 object-contain pointer-events-none select-none z-10 drop-shadow-lg"
       />
