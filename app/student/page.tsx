@@ -228,11 +228,11 @@ export default function StudentPage() {
 
         {/* Contact footer */}
         <div className="anim-fade-in anim-delay-4 text-center space-y-2 pb-2">
-          <p className="text-xs text-gray-300 font-medium">ติดต่อผู้พัฒนา</p>
-          <p className="text-xs text-gray-400">
-            <span className="text-gray-300">โทร</span> 063-093-6726
-            <span className="mx-2 text-gray-200">·</span>
-            <span className="text-gray-300">Line</span> wave13045879
+          <p className="text-xs text-gray-400 font-medium">ติดต่อผู้พัฒนา</p>
+          <p className="text-xs text-gray-500">
+            <span className="text-gray-400">โทร</span> 063-093-6726
+            <span className="mx-2 text-gray-300">·</span>
+            <span className="text-gray-400">Line</span> wave13045879
           </p>
           <div className="flex justify-center gap-4">
             {[
@@ -241,7 +241,7 @@ export default function StudentPage() {
               { label: 'About Me', href: 'https://sawaddee-khonnarak.onrender.com/' },
             ].map(l => (
               <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-gray-300 hover:text-indigo-400 transition-colors">
+                className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
                 {l.label}
               </a>
             ))}
