@@ -354,7 +354,6 @@ export default function AdminPage() {
                           <th className="px-4 py-3 text-left font-medium">เวลาออก</th>
                           <th className="px-4 py-3 text-left font-medium">ชม.</th>
                           <th className="px-4 py-3 text-left font-medium">สรุปงาน</th>
-                          <th className="px-4 py-3 text-left font-medium">รูป</th>
                           <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                         </tr>
                       </thead>
@@ -370,11 +369,6 @@ export default function AdminPage() {
                               {log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
                             <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{log.work_summary || '-'}</td>
-                            <td className="px-4 py-3">
-                              {log.photo_url
-                                ? <img src={log.photo_url} alt="work" className="w-10 h-10 object-cover rounded-md" />
-                                : <span className="text-gray-300">—</span>}
-                            </td>
                             <td className="px-4 py-3">
                               <div className="flex gap-2">
                                 <button onClick={() => openEdit(log)}

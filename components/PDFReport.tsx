@@ -1,5 +1,5 @@
 import {
-  Document, Page, Text, View, Image, Font, StyleSheet,
+  Document, Page, Text, View, Font, StyleSheet,
 } from '@react-pdf/renderer'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -135,7 +135,6 @@ export function MonthlyReport({ student, logs, month }: Props) {
             <Text style={[s.theadCell, { width: 45 }]}>ออก</Text>
             <Text style={[s.theadCell, { width: 50 }]}>ชั่วโมง</Text>
             <Text style={[s.theadCell, { flex: 1 }]}>สรุปงาน</Text>
-            <Text style={[s.theadCell, { width: 44 }]}>รูป</Text>
           </View>
 
           {logs.map((log, i) => {
@@ -153,12 +152,6 @@ export function MonthlyReport({ student, logs, month }: Props) {
                 <Text style={[s.td, { flex: 1 }]} numberOfLines={2}>
                   {log.work_summary || '-'}
                 </Text>
-                <View style={s.thumbCell}>
-                  {log.photo_url
-                    ? <Image src={log.photo_url} style={s.thumb} />
-                    : <Text style={{ fontSize: 8, color: '#d1d5db' }}>—</Text>
-                  }
-                </View>
               </View>
             )
           })}

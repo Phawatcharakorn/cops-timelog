@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 type FormState = { name: string; student_id: string; department: string }
@@ -27,12 +27,9 @@ export default function StudentPage() {
   const [studentLocked, setStudentLocked] = useState(false)
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
-  const [photo, setPhoto]             = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading]         = useState(false)
   const [idLooking, setIdLooking]     = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const showMsg = (type: 'success' | 'error' | 'warn', text: string, duration = 5000) => {
     setMessage({ type, text })
@@ -99,25 +96,14 @@ export default function StudentPage() {
     if (!activeLog) return
     setLoading(true)
     try {
-      let photoUrl: string | null = null
-      if (photo) {
-        const ext = photo.name.split('.').pop()
-        const path = `${form.student_id}/${activeLog.id}.${ext}`
-        const { error: uploadErr } = await supabase.storage.from('work-photos').upload(path, photo, { upsert: true })
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('work-photos').getPublicUrl(path)
-          photoUrl = urlData.publicUrl
-        }
-      }
       const { error } = await supabase.from('time_logs').update({
         check_out: new Date().toISOString(),
         work_summary: workSummary,
-        photo_url: photoUrl,
       }).eq('id', activeLog.id)
       if (error) throw error
       const duration = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
-      setActiveLog(null); setWorkSummary(''); setPhoto(null); setPhotoPreview(null)
+      setActiveLog(null); setWorkSummary('')
       setStudentLocked(false); setForm({ name: '', student_id: '', department: 'Marketing' })
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
@@ -210,16 +196,6 @@ export default function StudentPage() {
                   <textarea className={`${inputCls} resize-none`} rows={3}
                     placeholder="อธิบายงานที่ทำในวันนี้..."
                     value={workSummary} onChange={e => setWorkSummary(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รูปถ่ายประกอบ</label>
-                  <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setPhotoPreview(URL.createObjectURL(f)) } }} />
-                  <button onClick={() => fileRef.current?.click()}
-                    className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all duration-200">
-                    {photoPreview ? 'เปลี่ยนรูป' : 'อัปโหลดรูปถ่าย'}
-                  </button>
-                  {photoPreview && <img src={photoPreview} alt="preview" className="mt-2 w-full h-32 object-cover rounded-xl" />}
                 </div>
               </div>
             )}
