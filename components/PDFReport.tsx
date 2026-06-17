@@ -20,7 +20,7 @@ Font.register({
 const s = StyleSheet.create({
   page:       { fontFamily: 'Sarabun', fontSize: 10, padding: 40, color: '#1f2937' },
   headerBox:  { backgroundColor: '#3730a3', borderRadius: 6, padding: '12 16', marginBottom: 16 },
-  headerTitle:{ color: '#fff', fontSize: 11, fontWeight: 700 },
+  headerTitle:{ color: '#fff', fontSize: 9, fontWeight: 700 },
   headerSub:  { color: '#c7d2fe', fontSize: 9, marginTop: 2 },
   infoRow:    { flexDirection: 'row', gap: 8, marginBottom: 14 },
   infoCard:   { flex: 1, borderRadius: 6, border: '1 solid #e5e7eb', padding: '8 10' },
@@ -77,7 +77,7 @@ function monthLabel(ym: string) {
 
 export function MonthlyReport({ student, logs, month }: Props) {
   const totalMin  = logs.reduce((s, l) => s + calcDur(l), 0)
-  const totalDays = new Set(logs.map(l => l.check_in.slice(0, 10))).size
+  const totalDays = new Set(logs.map(l => toThai(l.check_in).toISOString().slice(0, 10))).size
   const taskCount = logs.filter(l => l.work_summary).length
 
   return (
@@ -148,7 +148,7 @@ export function MonthlyReport({ student, logs, month }: Props) {
                   {log.check_out ? fmtTime(log.check_out) : '-'}
                 </Text>
                 <Text style={[s.td, { width: 50 }]}>
-                  {dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-'}
+                  {log.check_out ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-'}
                 </Text>
                 <Text style={[s.td, { flex: 1 }]} numberOfLines={2}>
                   {log.work_summary || '-'}
@@ -185,7 +185,7 @@ export function MonthlyReport({ student, logs, month }: Props) {
 
         {/* Footer */}
         <Text style={s.footer}>
-          สร้างโดยระบบลงเวลา CoPs Marketing — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
+          สร้างโดยระบบลงเวลา CoPs {student.department} — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
         </Text>
       </Page>
     </Document>
