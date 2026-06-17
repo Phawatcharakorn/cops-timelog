@@ -88,11 +88,13 @@ export default function AdminPage() {
         ...log,
         durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0,
       }))
+      const toThaiDate = (iso: string) =>
+        new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + l.durationMinutes, 0)
       setSummary({
-        totalDays: new Set(processed.map(l => l.check_in.slice(0, 10))).size,
+        totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size,
         totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60,
-        taskCount: processed.filter(l => l.work_summary).length,
+        taskCount: processed.length,
         logs: processed, student, month: selectedMonth,
       })
     } finally { setLoading(false) }
@@ -114,10 +116,10 @@ export default function AdminPage() {
           sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return {
           student: s,
-          totalDays: new Set(logs.map(l => l.check_in.slice(0, 10))).size,
+          totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7*3600*1000).toISOString().slice(0,10))).size,
           totalHours: Math.floor(totalMin / 60),
           totalMinutes: totalMin % 60,
-          taskCount: logs.filter(l => l.work_summary).length,
+          taskCount: logs.length,
         }
       })
       setOverview(result)
