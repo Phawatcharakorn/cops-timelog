@@ -31,7 +31,7 @@ const s = StyleSheet.create({
   summaryNum: { fontSize: 18, fontWeight: 700, color: '#1d4ed8' },
   summaryLbl: { fontSize: 8, color: '#3b82f6', marginTop: 2 },
   sectionTitle:{ fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#374151' },
-  table:      { border: '1 solid #e5e7eb', borderRadius: 4, overflow: 'hidden' },
+  table:      { border: '1 solid #e5e7eb', borderRadius: 4 },
   thead:      { flexDirection: 'row', backgroundColor: '#f9fafb', borderBottom: '1 solid #e5e7eb' },
   theadCell:  { padding: '5 6', fontSize: 8, fontWeight: 700, color: '#6b7280' },
   tr:         { flexDirection: 'row', borderBottom: '1 solid #f3f4f6' },
