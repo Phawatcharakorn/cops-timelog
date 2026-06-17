@@ -18,8 +18,10 @@ export async function GET(req: NextRequest) {
 
   const db = supabaseAdmin()
   const [y, m] = month.split('-').map(Number)
-  const start  = new Date(y, m - 1, 1).toISOString()
-  const end    = new Date(y, m, 1, 0, 0, 0, -1).toISOString()
+  // Use Thai midnight (UTC+7) as month boundaries so PDF matches the web dashboard
+  const TZ_OFFSET_MS = 7 * 60 * 60 * 1000
+  const start = new Date(Date.UTC(y, m - 1, 1) - TZ_OFFSET_MS).toISOString()  // Thai Jun 1 00:00 = UTC May 31 17:00
+  const end   = new Date(Date.UTC(y, m, 1) - TZ_OFFSET_MS - 1).toISOString()   // Thai Jul 1 00:00 - 1ms = UTC Jun 30 16:59:59.999
 
   const [{ data: student }, { data: logs }] = await Promise.all([
     db.from('students').select('*').eq('student_id', studentId).single(),

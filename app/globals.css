@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.anim-slide-up   { animation: slideUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-fade-in    { animation: fadeIn  0.35s ease both; }
+.anim-pop-in     { animation: popIn   0.4s  cubic-bezier(0.16,1,0.3,1) both; }
+.anim-delay-1    { animation-delay: 0.08s; }
+.anim-delay-2    { animation-delay: 0.16s; }
+.anim-delay-3    { animation-delay: 0.24s; }
+.anim-delay-4    { animation-delay: 0.32s; }

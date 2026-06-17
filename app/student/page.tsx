@@ -124,25 +124,21 @@ export default function StudentPage() {
     } finally { setLoading(false) }
   }
 
-  const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-60 transition-all"
+  const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4 pb-28">
       <div className="w-full max-w-sm space-y-4">
 
         {/* Header */}
-        <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 bg-indigo-300 rounded-full"></span>
-            CoPs — ระบบลงเวลา
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">บันทึกเวลาทำงาน</h1>
-          <p className="text-sm text-gray-400">กรอกข้อมูลแล้วกดบันทึกเวลาเข้า</p>
+        <div className="text-center space-y-1 anim-slide-up">
+          <h1 className="text-2xl font-bold text-gray-900">บันทึกเวลาทำงาน</h1>
+          <p className="text-sm text-gray-400">CoPs — กรอกข้อมูลแล้วกดบันทึกเวลาเข้า</p>
         </div>
 
         {/* Alert */}
         {message && (
-          <div className={`rounded-xl px-4 py-3 text-sm font-medium border ${
+          <div className={`anim-pop-in rounded-xl px-4 py-3 text-sm font-medium border ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
             message.type === 'warn'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                          'bg-red-50 text-red-700 border-red-200'
@@ -152,11 +148,11 @@ export default function StudentPage() {
         )}
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="anim-slide-up anim-delay-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
           {/* Status bar when checked in */}
           {activeLog && (
-            <div className="bg-indigo-600 px-5 py-3 flex items-center justify-between">
+            <div className="anim-fade-in bg-indigo-600 px-5 py-3 flex items-center justify-between">
               <div className="text-white text-sm">
                 <span className="text-indigo-300 text-xs">เวลาเข้างาน </span>
                 <span className="font-bold">{fmtHHMM(activeLog.check_in)}</span>
@@ -172,31 +168,33 @@ export default function StudentPage() {
 
             {/* Form fields */}
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">รหัสนิสิต</label>
+              <div className="anim-slide-up anim-delay-1">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รหัสนิสิต</label>
                 <div className="relative">
                   <input className={inputCls} placeholder="เช่น 6401234567"
                     value={form.student_id}
                     onChange={e => { setForm(f => ({ ...f, student_id: e.target.value })); setStudentLocked(false) }}
                     onBlur={handleStudentIdBlur} disabled={!!activeLog} />
                   {idLooking && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400">ค้นหา...</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400 animate-pulse">ค้นหา...</span>
                   )}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+
+              <div className="anim-slide-up anim-delay-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
                   ชื่อ-นามสกุล
-                  {studentLocked && <span className="ml-2 normal-case text-indigo-400 font-normal">จากระบบ</span>}
+                  {studentLocked && <span className="ml-2 normal-case text-indigo-400 font-normal tracking-normal">จากระบบ</span>}
                 </label>
                 <input className={inputCls} placeholder="เช่น นายสมชาย ใจดี"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   disabled={!!activeLog || studentLocked} />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">ฝ่าย</label>
-                <select className={inputCls} value={form.department}
+
+              <div className="anim-slide-up anim-delay-3">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ฝ่าย</label>
+                <select className={`${inputCls} cursor-pointer`} value={form.department}
                   onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
                   disabled={!!activeLog || studentLocked}>
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -206,19 +204,19 @@ export default function StudentPage() {
 
             {/* Check-out fields */}
             {activeLog && (
-              <div className="space-y-3 border-t border-gray-100 pt-4">
+              <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">สรุปงานที่ทำ</label>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
                   <textarea className={`${inputCls} resize-none`} rows={3}
                     placeholder="อธิบายงานที่ทำในวันนี้..."
                     value={workSummary} onChange={e => setWorkSummary(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">รูปถ่ายประกอบ</label>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รูปถ่ายประกอบ</label>
                   <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setPhotoPreview(URL.createObjectURL(f)) } }} />
                   <button onClick={() => fileRef.current?.click()}
-                    className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors bg-gray-50">
+                    className="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all duration-200">
                     {photoPreview ? 'เปลี่ยนรูป' : 'อัปโหลดรูปถ่าย'}
                   </button>
                   {photoPreview && <img src={photoPreview} alt="preview" className="mt-2 w-full h-32 object-cover rounded-xl" />}
@@ -227,28 +225,56 @@ export default function StudentPage() {
             )}
 
             {/* Action button */}
-            {!activeLog ? (
-              <button onClick={handleCheckIn} disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all shadow-sm shadow-indigo-200">
-                {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาเข้า'}
-              </button>
-            ) : (
-              <button onClick={handleCheckOut} disabled={loading}
-                className="w-full bg-rose-500 hover:bg-rose-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all shadow-sm shadow-rose-200">
-                {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาออก'}
-              </button>
-            )}
+            <div className="anim-slide-up anim-delay-4">
+              {!activeLog ? (
+                <button onClick={handleCheckIn} disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300">
+                  {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาเข้า'}
+                </button>
+              ) : (
+                <button onClick={handleCheckOut} disabled={loading}
+                  className="w-full bg-rose-500 hover:bg-rose-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-rose-200 hover:shadow-lg hover:shadow-rose-300">
+                  {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาออก'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Admin link */}
+        {/* Contact / Made by */}
+        <div className="anim-fade-in anim-delay-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-100 p-4 space-y-2">
+          <p className="text-xs text-center text-gray-400 font-medium">ติดต่อผู้พัฒนาระบบ</p>
+          <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-300">โทร</span>
+              <span className="font-medium text-gray-600">063-093-6726</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-300">Line</span>
+              <span className="font-medium text-gray-600">wave13045879</span>
+            </div>
+          </div>
+          <div className="flex justify-center gap-3 pt-1">
+            {[
+              { label: 'Facebook', href: 'https://www.facebook.com/winny.5621149/' },
+              { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/' },
+              { label: 'About Me', href: 'https://sawaddee-khonnarak.onrender.com/' },
+            ].map(l => (
+              <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-indigo-400 hover:text-indigo-600 underline underline-offset-2 transition-colors">
+                {l.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
         <p className="text-center text-xs text-gray-300">
           <a href="/admin" className="hover:text-indigo-400 transition-colors">เข้าสู่ระบบผู้ดูแล</a>
         </p>
 
       </div>
 
-      {/* Toothless mascot — fixed bottom-right, won't overlap form */}
+      {/* Toothless mascot */}
       <img
         src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
         alt="toothless"
