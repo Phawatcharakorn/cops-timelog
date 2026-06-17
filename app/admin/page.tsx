@@ -13,7 +13,8 @@ type Summary = {
 type StudentOverview = {
   student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
 }
-type EditForm = { check_in: string; check_out: string; work_summary: string }
+type EditForm   = { check_in: string; check_out: string; work_summary: string }
+type MonthStat  = { month: string; days: number; hours: number; minutes: number; tasks: number }
 
 function fmtTime(iso: string) {
   return format(new Date(iso), 'HH:mm', { locale: th })
@@ -48,6 +49,12 @@ export default function AdminPage() {
   // Overview tab
   const [overview, setOverview]               = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
+
+  // Multi-month stats
+  const [rangeStart, setRangeStart]           = useState('')
+  const [rangeEnd, setRangeEnd]               = useState('')
+  const [multiStats, setMultiStats]           = useState<MonthStat[] | null>(null)
+  const [multiLoading, setMultiLoading]       = useState(false)
 
   // Edit modal
   const [editingLog, setEditingLog]           = useState<TimeLog | null>(null)
@@ -125,6 +132,47 @@ export default function AdminPage() {
       setOverview(result)
     } finally { setOverviewLoading(false) }
   }, [selectedMonth])
+
+  const fetchMultiStats = useCallback(async () => {
+    if (!selectedStudentId || !rangeStart || !rangeEnd) return
+    setMultiLoading(true)
+    try {
+      const TZ = 7 * 60 * 60 * 1000
+      const [sy, sm] = rangeStart.split('-').map(Number)
+      const [ey, em] = rangeEnd.split('-').map(Number)
+      const start = new Date(Date.UTC(sy, sm - 1, 1) - TZ).toISOString()
+      const end   = new Date(Date.UTC(ey, em, 1) - TZ - 1).toISOString()
+      const { data: logs } = await supabase.from('time_logs').select('*')
+        .eq('student_id', selectedStudentId)
+        .gte('check_in', start).lte('check_in', end)
+        .order('check_in', { ascending: true })
+      const grouped: Record<string, { dates: Set<string>; totalMin: number; tasks: number }> = {}
+      for (const log of logs ?? []) {
+        const thai = new Date(new Date(log.check_in).getTime() + TZ)
+        const key  = thai.toISOString().slice(0, 7)
+        const day  = thai.toISOString().slice(0, 10)
+        if (!grouped[key]) grouped[key] = { dates: new Set(), totalMin: 0, tasks: 0 }
+        grouped[key].dates.add(day)
+        grouped[key].totalMin += log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
+        grouped[key].tasks += 1
+      }
+      setMultiStats(Object.entries(grouped).map(([month, g]) => ({
+        month,
+        days: g.dates.size,
+        hours: Math.floor(g.totalMin / 60),
+        minutes: g.totalMin % 60,
+        tasks: g.tasks,
+      })))
+    } finally { setMultiLoading(false) }
+  }, [selectedStudentId, rangeStart, rangeEnd])
+
+  const handleExportCSV = (useRange = false) => {
+    const url = useRange && rangeStart && rangeEnd
+      ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
+      : `/api/export-csv?studentId=${selectedStudentId}&month=${selectedMonth}`
+    const a = document.createElement('a'); a.href = url
+    a.download = `timelog_${selectedStudentId}.csv`; a.click()
+  }
 
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
@@ -326,14 +374,21 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => handleExportCSV(false)} disabled={!selectedStudentId}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export CSV
+                  </button>
                   <button onClick={handleExportPDF} disabled={exporting || !!selectedDate}
                     className="bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
                     title={selectedDate ? 'Export PDF ใช้ได้เฉพาะมุมมองรายเดือน' : ''}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    {exporting ? 'กำลัง Export...' : 'Export PDF รายเดือน'}
+                    {exporting ? 'กำลัง Export...' : 'Export PDF'}
                   </button>
                 </div>
 
@@ -387,6 +442,77 @@ export default function AdminPage() {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* ── Multi-month stats ── */}
+            {selectedStudentId && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+                <h2 className="font-semibold text-gray-700 text-sm">สถิติย้อนหลังหลายเดือน</h2>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">จากเดือน</label>
+                    <input type="month" className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      value={rangeStart} onChange={e => { setRangeStart(e.target.value); setMultiStats(null) }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">ถึงเดือน</label>
+                    <input type="month" className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMultiStats(null) }} />
+                  </div>
+                  <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">
+                    {multiLoading ? 'กำลังโหลด...' : 'ดูสถิติ'}
+                  </button>
+                  {multiStats && (
+                    <button onClick={() => handleExportCSV(true)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Export CSV ช่วงนี้
+                    </button>
+                  )}
+                </div>
+
+                {multiStats && (
+                  <div className="overflow-x-auto rounded-lg border border-gray-100">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-500 text-xs">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-medium">เดือน</th>
+                          <th className="px-4 py-3 text-center font-medium">Work Days</th>
+                          <th className="px-4 py-3 text-center font-medium">Total Hours</th>
+                          <th className="px-4 py-3 text-center font-medium">Tasks</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {multiStats.map(s => (
+                          <tr key={s.month} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-medium text-gray-700">
+                              {format(new Date(s.month + '-01'), 'MMMM yyyy', { locale: th })}
+                            </td>
+                            <td className="px-4 py-3 text-center text-blue-600 font-semibold">{s.days}</td>
+                            <td className="px-4 py-3 text-center text-green-600 font-semibold">{s.hours}h {s.minutes}m</td>
+                            <td className="px-4 py-3 text-center text-purple-600 font-semibold">{s.tasks}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-50 font-semibold text-gray-700 border-t-2 border-gray-200">
+                          <td className="px-4 py-3">รวม {multiStats.length} เดือน</td>
+                          <td className="px-4 py-3 text-center text-blue-700">
+                            {multiStats.reduce((s, m) => s + m.days, 0)} วัน
+                          </td>
+                          <td className="px-4 py-3 text-center text-green-700">
+                            {(() => { const t = multiStats.reduce((s, m) => s + m.hours * 60 + m.minutes, 0); return `${Math.floor(t/60)}h ${t%60}m` })()}
+                          </td>
+                          <td className="px-4 py-3 text-center text-purple-700">
+                            {multiStats.reduce((s, m) => s + m.tasks, 0)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}
