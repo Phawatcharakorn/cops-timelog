@@ -16,23 +16,60 @@ type ActiveLog = {
 
 const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
 
+function toThaiTime(iso: string) {
+  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
+}
+
+function isToday(iso: string) {
+  const thai = toThaiTime(iso)
+  const now  = toThaiTime(new Date().toISOString())
+  return (
+    thai.getFullYear() === now.getFullYear() &&
+    thai.getMonth()    === now.getMonth()    &&
+    thai.getDate()     === now.getDate()
+  )
+}
+
 export default function StudentPage() {
   const [form, setForm] = useState<FormState>({
     name: '',
     student_id: '',
     department: 'Marketing',
   })
+  const [studentLocked, setStudentLocked] = useState(false)
   const [activeLog, setActiveLog] = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [idLooking, setIdLooking] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const showMsg = (type: 'success' | 'error', text: string) => {
+  const showMsg = (type: 'success' | 'error' | 'warn', text: string, duration = 5000) => {
     setMessage({ type, text })
-    setTimeout(() => setMessage(null), 4000)
+    if (duration > 0) setTimeout(() => setMessage(null), duration)
+  }
+
+  // เมื่อพิมรหัสนิสิตเสร็จแล้ว blur → ค้นหาข้อมูลจาก DB
+  const handleStudentIdBlur = async () => {
+    if (!form.student_id || studentLocked) return
+    setIdLooking(true)
+    try {
+      const { data } = await supabase
+        .from('students')
+        .select('name, department')
+        .eq('student_id', form.student_id)
+        .maybeSingle()
+
+      if (data) {
+        setForm(f => ({ ...f, name: data.name, department: data.department }))
+        setStudentLocked(true)
+        showMsg('success', `พบข้อมูล: ${data.name} (${data.department})`)
+      }
+    } finally {
+      setIdLooking(false)
+    }
   }
 
   const handleCheckIn = async () => {
@@ -44,6 +81,7 @@ export default function StudentPage() {
         { onConflict: 'student_id' }
       )
 
+      // ตรวจสอบ check-in ค้างอยู่
       const { data: existing } = await supabase
         .from('time_logs')
         .select('id, check_in')
@@ -52,8 +90,34 @@ export default function StudentPage() {
         .maybeSingle()
 
       if (existing) {
-        setActiveLog(existing)
-        showMsg('success', `พบการลงเวลาค้างอยู่ตั้งแต่ ${new Date(existing.check_in).toLocaleTimeString('th-TH')} กรุณาบันทึกเวลาออก`)
+        if (isToday(existing.check_in)) {
+          // ค้างวันเดียวกัน → resume ปกติ
+          setActiveLog(existing)
+          const t = toThaiTime(existing.check_in)
+          showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${t.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}) กรุณากดบันทึกเวลาออก`, 0)
+        } else {
+          // ค้างข้ามวัน → ปิด record เก่าอัตโนมัติ แล้วเปิดใหม่
+          const endOfDay = toThaiTime(existing.check_in)
+          endOfDay.setHours(18, 0, 0, 0)
+          await supabase
+            .from('time_logs')
+            .update({
+              check_out: new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
+              work_summary: '(ปิดอัตโนมัติ — ลืม check-out)',
+            })
+            .eq('id', existing.id)
+
+          showMsg('warn', `พบการลงเวลาค้างจากวันก่อน ระบบปิดให้อัตโนมัติแล้ว กรุณาแจ้ง Admin หากต้องการแก้ไข`, 8000)
+
+          // เปิด check-in ใหม่
+          const { data, error } = await supabase
+            .from('time_logs')
+            .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
+            .select('id, check_in')
+            .single()
+          if (error) throw error
+          setActiveLog(data)
+        }
         return
       }
 
@@ -65,7 +129,8 @@ export default function StudentPage() {
 
       if (error) throw error
       setActiveLog(data)
-      showMsg('success', `บันทึกเวลาเข้า ${new Date(data.check_in).toLocaleTimeString('th-TH')} สำเร็จ`)
+      const t = toThaiTime(data.check_in)
+      showMsg('success', `บันทึกเวลาเข้า ${t.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} สำเร็จ`)
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally {
@@ -118,6 +183,8 @@ export default function StudentPage() {
       setWorkSummary('')
       setPhoto(null)
       setPhotoPreview(null)
+      setStudentLocked(false)
+      setForm({ name: '', student_id: '', department: 'Marketing' })
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally {
@@ -142,9 +209,9 @@ export default function StudentPage() {
         {/* Alert */}
         {message && (
           <div className={`rounded-lg px-4 py-3 text-sm font-medium ${
-            message.type === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            message.type === 'warn'    ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                                         'bg-red-50 text-red-700 border border-red-200'
           }`}>
             {message.text}
           </div>
@@ -153,23 +220,35 @@ export default function StudentPage() {
         {/* Form fields */}
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+            <div className="relative">
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
+                placeholder="เช่น 6401234567"
+                value={form.student_id}
+                onChange={e => {
+                  setForm(f => ({ ...f, student_id: e.target.value }))
+                  setStudentLocked(false)
+                }}
+                onBlur={handleStudentIdBlur}
+                disabled={!!activeLog}
+              />
+              {idLooking && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">กำลังค้นหา...</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ชื่อ-นามสกุล
+              {studentLocked && <span className="ml-2 text-xs text-indigo-500 font-normal">จากระบบ</span>}
+            </label>
             <input
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
               placeholder="เช่น นายสมชาย ใจดี"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              disabled={!!activeLog}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
-              placeholder="เช่น 6401234567"
-              value={form.student_id}
-              onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
-              disabled={!!activeLog}
+              disabled={!!activeLog || studentLocked}
             />
           </div>
           <div>
@@ -178,7 +257,7 @@ export default function StudentPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
               value={form.department}
               onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-              disabled={!!activeLog}
+              disabled={!!activeLog || studentLocked}
             >
               {DEPARTMENTS.map(d => (
                 <option key={d} value={d}>{d}</option>
@@ -192,7 +271,9 @@ export default function StudentPage() {
           <div className="space-y-3 border-t pt-4">
             <div className="bg-indigo-50 rounded-lg px-4 py-2.5 text-sm">
               <span className="text-indigo-600 font-medium">เวลาเข้า: </span>
-              <span className="text-gray-700">{new Date(activeLog.check_in).toLocaleTimeString('th-TH')}</span>
+              <span className="text-gray-700">
+                {toThaiTime(activeLog.check_in).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงานที่ทำ</label>
@@ -239,7 +320,6 @@ export default function StudentPage() {
           </button>
         )}
 
-        {/* Admin link */}
         <div className="text-center">
           <a href="/admin" className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
             เข้าสู่ระบบผู้ดูแล
