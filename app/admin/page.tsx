@@ -15,21 +15,18 @@ type StudentOverview = {
 }
 type EditForm = { check_in: string; check_out: string; work_summary: string }
 
-function toThai(iso: string) {
-  return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
-}
 function fmtTime(iso: string) {
-  return format(toThai(iso), 'HH:mm', { locale: th })
+  return format(new Date(iso), 'HH:mm', { locale: th })
 }
 function fmtDate(iso: string) {
-  return format(toThai(iso), 'd MMM yyyy', { locale: th })
+  return format(new Date(iso), 'd MMM yyyy', { locale: th })
 }
 function toDatetimeLocal(iso: string) {
-  return format(toThai(iso), "yyyy-MM-dd'T'HH:mm")
+  return format(new Date(iso), "yyyy-MM-dd'T'HH:mm")
 }
 function fromDatetimeLocal(local: string) {
   if (!local) return null
-  return new Date(new Date(local).getTime() - 7 * 60 * 60 * 1000).toISOString()
+  return new Date(local).toISOString()
 }
 
 export default function AdminPage() {
