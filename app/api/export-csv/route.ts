@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
+import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +10,6 @@ const TZ = 7 * 60 * 60 * 1000
 
 function toThai(iso: string) {
   return new Date(new Date(iso).getTime() + TZ)
-}
-
-function esc(s: string) {
-  return `"${s.replace(/"/g, '""')}"`
 }
 
 export async function GET(req: NextRequest) {
@@ -52,30 +49,49 @@ export async function GET(req: NextRequest) {
 
   if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
-  const header = ['ชื่อ', 'รหัสนิสิต', 'ฝ่าย', 'วันที่', 'เวลาเข้า', 'เวลาออก', 'ชั่วโมง', 'นาที', 'สรุปงาน']
   const rows = (logs ?? []).map(log => {
-    const ci = toThai(log.check_in)
-    const co = log.check_out ? toThai(log.check_out) : null
+    const ci  = toThai(log.check_in)
+    const co  = log.check_out ? toThai(log.check_out) : null
     const dur = log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
-    return [
-      esc(student.name),
-      student.student_id,
-      student.department,
-      esc(format(ci, 'd MMM yyyy', { locale: th })),
-      format(ci, 'HH:mm'),
-      co ? format(co, 'HH:mm') : '-',
-      String(Math.floor(dur / 60)),
-      String(dur % 60),
-      esc(log.work_summary || ''),
-    ]
+    return {
+      'ชื่อ':        student.name,
+      'รหัสนิสิต':   student.student_id,
+      'ฝ่าย':        student.department,
+      'วันที่':       format(ci, 'd MMM yyyy', { locale: th }),
+      'เวลาเข้า':    format(ci, 'HH:mm'),
+      'เวลาออก':     co ? format(co, 'HH:mm') : '-',
+      'ชั่วโมง':      Math.floor(dur / 60),
+      'นาที':         dur % 60,
+      'สรุปงาน':     log.work_summary || '',
+    }
   })
 
-  const csv = '﻿' + [header, ...rows].map(r => r.join(',')).join('\r\n')
+  const ws = XLSX.utils.json_to_sheet(rows)
 
-  return new NextResponse(csv, {
+  // Auto-fit column widths based on content
+  const cols = [
+    { wch: 20 }, // ชื่อ
+    { wch: 14 }, // รหัสนิสิต
+    { wch: 12 }, // ฝ่าย
+    { wch: 14 }, // วันที่
+    { wch: 10 }, // เวลาเข้า
+    { wch: 10 }, // เวลาออก
+    { wch: 10 }, // ชั่วโมง
+    { wch: 8  }, // นาที
+    { wch: 40 }, // สรุปงาน
+  ]
+  ws['!cols'] = cols
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'รายงานลงเวลา')
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const filename = `timelog_${studentId}_${label}.xlsx`
+
+  return new NextResponse(buffer, {
     headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="timelog_${studentId}_${label}.csv"`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
 }
