@@ -110,19 +110,19 @@ export function MonthlyReport({ student, logs, month }: Props) {
         <View style={s.summaryRow}>
           <View style={s.summaryBox}>
             <Text style={s.summaryNum}>{totalDays}</Text>
-            <Text style={s.summaryLbl}>วันทำงาน</Text>
+            <Text style={s.summaryLbl}>Work Days</Text>
           </View>
           <View style={s.summaryBox}>
             <Text style={s.summaryNum}>{Math.floor(totalMin / 60)}</Text>
-            <Text style={s.summaryLbl}>ชั่วโมงรวม</Text>
+            <Text style={s.summaryLbl}>Total Hours</Text>
           </View>
           <View style={s.summaryBox}>
             <Text style={s.summaryNum}>{totalMin % 60}</Text>
-            <Text style={s.summaryLbl}>นาที (ส่วนที่เหลือ)</Text>
+            <Text style={s.summaryLbl}>Minutes</Text>
           </View>
           <View style={s.summaryBox}>
             <Text style={s.summaryNum}>{taskCount}</Text>
-            <Text style={s.summaryLbl}>รายการงาน</Text>
+            <Text style={s.summaryLbl}>Tasks</Text>
           </View>
         </View>
 
