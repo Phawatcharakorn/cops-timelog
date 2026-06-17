@@ -40,6 +40,53 @@ export default function AdminPage() {
     })
   }, [authed])
 
+  // Must be before any conditional return
+  const fetchSummary = useCallback(async () => {
+    if (!selectedStudentId || !selectedMonth) return
+    setLoading(true)
+    try {
+      const [y, m] = selectedMonth.split('-').map(Number)
+      const start = new Date(y, m - 1, 1).toISOString()
+      const end   = new Date(y, m, 1, 0, 0, 0, -1).toISOString()
+
+      const { data: logs } = await supabase
+        .from('time_logs')
+        .select('*')
+        .eq('student_id', selectedStudentId)
+        .gte('check_in', start)
+        .lte('check_in', end)
+        .order('check_in', { ascending: true })
+
+      const { data: student } = await supabase
+        .from('students')
+        .select('*')
+        .eq('student_id', selectedStudentId)
+        .single()
+
+      const processed: LogWithDuration[] = (logs ?? []).map(log => ({
+        ...log,
+        durationMinutes: log.check_out
+          ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
+          : 0,
+      }))
+
+      const uniqueDays = new Set(processed.map(l => l.check_in.slice(0, 10))).size
+      const totalMin   = processed.reduce((sum, l) => sum + l.durationMinutes, 0)
+
+      setSummary({
+        totalDays: uniqueDays,
+        totalHours: Math.floor(totalMin / 60),
+        totalMinutes: totalMin % 60,
+        taskCount: processed.filter(l => l.work_summary).length,
+        logs: processed,
+        student,
+        month: selectedMonth,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedStudentId, selectedMonth])
+
   const handleLogin = () => {
     const validUser = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin'
     if (userInput === validUser && pwInput === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
@@ -50,6 +97,34 @@ export default function AdminPage() {
       setTimeout(() => setPwError(false), 2000)
     }
   }
+
+  const handleExportPDF = async () => {
+    if (!summary) return
+    setExporting(true)
+    try {
+      const res = await fetch(
+        `/api/export-pdf?studentId=${selectedStudentId}&month=${selectedMonth}`
+      )
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `report_${selectedStudentId}_${selectedMonth}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert('Export PDF ไม่สำเร็จ: ' + (e as Error).message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const fmtTime = (iso: string) =>
+    format(new Date(iso), 'HH:mm', { locale: th })
+
+  const fmtDate = (iso: string) =>
+    format(new Date(iso), 'd MMMM yyyy', { locale: th })
 
   if (!authed) {
     return (
@@ -102,80 +177,6 @@ export default function AdminPage() {
     )
   }
 
-  const fetchSummary = useCallback(async () => {
-    if (!selectedStudentId || !selectedMonth) return
-    setLoading(true)
-    try {
-      const [y, m] = selectedMonth.split('-').map(Number)
-      const start = new Date(y, m - 1, 1).toISOString()
-      const end   = new Date(y, m, 1, 0, 0, 0, -1).toISOString()
-
-      const { data: logs } = await supabase
-        .from('time_logs')
-        .select('*')
-        .eq('student_id', selectedStudentId)
-        .gte('check_in', start)
-        .lte('check_in', end)
-        .order('check_in', { ascending: true })
-
-      const { data: student } = await supabase
-        .from('students')
-        .select('*')
-        .eq('student_id', selectedStudentId)
-        .single()
-
-      const processed: LogWithDuration[] = (logs ?? []).map(log => ({
-        ...log,
-        durationMinutes: log.check_out
-          ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
-          : 0,
-      }))
-
-      const uniqueDays = new Set(processed.map(l => l.check_in.slice(0, 10))).size
-      const totalMin   = processed.reduce((sum, l) => sum + l.durationMinutes, 0)
-
-      setSummary({
-        totalDays: uniqueDays,
-        totalHours: Math.floor(totalMin / 60),
-        totalMinutes: totalMin % 60,
-        taskCount: processed.filter(l => l.work_summary).length,
-        logs: processed,
-        student,
-        month: selectedMonth,
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedStudentId, selectedMonth])
-
-  const handleExportPDF = async () => {
-    if (!summary) return
-    setExporting(true)
-    try {
-      const res = await fetch(
-        `/api/export-pdf?studentId=${selectedStudentId}&month=${selectedMonth}`
-      )
-      if (!res.ok) throw new Error('Export failed')
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
-      a.download = `report_${selectedStudentId}_${selectedMonth}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      alert('Export PDF ไม่สำเร็จ: ' + (e as Error).message)
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const fmtTime = (iso: string) =>
-    format(new Date(iso), 'HH:mm', { locale: th })
-
-  const fmtDate = (iso: string) =>
-    format(new Date(iso), 'd MMMM yyyy', { locale: th })
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Topbar */}
@@ -184,6 +185,12 @@ export default function AdminPage() {
           <h1 className="text-lg font-bold">Dashboard ผู้ดูแลระบบ</h1>
           <p className="text-indigo-200 text-xs">CoPs Marketing — ระบบลงเวลา</p>
         </div>
+        <button
+          onClick={() => { localStorage.removeItem('admin_authed'); setAuthed(false) }}
+          className="text-indigo-200 hover:text-white text-sm transition-colors"
+        >
+          ออกจากระบบ
+        </button>
       </header>
 
       <main className="max-w-5xl mx-auto p-6 space-y-6">
