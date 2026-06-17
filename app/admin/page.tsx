@@ -416,17 +416,19 @@ export default function AdminPage() {
                       <tbody className="divide-y divide-gray-100">
                         {summary.logs.map((log, idx) => (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-3.5 text-center text-xs text-gray-300 leading-relaxed">{idx + 1}</td>
-                            <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap leading-relaxed">{fmtDate(log.check_in)}</td>
-                            <td className="px-4 py-3.5 font-medium text-green-600 leading-relaxed">{fmtTime(log.check_in)}</td>
-                            <td className="px-4 py-3.5 font-medium text-rose-500 leading-relaxed">
+                            <td className="px-3 text-center text-xs text-gray-300" style={{ padding: '14px 8px' }}>{idx + 1}</td>
+                            <td className="px-4 text-gray-600 whitespace-nowrap" style={{ padding: '14px 16px' }}>{fmtDate(log.check_in)}</td>
+                            <td className="px-4 font-medium text-green-600" style={{ padding: '14px 16px' }}>{fmtTime(log.check_in)}</td>
+                            <td className="px-4 font-medium text-rose-500" style={{ padding: '14px 16px' }}>
                               {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
                             </td>
-                            <td className="px-4 py-3.5 text-gray-600 leading-relaxed">
+                            <td className="px-4 text-gray-600" style={{ padding: '14px 16px' }}>
                               {log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
-                            <td className="px-4 py-3.5 text-gray-600 max-w-xs truncate leading-relaxed">{log.work_summary || '-'}</td>
-                            <td className="px-4 py-3.5">
+                            <td className="px-4 text-gray-600 max-w-xs" style={{ padding: '14px 16px' }}>
+                              <div className="truncate">{log.work_summary || '-'}</div>
+                            </td>
+                            <td className="px-4" style={{ padding: '14px 16px' }}>
                               <div className="flex gap-2">
                                 <button onClick={() => openEdit(log)}
                                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
