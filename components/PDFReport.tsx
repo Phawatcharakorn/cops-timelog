@@ -87,7 +87,7 @@ export function MonthlyReport({ student, logs, month }: Props) {
         {/* Header */}
         <View style={s.headerBox}>
           <Text style={s.headerTitle}>รายงานการลงเวลาทำงานประจำเดือน</Text>
-          <Text style={s.headerSub}>CoPs Marketing — {monthLabel(month)}</Text>
+          <Text style={s.headerSub}>CoPs {student.department} — {monthLabel(month)}</Text>
         </View>
 
         {/* Student info */}
