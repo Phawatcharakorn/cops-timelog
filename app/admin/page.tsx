@@ -319,9 +319,9 @@ export default function AdminPage() {
                     { label: 'ชั่วโมงรวม', value: `${summary.totalHours} ชม. ${summary.totalMinutes} นาที`, color: 'bg-green-50 text-green-700 border-green-100' },
                     { label: 'จำนวนงาน',   value: `${summary.taskCount} งาน`,                               color: 'bg-purple-50 text-purple-700 border-purple-100' },
                   ].map(c => (
-                    <div key={c.label} className={`${c.color} border rounded-xl p-4 text-center`}>
-                      <p className="text-2xl font-bold">{c.value}</p>
-                      <p className="text-xs mt-1 opacity-70">{c.label}</p>
+                    <div key={c.label} className={`${c.color} border rounded-xl p-4 text-center overflow-visible`}>
+                      <p className="text-xl font-bold leading-tight">{c.value}</p>
+                      <p className="text-xs mt-1 opacity-70 whitespace-nowrap">{c.label}</p>
                     </div>
                   ))}
                 </div>
