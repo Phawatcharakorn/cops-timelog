@@ -78,7 +78,7 @@ export default function StudentPage() {
     try {
       await supabase.from('students').upsert(
         { student_id: form.student_id, name: form.name, department: form.department },
-        { onConflict: 'student_id' }
+        { onConflict: 'student_id', ignoreDuplicates: true }
       )
 
       // ตรวจสอบ check-in ค้างอยู่
