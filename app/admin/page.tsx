@@ -404,6 +404,7 @@ export default function AdminPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-gray-500 text-xs">
                         <tr>
+                          <th className="px-3 py-3 text-center font-medium w-10">#</th>
                           <th className="px-4 py-3 text-left font-medium">วันที่</th>
                           <th className="px-4 py-3 text-left font-medium">เวลาเข้า</th>
                           <th className="px-4 py-3 text-left font-medium">เวลาออก</th>
@@ -413,18 +414,19 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {summary.logs.map(log => (
+                        {summary.logs.map((log, idx) => (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(log.check_in)}</td>
-                            <td className="px-4 py-3 font-medium text-green-600">{fmtTime(log.check_in)}</td>
-                            <td className="px-4 py-3 font-medium text-rose-500">
+                            <td className="px-3 py-3.5 text-center text-xs text-gray-300 leading-relaxed">{idx + 1}</td>
+                            <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap leading-relaxed">{fmtDate(log.check_in)}</td>
+                            <td className="px-4 py-3.5 font-medium text-green-600 leading-relaxed">{fmtTime(log.check_in)}</td>
+                            <td className="px-4 py-3.5 font-medium text-rose-500 leading-relaxed">
                               {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
                             </td>
-                            <td className="px-4 py-3 text-gray-600">
+                            <td className="px-4 py-3.5 text-gray-600 leading-relaxed">
                               {log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
-                            <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{log.work_summary || '-'}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3.5 text-gray-600 max-w-xs truncate leading-relaxed">{log.work_summary || '-'}</td>
+                            <td className="px-4 py-3.5">
                               <div className="flex gap-2">
                                 <button onClick={() => openEdit(log)}
                                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
