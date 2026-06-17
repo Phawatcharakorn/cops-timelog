@@ -1,0 +1,238 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+
+type FormState = {
+  name: string
+  student_id: string
+  department: string
+}
+
+type ActiveLog = {
+  id: string
+  check_in: string
+}
+
+export default function StudentPage() {
+  const [form, setForm] = useState<FormState>({
+    name: '',
+    student_id: '',
+    department: 'CoPs Marketing',
+  })
+  const [activeLog, setActiveLog] = useState<ActiveLog | null>(null)
+  const [workSummary, setWorkSummary] = useState('')
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const showMsg = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text })
+    setTimeout(() => setMessage(null), 4000)
+  }
+
+  const handleCheckIn = async () => {
+    if (!form.name || !form.student_id) return showMsg('error', 'กรุณากรอกชื่อและรหัสนิสิต')
+    setLoading(true)
+    try {
+      // upsert student
+      await supabase.from('students').upsert(
+        { student_id: form.student_id, name: form.name, department: form.department },
+        { onConflict: 'student_id' }
+      )
+
+      // ตรวจสอบ check-in ค้างอยู่
+      const { data: existing } = await supabase
+        .from('time_logs')
+        .select('id, check_in')
+        .eq('student_id', form.student_id)
+        .is('check_out', null)
+        .maybeSingle()
+
+      if (existing) {
+        setActiveLog(existing)
+        showMsg('success', `พบการลงเวลาค้างอยู่ตั้งแต่ ${new Date(existing.check_in).toLocaleTimeString('th-TH')} กรุณาบันทึกเวลาออก`)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('time_logs')
+        .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
+        .select('id, check_in')
+        .single()
+
+      if (error) throw error
+      setActiveLog(data)
+      showMsg('success', `บันทึกเวลาเข้า ${new Date(data.check_in).toLocaleTimeString('th-TH')} สำเร็จ`)
+    } catch (e: unknown) {
+      showMsg('error', (e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhoto(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const handleCheckOut = async () => {
+    if (!activeLog) return
+    setLoading(true)
+    try {
+      let photoUrl: string | null = null
+
+      if (photo) {
+        const ext = photo.name.split('.').pop()
+        const path = `${form.student_id}/${activeLog.id}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('work-photos')
+          .upload(path, photo, { upsert: true })
+
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage.from('work-photos').getPublicUrl(path)
+          photoUrl = urlData.publicUrl
+        }
+      }
+
+      const { error } = await supabase
+        .from('time_logs')
+        .update({
+          check_out: new Date().toISOString(),
+          work_summary: workSummary,
+          photo_url: photoUrl,
+        })
+        .eq('id', activeLog.id)
+
+      if (error) throw error
+
+      const duration = Math.round(
+        (Date.now() - new Date(activeLog.check_in).getTime()) / 60000
+      )
+      showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
+      setActiveLog(null)
+      setWorkSummary('')
+      setPhoto(null)
+      setPhotoPreview(null)
+    } catch (e: unknown) {
+      showMsg('error', (e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-5">
+
+        {/* Header */}
+        <div className="text-center">
+          <div className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-800">ระบบลงเวลาทำงาน</h1>
+          <p className="text-sm text-indigo-500 font-medium">CoPs Marketing</p>
+        </div>
+
+        {/* Alert */}
+        {message && (
+          <div className={`rounded-lg px-4 py-3 text-sm font-medium ${
+            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Form fields — disabled after check-in */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+            <input
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
+              placeholder="เช่น นายสมชาย ใจดี"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              disabled={!!activeLog}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+            <input
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-50"
+              placeholder="เช่น 6401234567"
+              value={form.student_id}
+              onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
+              disabled={!!activeLog}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+            <input
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-500"
+              value="CoPs Marketing"
+              readOnly
+            />
+          </div>
+        </div>
+
+        {/* Check-out fields */}
+        {activeLog && (
+          <div className="space-y-3 border-t pt-4">
+            <div className="bg-indigo-50 rounded-lg px-4 py-2.5 text-sm">
+              <span className="text-indigo-600 font-medium">เวลาเข้า: </span>
+              <span className="text-gray-700">{new Date(activeLog.check_in).toLocaleTimeString('th-TH')}</span>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงานที่ทำ</label>
+              <textarea
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                rows={3}
+                placeholder="อธิบายงานที่ทำในวันนี้..."
+                value={workSummary}
+                onChange={e => setWorkSummary(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รูปถ่ายประกอบ</label>
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-300 rounded-lg py-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
+              >
+                {photoPreview ? '📷 เปลี่ยนรูป' : '📷 อัปโหลดรูปถ่าย'}
+              </button>
+              {photoPreview && (
+                <img src={photoPreview} alt="preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action button */}
+        {!activeLog ? (
+          <button
+            onClick={handleCheckIn}
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+          >
+            {loading ? 'กำลังบันทึก...' : '✅ บันทึกเวลาเข้า'}
+          </button>
+        ) : (
+          <button
+            onClick={handleCheckOut}
+            disabled={loading}
+            className="w-full bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+          >
+            {loading ? 'กำลังบันทึก...' : '🔴 บันทึกเวลาออก'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
