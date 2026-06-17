@@ -416,19 +416,19 @@ export default function AdminPage() {
                       <tbody className="divide-y divide-gray-100">
                         {summary.logs.map((log, idx) => (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-3 text-center text-xs text-gray-300" style={{ padding: '14px 8px' }}>{idx + 1}</td>
-                            <td className="px-4 text-gray-600 whitespace-nowrap" style={{ padding: '14px 16px' }}>{fmtDate(log.check_in)}</td>
-                            <td className="px-4 font-medium text-green-600" style={{ padding: '14px 16px' }}>{fmtTime(log.check_in)}</td>
-                            <td className="px-4 font-medium text-rose-500" style={{ padding: '14px 16px' }}>
+                            <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{idx + 1}</td>
+                            <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtDate(log.check_in)}</td>
+                            <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
+                            <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
                             </td>
-                            <td className="px-4 text-gray-600" style={{ padding: '14px 16px' }}>
+                            <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
-                            <td className="px-4 text-gray-600 max-w-xs" style={{ padding: '14px 16px' }}>
+                            <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="truncate">{log.work_summary || '-'}</div>
                             </td>
-                            <td className="px-4" style={{ padding: '14px 16px' }}>
+                            <td style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="flex gap-2">
                                 <button onClick={() => openEdit(log)}
                                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
