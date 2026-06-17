@@ -35,7 +35,7 @@ const s = StyleSheet.create({
   thead:      { flexDirection: 'row', backgroundColor: '#f9fafb', borderBottom: '1 solid #e5e7eb' },
   theadCell:  { padding: '5 6', fontSize: 8, fontWeight: 700, color: '#6b7280' },
   tr:         { flexDirection: 'row', borderBottom: '1 solid #f3f4f6' },
-  td:         { padding: '5 6', fontSize: 9 },
+  td:         { padding: '7 6', fontSize: 9, lineHeight: 1.8 },
   trEven:     { backgroundColor: '#fafafa' },
   thumbCell:  { width: 44, padding: '3 6' },
   thumb:      { width: 32, height: 32, borderRadius: 3, objectFit: 'cover' },
@@ -149,7 +149,7 @@ export function MonthlyReport({ student, logs, month }: Props) {
                 <Text style={[s.td, { width: 50 }]}>
                   {log.check_out ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-'}
                 </Text>
-                <Text style={[s.td, { flex: 1 }]} numberOfLines={2}>
+                <Text style={[s.td, { flex: 1 }]}>
                   {log.work_summary || '-'}
                 </Text>
               </View>
