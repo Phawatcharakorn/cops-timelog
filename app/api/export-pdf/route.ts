@@ -36,9 +36,8 @@ export async function GET(req: NextRequest) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(
-    createElement(MonthlyReport as any, { student, logs: logs ?? [], month })
-  )
+  const el = createElement(MonthlyReport as any, { student, logs: logs ?? [], month }) as any
+  const buffer = await renderToBuffer(el)
 
   const filename = `report_${studentId}_${month}.pdf`
 
