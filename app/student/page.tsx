@@ -43,6 +43,9 @@ export default function StudentPage() {
   const [foundPin, setFoundPin]   = useState<string | null>(null)
   const [pinInput, setPinInput]   = useState('')
 
+  // Music
+  const [playing, setPlaying] = useState(false)
+
   // History
   const [showHistory, setShowHistory]       = useState(false)
   const [historyLogs, setHistoryLogs]       = useState<HistoryLog[]>([])
@@ -395,11 +398,13 @@ export default function StudentPage() {
           </p>
           <div className="flex justify-center gap-4">
             {[
-              { label: 'Facebook',  href: 'https://www.facebook.com/winny.5621149/' },
-              { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/' },
-              { label: 'About Me',  href: 'https://sawaddee-khonnarak.onrender.com/' },
+              { label: 'Facebook',  href: 'https://www.facebook.com/winny.5621149/', external: true },
+              { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/', external: true },
+              { label: 'About Me',  href: 'https://sawaddee-khonnarak.onrender.com/', external: true },
+              { label: '📖 คู่มือ',  href: '/guide', external: false },
             ].map(l => (
-              <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+              <a key={l.label} href={l.href}
+                {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
                 {l.label}
               </a>
@@ -409,12 +414,34 @@ export default function StudentPage() {
 
       </div>
 
-      {/* Toothless mascot */}
-      <img
-        src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
-        alt="toothless"
-        className="fixed bottom-3 right-3 w-14 h-14 sm:w-20 sm:h-20 object-contain pointer-events-none select-none z-10 drop-shadow-lg"
-      />
+      {/* Toothless mascot — click to toggle music */}
+      <div className="fixed bottom-3 right-3 z-10 flex flex-col items-center gap-1 cursor-pointer select-none"
+        onClick={() => setPlaying(p => !p)}>
+        {playing && (
+          <span className="text-xs text-indigo-500 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm animate-pulse">
+            ♪ กำลังเล่น
+          </span>
+        )}
+        <div className={`relative ${playing ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'drop-shadow-lg'}`}>
+          {playing && (
+            <span className="absolute inset-0 rounded-full animate-ping bg-indigo-400 opacity-30" />
+          )}
+          <img
+            src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
+            alt="toothless"
+            className="w-14 h-14 sm:w-20 sm:h-20 object-contain"
+          />
+        </div>
+      </div>
+
+      {/* Hidden YouTube player */}
+      {playing && (
+        <iframe
+          src="https://www.youtube.com/embed/9MCiixIkzUk?autoplay=1&loop=1&playlist=9MCiixIkzUk"
+          allow="autoplay"
+          style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', bottom: 0, right: 0 }}
+        />
+      )}
     </div>
   )
 }
