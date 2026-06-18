@@ -17,6 +17,11 @@ Font.register({
   ],
 })
 
+// Prevent react-pdf's Unicode line-breaker from splitting Thai combining marks
+// (tone marks, thanthakhat ์, above-base vowels) away from their base character.
+// Without this, Non-Spacing Marks at word boundaries get dropped entirely.
+Font.registerHyphenationCallback(word => [word])
+
 const s = StyleSheet.create({
   page:       { fontFamily: 'Sarabun', fontSize: 10, padding: 40, color: '#1f2937' },
   headerBox:  { backgroundColor: '#3730a3', borderRadius: 6, padding: '12 16', marginBottom: 16 },
