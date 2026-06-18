@@ -61,15 +61,32 @@ export default function StudentPage() {
     if (!form.student_id || studentLocked) return
     setIdLooking(true)
     try {
-      const { data } = await supabase.from('students')
-        .select('name, department, pin')
-        .eq('student_id', form.student_id)
-        .maybeSingle()
-      if (data) {
-        setForm(f => ({ ...f, name: data.name, department: data.department }))
+      const [{ data: student }, { data: activeLogData }] = await Promise.all([
+        supabase.from('students').select('name, department, pin').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
+      ])
+      if (student) {
+        setForm(f => ({ ...f, name: student.name, department: student.department }))
         setStudentLocked(true)
-        setFoundPin(data.pin ?? null)
-        showMsg('success', `พบข้อมูล: ${data.name} (${data.department})${data.pin ? ' 🔒' : ''}`)
+        setFoundPin(student.pin ?? null)
+        if (activeLogData) {
+          if (isToday(activeLogData.check_in)) {
+            // Still in today's session — jump straight to checkout
+            setActiveLog(activeLogData)
+            showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${fmtHHMM(activeLogData.check_in)})`, 0)
+          } else {
+            // Stale log from a previous day — auto-close it at 18:00 that day
+            const endOfDay = toThaiTime(activeLogData.check_in)
+            endOfDay.setHours(18, 0, 0, 0)
+            await supabase.from('time_logs').update({
+              check_out:    new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
+              work_summary: '(ปิดอัตโนมัติ — ลืม check-out)',
+            }).eq('id', activeLogData.id)
+            showMsg('warn', `พบการลงเวลาค้างจากวันก่อน ระบบปิดให้อัตโนมัติแล้ว — ${student.name}`, 8000)
+          }
+        } else {
+          showMsg('success', `พบข้อมูล: ${student.name} (${student.department})${student.pin ? ' 🔒' : ''}`)
+        }
       }
     } finally { setIdLooking(false) }
   }
@@ -118,29 +135,6 @@ export default function StudentPage() {
         { student_id: form.student_id, name: form.name, department: form.department },
         { onConflict: 'student_id', ignoreDuplicates: true }
       )
-      const { data: existing } = await supabase.from('time_logs').select('id, check_in')
-        .eq('student_id', form.student_id).is('check_out', null).maybeSingle()
-
-      if (existing) {
-        if (isToday(existing.check_in)) {
-          setActiveLog(existing)
-          showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${fmtHHMM(existing.check_in)})`, 0)
-        } else {
-          const endOfDay = toThaiTime(existing.check_in)
-          endOfDay.setHours(18, 0, 0, 0)
-          await supabase.from('time_logs').update({
-            check_out:    new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
-            work_summary: '(ปิดอัตโนมัติ — ลืม check-out)',
-          }).eq('id', existing.id)
-          showMsg('warn', 'พบการลงเวลาค้างจากวันก่อน ระบบปิดให้อัตโนมัติแล้ว', 8000)
-          const { data, error } = await supabase.from('time_logs')
-            .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
-            .select('id, check_in').single()
-          if (error) throw error
-          setActiveLog(data)
-        }
-        return
-      }
       const { data, error } = await supabase.from('time_logs')
         .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
         .select('id, check_in').single()
@@ -311,7 +305,7 @@ export default function StudentPage() {
                 </button>
               ) : (
                 <button onClick={handleCheckOut} disabled={loading}
-                  className="w-full bg-rose-500 hover:bg-rose-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-rose-200 hover:shadow-lg hover:shadow-rose-300">
+                  className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-amber-200 hover:shadow-lg hover:shadow-amber-300">
                   {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาออก'}
                 </button>
               )}
