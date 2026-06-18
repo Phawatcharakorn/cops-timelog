@@ -407,7 +407,7 @@ export default function StudentPage() {
               { label: 'Facebook',  href: 'https://www.facebook.com/winny.5621149/', external: true },
               { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/', external: true },
               { label: 'About Me',  href: 'https://sawaddee-khonnarak.onrender.com/', external: true },
-              { label: '📖 คู่มือ',  href: '/guide', external: false },
+              { label: 'คู่มือ',  href: '/guide', external: false },
             ].map(l => (
               <a key={l.label} href={l.href}
                 {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
