@@ -47,6 +47,9 @@ export default function StudentPage() {
   const [showHistory, setShowHistory]       = useState(false)
   const [historyLogs, setHistoryLogs]       = useState<HistoryLog[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyMonth, setHistoryMonth]     = useState(() =>
+    new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7)
+  )
 
   const showMsg = (type: 'success' | 'error' | 'warn', text: string, duration = 5000) => {
     setMessage({ type, text })
@@ -72,12 +75,10 @@ export default function StudentPage() {
   }
 
   // ── Fetch this-month history ──────────────────────────────────────────────
-  const fetchHistory = async () => {
+  const fetchHistory = async (month: string) => {
     setHistoryLoading(true)
-    const TZ  = 7 * 60 * 60 * 1000
-    const now = new Date(Date.now() + TZ)
-    const y   = now.getUTCFullYear()
-    const m   = now.getUTCMonth() + 1
+    const TZ    = 7 * 60 * 60 * 1000
+    const [y, m] = month.split('-').map(Number)
     const start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
     const end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
 
@@ -103,7 +104,7 @@ export default function StudentPage() {
   }
 
   const handleToggleHistory = () => {
-    if (!showHistory) fetchHistory()
+    if (!showHistory) fetchHistory(historyMonth)
     setShowHistory(h => !h)
   }
 
@@ -332,19 +333,27 @@ export default function StudentPage() {
         {/* History panel */}
         {showHistory && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-700">ประวัติเดือนนี้</p>
+            <div className="px-5 py-3 border-b border-gray-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-700">ประวัติการลงเวลา</p>
+                <button onClick={() => fetchHistory(historyMonth)} disabled={historyLoading}
+                  className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">
+                  {historyLoading ? '...' : 'รีเฟรช'}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="month"
+                  value={historyMonth}
+                  onChange={e => { setHistoryMonth(e.target.value); fetchHistory(e.target.value) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
                 {!historyLoading && historyLogs.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-400">
                     {historyDays} วัน · {Math.floor(historyTotalMin / 60)}h {historyTotalMin % 60}m
                   </p>
                 )}
               </div>
-              <button onClick={fetchHistory} disabled={historyLoading}
-                className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">
-                {historyLoading ? '...' : 'รีเฟรช'}
-              </button>
             </div>
 
             {historyLoading ? (

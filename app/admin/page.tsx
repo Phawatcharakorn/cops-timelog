@@ -77,6 +77,11 @@ export default function AdminPage() {
   const [pinInput, setPinInput]   = useState('')
   const [pinSaving, setPinSaving] = useState(false)
 
+  // Edit Student modal
+  const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
+  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing' })
+  const [editStudentSaving, setEditStudentSaving]   = useState(false)
+
   // ── Effects ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -306,11 +311,37 @@ export default function AdminPage() {
     } finally { setPinSaving(false) }
   }
 
-  const handleLogin = () => {
-    const validUser = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin'
-    if (userInput === validUser && pwInput === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      localStorage.setItem('admin_authed', '1'); setAuthed(true)
-    } else {
+  // ── NEW: แก้ไขข้อมูลนิสิต ────────────────────────────────────────────────
+  const handleEditStudent = async () => {
+    if (!editStudentModal) return
+    if (!editStudentForm.name.trim()) return alert('กรุณากรอกชื่อ')
+    setEditStudentSaving(true)
+    try {
+      const { error } = await supabase.from('students').update({
+        name:       editStudentForm.name.trim(),
+        department: editStudentForm.department,
+      }).eq('student_id', editStudentModal.student_id)
+      if (error) throw error
+      setEditStudentModal(null)
+      await loadStudents()
+    } catch (e) {
+      alert('แก้ไขไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setEditStudentSaving(false) }
+  }
+
+  const handleLogin = async () => {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ username: userInput, password: pwInput }),
+      })
+      if (res.ok) {
+        localStorage.setItem('admin_authed', '1'); setAuthed(true)
+      } else {
+        setPwError(true); setTimeout(() => setPwError(false), 2000)
+      }
+    } catch {
       setPwError(true); setTimeout(() => setPwError(false), 2000)
     }
   }
@@ -729,6 +760,8 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
+                            <button onClick={() => { setEditStudentModal(s); setEditStudentForm({ name: s.name, department: s.department }) }}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
                             <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
                               {s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}
@@ -885,6 +918,45 @@ export default function AdminPage() {
               <button onClick={handleAddLog} disabled={addLogSaving}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Edit Student ─────────────────────────────────────────────── */}
+      {editStudentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{editStudentModal.student_id}</p>
+              </div>
+              <button onClick={() => setEditStudentModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
+              <input type="text" className={inputCls} value={editStudentForm.name}
+                onChange={e => setEditStudentForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+              <select className={inputCls} value={editStudentForm.department}
+                onChange={e => setEditStudentForm(f => ({ ...f, department: e.target.value }))}>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setEditStudentModal(null)}
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleEditStudent} disabled={editStudentSaving}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {editStudentSaving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>
           </div>
