@@ -236,9 +236,15 @@ export default function StudentPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รหัสนิสิต</label>
                 <div className="relative">
-                  <input className={inputCls} placeholder="รหัสนิสิต"
+                  <input className={inputCls} placeholder="รหัสนิสิต (10 หลัก)"
                     value={form.student_id}
-                    onChange={e => { setForm(f => ({ ...f, student_id: e.target.value })); setStudentLocked(false); setFoundPin(null); setPinInput('') }}
+                    inputMode="numeric"
+                    maxLength={10}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                      setForm(f => ({ ...f, student_id: val }))
+                      setStudentLocked(false); setFoundPin(null); setPinInput('')
+                    }}
                     onBlur={handleStudentIdBlur} disabled={!!activeLog} />
                   {idLooking && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400 animate-pulse">ค้นหา...</span>
