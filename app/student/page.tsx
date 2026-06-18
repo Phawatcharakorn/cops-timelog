@@ -13,22 +13,21 @@ type HistoryLog  = {
 
 const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
 
+const BKK = 'Asia/Bangkok'
+
+// Used only for date-string extraction (toISOString after +7h shift) — NOT for display
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
 }
 function isToday(iso: string) {
-  const thai = toThaiTime(iso)
-  const now  = toThaiTime(new Date().toISOString())
-  return thai.getFullYear() === now.getFullYear()
-      && thai.getMonth()    === now.getMonth()
-      && thai.getDate()     === now.getDate()
+  const fmt = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: BKK })
+  return fmt(new Date(iso)) === fmt(new Date())
 }
 function fmtHHMM(iso: string) {
-  return toThaiTime(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: BKK })
 }
 function fmtShortDate(iso: string) {
-  const d = toThaiTime(iso)
-  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: BKK })
 }
 
 export default function StudentPage() {
