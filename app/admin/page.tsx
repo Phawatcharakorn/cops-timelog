@@ -44,7 +44,6 @@ export default function AdminPage() {
   const [selectedDate, setSelectedDate]       = useState('')
   const [summary, setSummary]                 = useState<Summary | null>(null)
   const [loading, setLoading]                 = useState(false)
-  const [exporting, setExporting]             = useState(false)
 
   // Overview tab
   const [overview, setOverview]               = useState<StudentOverview[]>([])
@@ -215,20 +214,9 @@ export default function AdminPage() {
     await fetchSummary()
   }
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = () => {
     if (!summary) return
-    setExporting(true)
-    try {
-      const res = await fetch(`/api/export-pdf?studentId=${selectedStudentId}&month=${selectedMonth}`)
-      if (!res.ok) throw new Error('Export failed')
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href = url; a.download = `report_${selectedStudentId}_${selectedMonth}.pdf`; a.click()
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      alert('Export PDF ไม่สำเร็จ: ' + (e as Error).message)
-    } finally { setExporting(false) }
+    window.open(`/print?studentId=${selectedStudentId}&month=${selectedMonth}`, '_blank')
   }
 
   const handleLogin = () => {
@@ -382,13 +370,13 @@ export default function AdminPage() {
                     </svg>
                     Export CSV
                   </button>
-                  <button onClick={handleExportPDF} disabled={exporting || !!selectedDate}
+                  <button onClick={handleExportPDF} disabled={!!selectedDate}
                     className="bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
                     title={selectedDate ? 'Export PDF ใช้ได้เฉพาะมุมมองรายเดือน' : ''}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    {exporting ? 'กำลัง Export...' : 'Export PDF'}
+                    Export PDF
                   </button>
                 </div>
 
