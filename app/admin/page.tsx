@@ -5,6 +5,8 @@ import { supabase, type Student, type TimeLog } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 
+const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
+
 type LogWithDuration = TimeLog & { durationMinutes: number }
 type Summary = {
   totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
@@ -13,63 +15,82 @@ type Summary = {
 type StudentOverview = {
   student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
 }
-type EditForm   = { check_in: string; check_out: string; work_summary: string }
-type MonthStat  = { month: string; days: number; hours: number; minutes: number; tasks: number }
+type EditForm     = { check_in: string; check_out: string; work_summary: string }
+type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
+type AddStudentForm = { student_id: string; name: string; department: string; pin: string }
+type AddLogForm   = { date: string; check_in: string; check_out: string; work_summary: string }
 
-function fmtTime(iso: string) {
-  return format(new Date(iso), 'HH:mm', { locale: th })
+function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
+function fmtDate(iso: string)         { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
+function toDatetimeLocal(iso: string) { return format(new Date(iso), "yyyy-MM-dd'T'HH:mm") }
+function fromDatetimeLocal(local: string) { if (!local) return null; return new Date(local).toISOString() }
+function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
+function todayThai() {
+  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
 }
-function fmtDate(iso: string) {
-  return format(new Date(iso), 'd MMM yyyy', { locale: th })
-}
-function toDatetimeLocal(iso: string) {
-  return format(new Date(iso), "yyyy-MM-dd'T'HH:mm")
-}
-function fromDatetimeLocal(local: string) {
-  if (!local) return null
-  return new Date(local).toISOString()
-}
+
+const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400'
 
 export default function AdminPage() {
-  const [authed, setAuthed]           = useState(false)
-  const [userInput, setUserInput]     = useState('')
-  const [pwInput, setPwInput]         = useState('')
-  const [pwError, setPwError]         = useState(false)
-  const [tab, setTab]                 = useState<'individual' | 'overview' | 'manage'>('individual')
+  const [authed, setAuthed]       = useState(false)
+  const [userInput, setUserInput] = useState('')
+  const [pwInput, setPwInput]     = useState('')
+  const [pwError, setPwError]     = useState(false)
+  const [tab, setTab]             = useState<'individual' | 'overview' | 'manage'>('individual')
 
   // Individual tab
-  const [students, setStudents]               = useState<Student[]>([])
-  const [selectedStudentId, setSelectedStudentId] = useState('')
-  const [selectedMonth, setSelectedMonth]     = useState(format(new Date(), 'yyyy-MM'))
-  const [selectedDate, setSelectedDate]       = useState('')
-  const [summary, setSummary]                 = useState<Summary | null>(null)
-  const [loading, setLoading]                 = useState(false)
+  const [students, setStudents]                     = useState<Student[]>([])
+  const [selectedStudentId, setSelectedStudentId]   = useState('')
+  const [selectedMonth, setSelectedMonth]           = useState(format(new Date(), 'yyyy-MM'))
+  const [selectedDate, setSelectedDate]             = useState('')
+  const [summary, setSummary]                       = useState<Summary | null>(null)
+  const [loading, setLoading]                       = useState(false)
 
   // Overview tab
-  const [overview, setOverview]               = useState<StudentOverview[]>([])
+  const [overview, setOverview]             = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
+  const [overviewDept, setOverviewDept]     = useState('')   // filter
 
   // Multi-month stats
-  const [rangeStart, setRangeStart]           = useState('')
-  const [rangeEnd, setRangeEnd]               = useState('')
-  const [multiStats, setMultiStats]           = useState<MonthStat[] | null>(null)
-  const [multiLoading, setMultiLoading]       = useState(false)
+  const [rangeStart, setRangeStart]   = useState('')
+  const [rangeEnd, setRangeEnd]       = useState('')
+  const [multiStats, setMultiStats]   = useState<MonthStat[] | null>(null)
+  const [multiLoading, setMultiLoading] = useState(false)
 
   // Edit modal
-  const [editingLog, setEditingLog]           = useState<TimeLog | null>(null)
-  const [editForm, setEditForm]               = useState<EditForm>({ check_in: '', check_out: '', work_summary: '' })
-  const [editSaving, setEditSaving]           = useState(false)
+  const [editingLog, setEditingLog] = useState<TimeLog | null>(null)
+  const [editForm, setEditForm]     = useState<EditForm>({ check_in: '', check_out: '', work_summary: '' })
+  const [editSaving, setEditSaving] = useState(false)
+
+  // Add Student modal
+  const [addStudentOpen, setAddStudentOpen]     = useState(false)
+  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', department: 'Marketing', pin: '' })
+  const [addStudentSaving, setAddStudentSaving] = useState(false)
+
+  // Add Log modal
+  const [addLogOpen, setAddLogOpen]     = useState(false)
+  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '', check_out: '', work_summary: '' })
+  const [addLogSaving, setAddLogSaving] = useState(false)
+
+  // PIN modal
+  const [pinModal, setPinModal]   = useState<{ student_id: string; name: string } | null>(null)
+  const [pinInput, setPinInput]   = useState('')
+  const [pinSaving, setPinSaving] = useState(false)
+
+  // ── Effects ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (localStorage.getItem('admin_authed') === '1') setAuthed(true)
   }, [])
 
-  useEffect(() => {
-    if (!authed) return
-    supabase.from('students').select('*').order('name').then(({ data }) => {
-      if (data) setStudents(data)
-    })
-  }, [authed])
+  const loadStudents = useCallback(async () => {
+    const { data } = await supabase.from('students').select('*').order('name')
+    if (data) setStudents(data)
+  }, [])
+
+  useEffect(() => { if (authed) loadStudents() }, [authed, loadStudents])
+
+  // ── Data fetchers ──────────────────────────────────────────────────────────
 
   const fetchSummary = useCallback(async () => {
     if (!selectedStudentId) return
@@ -92,7 +113,9 @@ export default function AdminPage() {
       ])
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
         ...log,
-        durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0,
+        durationMinutes: log.check_out
+          ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
+          : 0,
       }))
       const toThaiDate = (iso: string) =>
         new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -122,7 +145,9 @@ export default function AdminPage() {
           sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return {
           student: s,
-          totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7*3600*1000).toISOString().slice(0,10))).size,
+          totalDays: new Set(logs.map(l =>
+            new Date(new Date(l.check_in).getTime() + 7 * 3600000).toISOString().slice(0, 10)
+          )).size,
           totalHours: Math.floor(totalMin / 60),
           totalMinutes: totalMin % 60,
           taskCount: logs.length,
@@ -152,41 +177,46 @@ export default function AdminPage() {
         const day  = thai.toISOString().slice(0, 10)
         if (!grouped[key]) grouped[key] = { dates: new Set(), totalMin: 0, tasks: 0 }
         grouped[key].dates.add(day)
-        grouped[key].totalMin += log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
+        grouped[key].totalMin += log.check_out
+          ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
+          : 0
         grouped[key].tasks += 1
       }
       setMultiStats(Object.entries(grouped).map(([month, g]) => ({
-        month,
-        days: g.dates.size,
-        hours: Math.floor(g.totalMin / 60),
-        minutes: g.totalMin % 60,
-        tasks: g.tasks,
+        month, days: g.dates.size,
+        hours: Math.floor(g.totalMin / 60), minutes: g.totalMin % 60, tasks: g.tasks,
       })))
     } finally { setMultiLoading(false) }
   }, [selectedStudentId, rangeStart, rangeEnd])
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleExportCSV = (useRange = false) => {
     const url = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
       : `/api/export-csv?studentId=${selectedStudentId}&month=${selectedMonth}`
-    const a = document.createElement('a'); a.href = url
-    a.download = `timelog_${selectedStudentId}.csv`; a.click()
+    const a = document.createElement('a')
+    a.href = url; a.download = `timelog_${selectedStudentId}.csv`; a.click()
+  }
+
+  const handleExportPDF = () => {
+    if (!summary) return
+    window.open(`/print?studentId=${selectedStudentId}&month=${selectedMonth}`, '_blank')
   }
 
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
-    // ลบ time_logs ก่อน แล้วค่อยลบ student
     await supabase.from('time_logs').delete().eq('student_id', student.student_id)
     await supabase.from('students').delete().eq('student_id', student.student_id)
-    setStudents(prev => prev.filter(s => s.student_id !== student.student_id))
     if (selectedStudentId === student.student_id) { setSelectedStudentId(''); setSummary(null) }
+    await loadStudents()
   }
 
   const openEdit = (log: TimeLog) => {
     setEditingLog(log)
     setEditForm({
-      check_in: toDatetimeLocal(log.check_in),
-      check_out: log.check_out ? toDatetimeLocal(log.check_out) : '',
+      check_in:     toDatetimeLocal(log.check_in),
+      check_out:    log.check_out ? toDatetimeLocal(log.check_out) : '',
       work_summary: log.work_summary ?? '',
     })
   }
@@ -214,9 +244,66 @@ export default function AdminPage() {
     await fetchSummary()
   }
 
-  const handleExportPDF = () => {
-    if (!summary) return
-    window.open(`/print?studentId=${selectedStudentId}&month=${selectedMonth}`, '_blank')
+  // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
+  const handleAddStudent = async () => {
+    const { student_id, name, department, pin } = addStudentForm
+    if (!student_id.trim() || !name.trim()) return alert('กรุณากรอกรหัสนิสิตและชื่อ')
+    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    setAddStudentSaving(true)
+    try {
+      const { error } = await supabase.from('students').insert({
+        student_id: student_id.trim(),
+        name:       name.trim(),
+        department,
+        pin:        pin || null,
+      })
+      if (error) throw error
+      setAddStudentOpen(false)
+      setAddStudentForm({ student_id: '', name: '', department: 'Marketing', pin: '' })
+      await loadStudents()
+    } catch (e) {
+      alert('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setAddStudentSaving(false) }
+  }
+
+  // ── NEW: เพิ่ม Log ย้อนหลัง ───────────────────────────────────────────────
+  const handleAddLog = async () => {
+    const { date, check_in, check_out, work_summary } = addLogForm
+    if (!date || !check_in) return alert('กรุณากรอกวันที่และเวลาเข้า')
+    if (check_out && check_out <= check_in) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
+    setAddLogSaving(true)
+    try {
+      const { error } = await supabase.from('time_logs').insert({
+        student_id:   selectedStudentId,
+        check_in:     thaiToUTC(date, check_in),
+        check_out:    check_out ? thaiToUTC(date, check_out) : null,
+        work_summary: work_summary || null,
+      })
+      if (error) throw error
+      setAddLogOpen(false)
+      setAddLogForm({ date: todayThai(), check_in: '', check_out: '', work_summary: '' })
+      await fetchSummary()
+    } catch (e) {
+      alert('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setAddLogSaving(false) }
+  }
+
+  // ── NEW: ตั้ง PIN ──────────────────────────────────────────────────────────
+  const handleSetPin = async () => {
+    if (!pinModal) return
+    if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput)))
+      return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    setPinSaving(true)
+    try {
+      const { error } = await supabase.from('students')
+        .update({ pin: pinInput || null })
+        .eq('student_id', pinModal.student_id)
+      if (error) throw error
+      setPinModal(null); setPinInput('')
+      await loadStudents()
+    } catch (e) {
+      alert('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setPinSaving(false) }
   }
 
   const handleLogin = () => {
@@ -228,6 +315,12 @@ export default function AdminPage() {
     }
   }
 
+  // ── Derived state ──────────────────────────────────────────────────────────
+  const filteredOverview = overviewDept
+    ? overview.filter(o => o.student.department === overviewDept)
+    : overview
+
+  // ── Login UI ───────────────────────────────────────────────────────────────
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -248,14 +341,12 @@ export default function AdminPage() {
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
-            <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              placeholder="กรอกชื่อผู้ใช้" value={userInput}
+            <input type="text" className={inputCls} placeholder="กรอกชื่อผู้ใช้" value={userInput}
               onChange={e => setUserInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
-            <input type="password" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              placeholder="กรอกรหัสผ่าน" value={pwInput}
+            <input type="password" className={inputCls} placeholder="กรอกรหัสผ่าน" value={pwInput}
               onChange={e => setPwInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           </div>
           <button onClick={handleLogin} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors">
@@ -269,9 +360,9 @@ export default function AdminPage() {
     )
   }
 
+  // ── Main UI ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-base font-bold text-gray-800">Dashboard ผู้ดูแลระบบ</h1>
@@ -286,15 +377,14 @@ export default function AdminPage() {
 
       <main className="max-w-6xl mx-auto p-6 space-y-6">
 
-        {/* Month selector (shared) */}
+        {/* Month selector + tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
           <div className="flex flex-wrap items-end gap-4">
             <div>
               <label className="block text-xs text-gray-500 mb-1">เดือน</label>
-              <input type="month" className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              <input type="month" className={inputCls + ' w-auto'}
                 value={selectedMonth} onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
             </div>
-            {/* Tabs */}
             <div className="flex gap-1 ml-auto">
               {(['individual', 'overview', 'manage'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
@@ -308,7 +398,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* ── Tab: Individual ── */}
+        {/* ── Tab: Individual ─────────────────────────────────────────────── */}
         {tab === 'individual' && (
           <>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -316,8 +406,8 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">นิสิต</label>
-                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
+                  <select className={inputCls} value={selectedStudentId}
+                    onChange={e => setSelectedStudentId(e.target.value)}>
                     <option value="">-- เลือกนิสิต --</option>
                     {students.map(s => (
                       <option key={s.student_id} value={s.student_id}>{s.name} ({s.student_id})</option>
@@ -326,8 +416,8 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">วันที่ (เฉพาะวัน)</label>
-                  <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                  <input type="date" className={inputCls} value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)} />
                 </div>
                 <div className="flex items-end gap-2 md:col-span-2">
                   <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
@@ -337,6 +427,16 @@ export default function AdminPage() {
                   {selectedDate && (
                     <button onClick={() => setSelectedDate('')}
                       className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-500 hover:bg-gray-50">ล้าง</button>
+                  )}
+                  {/* NEW: เพิ่ม Log */}
+                  {selectedStudentId && !selectedDate && (
+                    <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
+                      className="px-3 py-2.5 border border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      เพิ่ม Log
+                    </button>
                   )}
                 </div>
               </div>
@@ -351,9 +451,9 @@ export default function AdminPage() {
               <>
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'Work Days',    value: `${summary.totalDays}`,                                              color: 'bg-blue-50 text-blue-700 border-blue-100' },
-                    { label: 'Total Hours',  value: `${summary.totalHours}h ${summary.totalMinutes}m`,              color: 'bg-green-50 text-green-700 border-green-100' },
-                    { label: 'Tasks',        value: `${summary.taskCount}`,                                          color: 'bg-purple-50 text-purple-700 border-purple-100' },
+                    { label: 'Work Days',   value: `${summary.totalDays}`,                          color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                    { label: 'Total Hours', value: `${summary.totalHours}h ${summary.totalMinutes}m`, color: 'bg-green-50 text-green-700 border-green-100' },
+                    { label: 'Tasks',       value: `${summary.taskCount}`,                          color: 'bg-purple-50 text-purple-700 border-purple-100' },
                   ].map(c => (
                     <div key={c.label} className={`${c.color} border rounded-xl p-5 text-center`}>
                       <p className="text-sm font-medium opacity-60 mb-3">{c.label}</p>
@@ -436,19 +536,19 @@ export default function AdminPage() {
               </>
             )}
 
-            {/* ── Multi-month stats ── */}
+            {/* Multi-month stats */}
             {selectedStudentId && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
                 <h2 className="font-semibold text-gray-700 text-sm">สถิติย้อนหลังหลายเดือน</h2>
                 <div className="flex flex-wrap items-end gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">จากเดือน</label>
-                    <input type="month" className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    <input type="month" className={inputCls + ' w-auto'}
                       value={rangeStart} onChange={e => { setRangeStart(e.target.value); setMultiStats(null) }} />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">ถึงเดือน</label>
-                    <input type="month" className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    <input type="month" className={inputCls + ' w-auto'}
                       value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMultiStats(null) }} />
                   </div>
                   <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading}
@@ -465,7 +565,6 @@ export default function AdminPage() {
                     </button>
                   )}
                 </div>
-
                 {multiStats && (
                   <div className="overflow-x-auto rounded-lg border border-gray-100">
                     <table className="w-full text-sm">
@@ -494,7 +593,7 @@ export default function AdminPage() {
                             {multiStats.reduce((s, m) => s + m.days, 0)} วัน
                           </td>
                           <td className="px-4 py-3 text-center text-green-700">
-                            {(() => { const t = multiStats.reduce((s, m) => s + m.hours * 60 + m.minutes, 0); return `${Math.floor(t/60)}h ${t%60}m` })()}
+                            {(() => { const t = multiStats.reduce((s, m) => s + m.hours * 60 + m.minutes, 0); return `${Math.floor(t / 60)}h ${t % 60}m` })()}
                           </td>
                           <td className="px-4 py-3 text-center text-purple-700">
                             {multiStats.reduce((s, m) => s + m.tasks, 0)}
@@ -509,21 +608,33 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* ── Tab: Overview ── */}
+        {/* ── Tab: Overview ───────────────────────────────────────────────── */}
         {tab === 'overview' && (
           <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* NEW: department filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">ฝ่าย</label>
+                <select className={inputCls + ' w-auto'}
+                  value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
+                  <option value="">ทุกฝ่าย</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
               <button onClick={fetchOverview} disabled={overviewLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors">
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
                 {overviewLoading ? 'กำลังโหลด...' : `ดูภาพรวม ${selectedMonth}`}
               </button>
             </div>
 
-            {overview.length > 0 && (
+            {filteredOverview.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลาทุกคน</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{selectedMonth} — {overview.length} คน</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {selectedMonth} — {filteredOverview.length} คน
+                    {overviewDept && ` (ฝ่าย ${overviewDept})`}
+                  </p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -539,7 +650,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {overview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
+                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800">{student.name}</td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
@@ -556,8 +667,7 @@ export default function AdminPage() {
                           </td>
                           <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id) }}
+                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id) }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
                               ดูรายละเอียด
                             </button>
@@ -572,49 +682,72 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── Tab: Manage Students ── */}
+        {/* ── Tab: Manage ─────────────────────────────────────────────────── */}
         {tab === 'manage' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-700 text-sm">จัดการนิสิต</h2>
-              <p className="text-xs text-gray-400 mt-0.5">ลบนิสิตจะลบข้อมูลลงเวลาทั้งหมดของนิสิตคนนั้นด้วย</p>
+          <div className="space-y-4">
+            {/* NEW: เพิ่มนิสิต button */}
+            <div className="flex justify-end">
+              <button onClick={() => setAddStudentOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                เพิ่มนิสิตใหม่
+              </button>
             </div>
-            {students.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูลนิสิต</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                    <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
-                    <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
-                    <th className="px-4 py-3 text-left font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {students.map(s => (
-                    <tr key={s.student_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{s.student_id}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button onClick={() => handleDeleteStudent(s)}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium">
-                          ลบ
-                        </button>
-                      </td>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-semibold text-gray-700 text-sm">จัดการนิสิต</h2>
+                <p className="text-xs text-gray-400 mt-0.5">ลบนิสิตจะลบข้อมูลลงเวลาทั้งหมดของนิสิตคนนั้นด้วย</p>
+              </div>
+              {students.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูลนิสิต</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500 text-xs">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
+                      <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
+                      <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
+                      <th className="px-4 py-3 text-center font-medium">PIN</th>
+                      <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {students.map(s => (
+                      <tr key={s.student_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{s.student_id}</td>
+                        <td className="px-4 py-3">
+                          <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {s.pin
+                            ? <span className="text-green-600 text-xs font-medium">🔒 ตั้งแล้ว</span>
+                            : <span className="text-gray-300 text-xs">ไม่มี</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-3">
+                            <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                              {s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}
+                            </button>
+                            <button onClick={() => handleDeleteStudent(s)}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         )}
       </main>
 
-      {/* Edit Modal */}
+      {/* ── Modal: Edit Log ──────────────────────────────────────────────────── */}
       {editingLog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
@@ -628,30 +761,165 @@ export default function AdminPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า (เวลาไทย)</label>
-              <input type="datetime-local"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              <input type="datetime-local" className={inputCls}
                 value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาออก (เวลาไทย)</label>
-              <input type="datetime-local"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              <input type="datetime-local" className={inputCls}
                 value={editForm.check_out} onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
-              <textarea rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              <textarea rows={3} className={inputCls + ' resize-none'}
                 value={editForm.work_summary} onChange={e => setEditForm(f => ({ ...f, work_summary: e.target.value }))} />
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditingLog(null)}
-                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                ยกเลิก
-              </button>
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleEditSave} disabled={editSaving}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Add Student ───────────────────────────────────────────────── */}
+      {addStudentOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">เพิ่มนิสิตใหม่</h3>
+              <button onClick={() => setAddStudentOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต <span className="text-red-400">*</span></label>
+              <input type="text" className={inputCls} placeholder="เช่น 6412345678"
+                value={addStudentForm.student_id}
+                onChange={e => setAddStudentForm(f => ({ ...f, student_id: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล <span className="text-red-400">*</span></label>
+              <input type="text" className={inputCls} placeholder="ชื่อ นามสกุล"
+                value={addStudentForm.name}
+                onChange={e => setAddStudentForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+              <select className={inputCls} value={addStudentForm.department}
+                onChange={e => setAddStudentForm(f => ({ ...f, department: e.target.value }))}>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PIN (4 หลัก, ไม่บังคับ)</label>
+              <input type="text" inputMode="numeric" maxLength={4} className={inputCls}
+                placeholder="ไม่กรอก = ไม่มี PIN"
+                value={addStudentForm.pin}
+                onChange={e => setAddStudentForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))} />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setAddStudentOpen(false)}
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleAddStudent} disabled={addStudentSaving}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {addStudentSaving ? 'กำลังเพิ่ม...' : 'เพิ่มนิสิต'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Add Log ───────────────────────────────────────────────────── */}
+      {addLogOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">เพิ่ม Log ย้อนหลัง</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {students.find(s => s.student_id === selectedStudentId)?.name}
+                </p>
+              </div>
+              <button onClick={() => setAddLogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ <span className="text-red-400">*</span></label>
+              <input type="date" className={inputCls}
+                value={addLogForm.date}
+                onChange={e => setAddLogForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า (ไทย) <span className="text-red-400">*</span></label>
+                <input type="time" className={inputCls}
+                  value={addLogForm.check_in}
+                  onChange={e => setAddLogForm(f => ({ ...f, check_in: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาออก (ไทย)</label>
+                <input type="time" className={inputCls}
+                  value={addLogForm.check_out}
+                  onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
+              <textarea rows={2} className={inputCls + ' resize-none'} placeholder="งานที่ทำ..."
+                value={addLogForm.work_summary}
+                onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setAddLogOpen(false)}
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleAddLog} disabled={addLogSaving}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Set PIN ───────────────────────────────────────────────────── */}
+      {pinModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">ตั้ง PIN</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{pinModal.name}</p>
+              </div>
+              <button onClick={() => { setPinModal(null); setPinInput('') }} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PIN ใหม่ (4 หลัก)</label>
+              <input type="text" inputMode="numeric" maxLength={4} className={inputCls + ' tracking-widest text-center text-xl'}
+                placeholder="- - - -"
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))} />
+              <p className="text-xs text-gray-400 mt-1">เว้นว่างไว้เพื่อลบ PIN ออก</p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => { setPinModal(null); setPinInput('') }}
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleSetPin} disabled={pinSaving}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {pinSaving ? 'กำลังบันทึก...' : 'บันทึก PIN'}
               </button>
             </div>
           </div>

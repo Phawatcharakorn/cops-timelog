@@ -5,6 +5,7 @@ export type Student = {
   student_id: string
   name: string
   department: string
+  pin: string | null
   created_at: string
 }
 
