@@ -270,16 +270,21 @@ export default function PrintPageClient() {
           </tbody>
         </table>
 
-        {/* รวมเวลา — ชิดขวา นอกตาราง */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 6 }}>
-          <div style={{ background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: 6, padding: '8px 20px', textAlign: 'right' }}>
-            <span style={{ fontSize: 12, color: '#374151' }}>รวมทั้งหมด</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#15803d', marginLeft: 12 }}>
-              {totalHours} ชั่วโมง {totalMinutes} นาที
-            </span>
-            <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>
-              ({totalDays} วัน)
-            </span>
+        {/* รวมเวลา — สไตล์ใบเสร็จ */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 0 }}>
+          <div style={{ width: 300 }}>
+            <div style={{ borderTop: '1px solid #d1d5db', paddingTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 12, color: '#6b7280' }}>จำนวนวันปฏิบัติงาน</span>
+                <span style={{ fontSize: 12, color: '#374151' }}>{totalDays} วัน</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #d1d5db', paddingTop: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>รวมทั้งหมด</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                  {totalHours} ชั่วโมง {totalMinutes} นาที
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
