@@ -288,26 +288,27 @@ export default function PrintPageClient() {
           </div>
         </div>
 
-        {/* ── Signatures ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-          {[
-            { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
-            { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล', sub: '(.................................)' },
-            { label: 'ลายมือชื่อผู้อนุมัติ',         sub: '(.................................)' },
-          ].map(({ label, sub }) => (
-            <div key={label} style={{ textAlign: 'center', width: 185 }}>
-              <div style={{ borderTop: '1px solid #374151', marginTop: 52, marginBottom: 5 }} />
-              <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6 }}>{label}</p>
-              <p style={{ fontSize: 11, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.6 }}>{sub}</p>
-            </div>
-          ))}
-        </div>
+        {/* ── Signatures + Footer — keep on same page ── */}
+        <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+            {[
+              { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
+              { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล', sub: '(.................................)' },
+              { label: 'ลายมือชื่อผู้อนุมัติ',         sub: '(.................................)' },
+            ].map(({ label, sub }) => (
+              <div key={label} style={{ textAlign: 'center', width: 185 }}>
+                <div style={{ borderTop: '1px solid #374151', marginTop: 52, marginBottom: 5 }} />
+                <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6 }}>{label}</p>
+                <p style={{ fontSize: 11, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.6 }}>{sub}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* ── Footer ── */}
-        <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 24, paddingTop: 10, textAlign: 'center' }}>
-          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-            สร้างโดยระบบลงเวลา {projectTitle} — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
-          </p>
+          <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 24, paddingTop: 10, textAlign: 'center' }}>
+            <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+              สร้างโดยระบบลงเวลา {projectTitle} — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
+            </p>
+          </div>
         </div>
       </div>
     </>
