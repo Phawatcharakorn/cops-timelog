@@ -11,7 +11,7 @@ type HistoryLog  = {
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
 }
 
-const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
+const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
   'คณะพาณิชยนาวีนานาชาติ',
   'คณะเศรษฐศาสตร์ ศรีราชา',

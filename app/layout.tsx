@@ -9,8 +9,12 @@ const sarabun = Sarabun({
 })
 
 export const metadata: Metadata = {
-  title: 'ระบบลงเวลา CoPs Marketing',
-  description: 'Work Time Logging System',
+  title: 'ระบบลงเวลา CoPs',
+  description: 'ระบบบันทึกเวลาทำงาน CoPs มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา',
+  manifest: '/manifest.json',
+  themeColor: '#4f46e5',
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'CoPs Time' },
+  viewport: { width: 'device-width', initialScale: 1, maximumScale: 1 },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
