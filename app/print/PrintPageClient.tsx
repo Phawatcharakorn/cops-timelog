@@ -30,8 +30,9 @@ function toThai(iso: string) {
 
 export default function PrintPageClient() {
   const searchParams = useSearchParams()
-  const studentId = searchParams.get('studentId')
-  const month     = searchParams.get('month')
+  const studentId    = searchParams.get('studentId')
+  const month        = searchParams.get('month')
+  const date         = searchParams.get('date')   // yyyy-MM-dd (เฉพาะวัน)
   const projectParam = searchParams.get('project') ?? ''
 
   const [data,  setData]  = useState<ReportData | null>(null)
@@ -39,12 +40,23 @@ export default function PrintPageClient() {
   const [projectTitle, setProjectTitle] = useState(projectParam)
 
   useEffect(() => {
-    if (!studentId || !month) { setError('Missing params'); return }
+    if (!studentId || (!month && !date)) { setError('Missing params'); return }
 
-    const [y, m] = month.split('-').map(Number)
-    const TZ    = 7 * 60 * 60 * 1000
-    const start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
-    const end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
+    const TZ = 7 * 60 * 60 * 1000
+    let start: string, end: string, periodLabel: string
+
+    if (date) {
+      // กรองเฉพาะวัน
+      const d = new Date(date + 'T00:00:00+07:00')
+      start = new Date(d.getTime() - TZ).toISOString()
+      end   = new Date(d.getTime() - TZ + 86400000 - 1).toISOString()
+      periodLabel = format(d, 'd MMMM yyyy', { locale: th })
+    } else {
+      const [y, m] = month!.split('-').map(Number)
+      start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
+      end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
+      periodLabel = format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale: th })
+    }
 
     Promise.all([
       supabase.from('students').select('*').eq('student_id', studentId).single(),
@@ -76,18 +88,16 @@ export default function PrintPageClient() {
       setData({
         student,
         logs: processed,
-        monthLabel:    format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale: th }),
+        monthLabel: periodLabel,
         totalDays,
         totalHours:   Math.floor(totalMin / 60),
         totalMinutes: totalMin % 60,
         taskCount:    processed.filter(l => l.work_summary).length,
       })
 
-      if (!projectParam) {
-        setProjectTitle('')
-      }
+      if (!projectParam) setProjectTitle('')
     })
-  }, [studentId, month, projectParam])
+  }, [studentId, month, date, projectParam])
 
   if (error) return (
     <div className="p-8 text-center text-red-500 text-sm">{error}</div>
@@ -129,7 +139,7 @@ export default function PrintPageClient() {
 
       {/* Toolbar */}
       <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-6 py-3 flex items-center gap-4">
-        <span className="text-sm font-medium flex-shrink-0">{student.name} — {monthLabel}</span>
+        <span className="text-sm font-medium flex-shrink-0">{student.name} — {date ? 'วันที่ ' : ''}{monthLabel}</span>
         <div className="flex-1 flex items-center gap-2">
           <span className="text-xs text-gray-400 flex-shrink-0">ชื่อโครงการ:</span>
           <input
@@ -189,7 +199,7 @@ export default function PrintPageClient() {
             รายงานการลงเวลาปฏิบัติงาน
           </p>
           <p style={{ fontSize: 14, color: '#374151', margin: 0, lineHeight: 1.6 }}>
-            ประจำเดือน {monthLabel}
+            {date ? 'วันที่' : 'ประจำเดือน'} {monthLabel}
           </p>
         </div>
 
@@ -205,7 +215,7 @@ export default function PrintPageClient() {
               ['คณะ', student.faculty ?? '-'],
               ['สาขาวิชา', student.major ?? '-'],
               ['ฝ่าย / กลุ่มงาน', student.department],
-              ['ช่วงเวลา', monthLabel],
+              ['ช่วงเวลา', `${date ? 'วันที่ ' : ''}${monthLabel}`],
             ].map(([label, value], i) => (
               <div key={label} style={{
                 padding: '7px 14px',

@@ -227,7 +227,10 @@ export default function AdminPage() {
 
   const handleExportPDF = () => {
     if (!summary) return
-    window.open(`/print?studentId=${selectedStudentId}&month=${selectedMonth}`, '_blank')
+    const url = selectedDate
+      ? `/print?studentId=${selectedStudentId}&date=${selectedDate}`
+      : `/print?studentId=${selectedStudentId}&month=${selectedMonth}`
+    window.open(url, '_blank')
   }
 
   const handleDeleteStudent = async (student: Student) => {
