@@ -32,8 +32,11 @@ export default function PrintPageClient() {
   const searchParams = useSearchParams()
   const studentId = searchParams.get('studentId')
   const month     = searchParams.get('month')
+  const projectParam = searchParams.get('project') ?? ''
+
   const [data,  setData]  = useState<ReportData | null>(null)
   const [error, setError] = useState('')
+  const [projectTitle, setProjectTitle] = useState(projectParam)
 
   useEffect(() => {
     if (!studentId || !month) { setError('Missing params'); return }
@@ -79,8 +82,12 @@ export default function PrintPageClient() {
         totalMinutes: totalMin % 60,
         taskCount:    processed.filter(l => l.work_summary).length,
       })
+
+      if (!projectParam) {
+        setProjectTitle(`CoPs ${student.department}`)
+      }
     })
-  }, [studentId, month])
+  }, [studentId, month, projectParam])
 
   if (error) return (
     <div className="p-8 text-center text-red-500 text-sm">{error}</div>
@@ -91,7 +98,8 @@ export default function PrintPageClient() {
     </div>
   )
 
-  const { student, logs, monthLabel, totalDays, totalHours, totalMinutes, taskCount } = data
+  const { student, logs, monthLabel, totalDays, totalHours, totalMinutes } = data
+  const totalMin = totalHours * 60 + totalMinutes
 
   return (
     <>
@@ -99,18 +107,34 @@ export default function PrintPageClient() {
         @font-face { font-family:'Sarabun'; src:url('/fonts/Sarabun-Regular.ttf') format('truetype'); font-weight:400; }
         @font-face { font-family:'Sarabun'; src:url('/fonts/Sarabun-Medium.ttf')  format('truetype'); font-weight:500; }
         @font-face { font-family:'Sarabun'; src:url('/fonts/Sarabun-Bold.ttf')    format('truetype'); font-weight:700; }
-        * { font-family: 'Sarabun', sans-serif; }
+        * { font-family: 'Sarabun', sans-serif; box-sizing: border-box; }
+        body { margin: 0; background: #f3f4f6; }
         @media print {
           .no-print { display: none !important; }
           body { background: white; }
-          @page { margin: 1.5cm; size: A4 portrait; }
+          @page { margin: 1.8cm 1.5cm; size: A4 portrait; }
+          .page-body { padding: 0 !important; max-width: none !important; box-shadow: none !important; }
         }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { padding: 7px 10px; font-size: 12px; line-height: 1.6; }
+        .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: left; }
+        .data-table td { border-bottom: 1px solid #e5e7eb; color: #374151; }
+        .data-table tr:nth-child(even) td { background: #f8fafc; }
       `}</style>
 
-      {/* Toolbar — hidden when printing */}
-      <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-6 py-3 flex items-center justify-between">
-        <span className="text-sm font-medium">{student.name} — {monthLabel}</span>
-        <div className="flex gap-2">
+      {/* Toolbar */}
+      <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-6 py-3 flex items-center gap-4">
+        <span className="text-sm font-medium flex-shrink-0">{student.name} — {monthLabel}</span>
+        <div className="flex-1 flex items-center gap-2">
+          <span className="text-xs text-gray-400 flex-shrink-0">ชื่อโครงการ:</span>
+          <input
+            className="flex-1 bg-gray-700 text-white text-sm px-3 py-1 rounded border border-gray-600 focus:outline-none focus:border-indigo-400 min-w-0"
+            value={projectTitle}
+            onChange={e => setProjectTitle(e.target.value)}
+            placeholder="เช่น CoPs Marketing"
+          />
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => window.print()}
             className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -124,98 +148,135 @@ export default function PrintPageClient() {
           <button
             onClick={() => window.close()}
             className="bg-gray-600 hover:bg-gray-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          >
-            ปิด
-          </button>
+          >ปิด</button>
         </div>
       </div>
 
-      {/* Report body */}
-      <div className="max-w-3xl mx-auto p-8 bg-white min-h-screen">
+      {/* A4 body */}
+      <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10" style={{ minHeight: '29.7cm' }}>
 
-        {/* Header */}
-        <div className="rounded-lg px-5 py-4 mb-5" style={{ backgroundColor: '#3730a3' }}>
-          <p className="text-white font-bold text-sm leading-relaxed">
-            รายงานการลงเวลาทำงาน ประจำเดือน {monthLabel}
+        {/* ── Letterhead ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
+          <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 72, height: 72, flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
+              มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
+            </p>
+            <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
+              Kasetsart University Sriracha Campus
+            </p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
+              {projectTitle}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Document title ── */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.6 }}>
+            รายงานการลงเวลาปฏิบัติงาน
           </p>
-          <p className="text-indigo-200 text-xs mt-1 leading-relaxed">
-            CoPs {student.department} — {student.name}
+          <p style={{ fontSize: 14, color: '#374151', margin: 0, lineHeight: 1.6 }}>
+            ประจำเดือน {monthLabel}
           </p>
         </div>
 
-        {/* Student info */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {([
-            { label: 'ชื่อ-นามสกุล', value: student.name },
-            { label: 'รหัสนิสิต',    value: student.student_id },
-            { label: 'ฝ่าย',          value: student.department },
-          ] as const).map(({ label, value }) => (
-            <div key={label} className="border border-gray-200 rounded-lg p-3">
-              <p className="text-gray-400 text-xs mb-1 leading-relaxed">{label}</p>
-              <p className="font-bold text-gray-800 text-sm leading-relaxed">{value}</p>
-            </div>
-          ))}
+        {/* ── Student info box ── */}
+        <div style={{ border: '1px solid #1a3a5c', borderRadius: 6, marginBottom: 18, overflow: 'hidden' }}>
+          <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+            <p style={{ color: 'white', fontSize: 12, fontWeight: 600, margin: 0 }}>ข้อมูลนิสิต</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            {[
+              ['ชื่อ-นามสกุล', student.name],
+              ['รหัสนิสิต', student.student_id],
+              ['คณะ', student.faculty ?? '-'],
+              ['สาขาวิชา', student.major ?? '-'],
+              ['ฝ่าย / กลุ่มงาน', student.department],
+              ['ช่วงเวลา', monthLabel],
+            ].map(([label, value], i) => (
+              <div key={label} style={{
+                padding: '7px 14px',
+                borderBottom: i < 4 ? '1px solid #e5e7eb' : undefined,
+                borderRight: i % 2 === 0 ? '1px solid #e5e7eb' : undefined,
+              }}>
+                <p style={{ fontSize: 10, color: '#6b7280', margin: 0, lineHeight: 1.4 }}>{label}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0, lineHeight: 1.5 }}>{value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Summary */}
-        <div className="grid grid-cols-4 gap-3 mb-5">
+        {/* ── Summary boxes ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
           {[
-            { label: 'Work Days',    value: String(totalDays),    color: '#1d4ed8' },
-            { label: 'Total Hours',  value: String(totalHours),   color: '#15803d' },
-            { label: 'Minutes',      value: String(totalMinutes), color: '#15803d' },
-            { label: 'Tasks',        value: String(taskCount),    color: '#7e22ce' },
+            { label: 'จำนวนวันที่ปฏิบัติงาน', value: `${totalDays} วัน`, color: '#1d4ed8' },
+            { label: 'ชั่วโมงรวมทั้งหมด',     value: `${totalHours} ชม. ${totalMinutes} นาที`, color: '#15803d' },
+            { label: 'เฉลี่ยต่อวัน',           value: totalDays > 0 ? `${Math.floor(totalMin / totalDays / 60)} ชม. ${totalMin / totalDays % 60 | 0} นาที` : '-', color: '#7e22ce' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="rounded-lg p-3 text-center" style={{ backgroundColor: '#eff6ff' }}>
-              <p className="text-2xl font-bold" style={{ color }}>{value}</p>
-              <p className="text-xs mt-1" style={{ color: '#3b82f6' }}>{label}</p>
+            <div key={label} style={{ border: `1px solid ${color}22`, borderRadius: 6, padding: '10px 14px', background: `${color}08`, textAlign: 'center' }}>
+              <p style={{ fontSize: 18, fontWeight: 700, color, margin: 0 }}>{value}</p>
+              <p style={{ fontSize: 10, color: '#6b7280', margin: 0, marginTop: 2 }}>{label}</p>
             </div>
           ))}
         </div>
 
-        {/* Table */}
-        <p className="font-bold text-gray-700 text-sm mb-2 leading-relaxed">รายละเอียดการลงเวลา</p>
-        <table className="w-full text-xs" style={{ borderCollapse: 'collapse', border: '1px solid #e5e7eb', borderRadius: 4 }}>
+        {/* ── Time log table ── */}
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5c', marginBottom: 6, marginTop: 0 }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
+        <table className="data-table" style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', marginBottom: 32 }}>
           <thead>
-            <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-              {['วันที่', 'เข้า', 'ออก', 'ชั่วโมง', 'สรุปงาน'].map(h => (
-                <th key={h} className="text-left font-semibold text-gray-500 leading-relaxed"
-                  style={{ padding: '6px 10px' }}>{h}</th>
-              ))}
+            <tr>
+              <th style={{ width: 32, textAlign: 'center' }}>#</th>
+              <th>วันที่</th>
+              <th>เวลาเข้า</th>
+              <th>เวลาออก</th>
+              <th>ชั่วโมง</th>
+              <th>สรุปงานที่ปฏิบัติ</th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log, i) => (
-              <tr key={log.id} style={{ backgroundColor: i % 2 === 1 ? '#fafafa' : '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '8px 10px', lineHeight: 1.8, color: '#374151' }}>{log.dateStr}</td>
-                <td style={{ padding: '8px 10px', lineHeight: 1.8, color: '#16a34a', fontWeight: 500 }}>{log.checkInStr}</td>
-                <td style={{ padding: '8px 10px', lineHeight: 1.8, color: '#dc2626', fontWeight: 500 }}>{log.checkOutStr}</td>
-                <td style={{ padding: '8px 10px', lineHeight: 1.8, color: '#374151' }}>{log.durationStr}</td>
-                <td style={{ padding: '8px 10px', lineHeight: 1.8, color: '#374151' }}>{log.work_summary || '-'}</td>
+              <tr key={log.id}>
+                <td style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11 }}>{i + 1}</td>
+                <td>{log.dateStr}</td>
+                <td style={{ color: '#15803d', fontWeight: 500 }}>{log.checkInStr}</td>
+                <td style={{ color: '#dc2626', fontWeight: 500 }}>{log.checkOutStr}</td>
+                <td>{log.durationStr}</td>
+                <td style={{ color: '#4b5563' }}>{log.work_summary || '-'}</td>
               </tr>
             ))}
+            {/* Total row */}
+            <tr>
+              <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700, color: '#1a3a5c', borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}>รวมทั้งหมด</td>
+              <td style={{ fontWeight: 700, color: '#15803d', borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}>
+                {totalHours}h {totalMinutes}m
+              </td>
+              <td style={{ borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}></td>
+            </tr>
           </tbody>
         </table>
 
-        {/* Signatures */}
-        <div className="flex justify-between mt-10">
+        {/* ── Signatures ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
           {[
-            { label: 'ลายมือชื่อนิสิต',   sub: `(${student.name})` },
-            { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล',  sub: '(.................................)' },
-            { label: 'ลายมือชื่อผู้อนุมัติ', sub: '(.................................)' },
+            { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
+            { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล', sub: '(.................................)' },
+            { label: 'ลายมือชื่อผู้อนุมัติ',         sub: '(.................................)' },
           ].map(({ label, sub }) => (
-            <div key={label} className="text-center" style={{ width: 190 }}>
-              <div style={{ borderTop: '1px solid #374151', marginTop: 48, marginBottom: 4 }} />
-              <p className="text-xs text-gray-500 leading-relaxed">{label}</p>
-              <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{sub}</p>
+            <div key={label} style={{ textAlign: 'center', width: 185 }}>
+              <div style={{ borderTop: '1px solid #374151', marginTop: 52, marginBottom: 5 }} />
+              <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6 }}>{label}</p>
+              <p style={{ fontSize: 11, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.6 }}>{sub}</p>
             </div>
           ))}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-400 mt-6 leading-relaxed">
-          สร้างโดยระบบลงเวลา CoPs {student.department} —{' '}
-          {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
-        </p>
+        {/* ── Footer ── */}
+        <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 24, paddingTop: 10, textAlign: 'center' }}>
+          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+            สร้างโดยระบบลงเวลา {projectTitle} — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
+          </p>
+        </div>
       </div>
     </>
   )
