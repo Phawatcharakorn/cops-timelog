@@ -200,7 +200,7 @@ export default function PrintPageClient() {
         <div className="flex justify-between mt-10">
           {[
             { label: 'ลายมือชื่อนิสิต',   sub: `(${student.name})` },
-            { label: 'ลายมือชื่อผู้ดูแล',  sub: '(.................................)' },
+            { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล',  sub: '(.................................)' },
             { label: 'ลายมือชื่อผู้อนุมัติ', sub: '(.................................)' },
           ].map(({ label, sub }) => (
             <div key={label} className="text-center" style={{ width: 190 }}>
