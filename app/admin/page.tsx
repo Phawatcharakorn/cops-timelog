@@ -85,8 +85,9 @@ export default function AdminPage() {
   const [pinSaving, setPinSaving] = useState(false)
 
   // Search
-  const [searchIndividual, setSearchIndividual] = useState('')
-  const [searchManage, setSearchManage]         = useState('')
+  const [searchIndividual, setSearchIndividual]       = useState('')
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false)
+  const [searchManage, setSearchManage]               = useState('')
 
   // PIN reveal
   const [revealedPins, setRevealedPins] = useState<Set<string>>(new Set())
@@ -463,21 +464,54 @@ export default function AdminPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <h2 className="font-semibold text-gray-700 text-sm mb-4">เลือกนิสิต</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block text-xs text-gray-500 mb-1">นิสิต</label>
-                  <input
-                    className={inputCls + ' mb-1.5'}
-                    placeholder="ค้นหาชื่อหรือรหัสนิสิต..."
-                    value={searchIndividual}
-                    onChange={e => setSearchIndividual(e.target.value)}
-                  />
-                  <select className={inputCls} value={selectedStudentId}
-                    onChange={e => setSelectedStudentId(e.target.value)}>
-                    <option value="">-- เลือกนิสิต --</option>
-                    {filteredStudentsIndividual.map(s => (
-                      <option key={s.student_id} value={s.student_id}>{s.name} ({s.student_id})</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      className={inputCls}
+                      placeholder="พิมพ์ชื่อหรือรหัสนิสิต..."
+                      value={searchIndividual}
+                      onChange={e => {
+                        setSearchIndividual(e.target.value)
+                        setSelectedStudentId('')
+                        setShowStudentDropdown(true)
+                      }}
+                      onFocus={() => setShowStudentDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowStudentDropdown(false), 150)}
+                      autoComplete="off"
+                    />
+                    {searchIndividual && (
+                      <button
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onMouseDown={e => { e.preventDefault(); setSearchIndividual(''); setSelectedStudentId(''); }}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {showStudentDropdown && filteredStudentsIndividual.length > 0 && (
+                    <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                      {filteredStudentsIndividual.map(s => (
+                        <li key={s.student_id}
+                          className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${selectedStudentId === s.student_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                          onMouseDown={() => {
+                            setSelectedStudentId(s.student_id)
+                            setSearchIndividual(`${s.name} (${s.student_id})`)
+                            setShowStudentDropdown(false)
+                          }}>
+                          <span className="font-medium">{s.name}</span>
+                          <span className="text-xs text-gray-400 ml-2">{s.student_id}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {showStudentDropdown && searchIndividual && filteredStudentsIndividual.length === 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-400">
+                      ไม่พบนิสิต
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">วันที่ (เฉพาะวัน)</label>
