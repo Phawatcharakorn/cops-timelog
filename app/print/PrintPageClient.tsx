@@ -122,12 +122,14 @@ export default function PrintPageClient() {
         @media print {
           .no-print { display: none !important; }
           body { background: white; }
-          @page { margin: 1.5cm; size: A4 portrait; }
+          @page { margin: 0; size: A4 portrait; }
           .page-body {
-            padding: 0 !important;
+            padding: 1.5cm !important;
             max-width: none !important;
             box-shadow: none !important;
             margin: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
           }
         }
         table { border-collapse: collapse; width: 100%; }
@@ -270,26 +272,27 @@ export default function PrintPageClient() {
           </tbody>
         </table>
 
-        {/* รวมเวลา — สไตล์ใบเสร็จ */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 0 }}>
-          <div style={{ width: 300 }}>
-            <div style={{ borderTop: '1px solid #d1d5db', paddingTop: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>จำนวนวันปฏิบัติงาน</span>
-                <span style={{ fontSize: 12, color: '#374151' }}>{totalDays} วัน</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #d1d5db', paddingTop: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>รวมทั้งหมด</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
-                  {totalHours} ชั่วโมง {totalMinutes} นาที
-                </span>
+        {/* ── รวมทั้งหมด + ลายเซ็น + Footer — อยู่ด้วยกันเสมอ ── */}
+        <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {/* รวมเวลา */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 0 }}>
+            <div style={{ width: 300 }}>
+              <div style={{ borderTop: '1px solid #d1d5db', paddingTop: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontSize: 12, color: '#6b7280' }}>จำนวนวันปฏิบัติงาน</span>
+                  <span style={{ fontSize: 12, color: '#374151' }}>{totalDays} วัน</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #d1d5db', paddingTop: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>รวมทั้งหมด</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                    {totalHours} ชั่วโมง {totalMinutes} นาที
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Signatures + Footer — keep on same page ── */}
-        <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {/* ลายเซ็น */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
             {[
               { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
@@ -304,6 +307,7 @@ export default function PrintPageClient() {
             ))}
           </div>
 
+          {/* Footer */}
           <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 24, paddingTop: 10, textAlign: 'center' }}>
             <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
               สร้างโดยระบบลงเวลา {projectTitle} — {format(new Date(), 'd MMM yyyy HH:mm', { locale: th })}
