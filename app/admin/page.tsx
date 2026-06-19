@@ -534,7 +534,7 @@ export default function AdminPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-gray-500 text-xs">
                         <tr>
-                          <th className="px-3 py-3 text-center font-medium w-10">#</th>
+                          <th className="px-3 py-3 text-center font-medium w-10">ลำดับ</th>
                           <th className="px-4 py-3 text-left font-medium">วันที่</th>
                           <th className="px-4 py-3 text-left font-medium">เวลาเข้า</th>
                           <th className="px-4 py-3 text-left font-medium">เวลาออก</th>

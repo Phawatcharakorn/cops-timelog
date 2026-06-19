@@ -237,7 +237,7 @@ export default function PrintPageClient() {
         <table className="data-table" style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', marginBottom: 32 }}>
           <thead>
             <tr>
-              <th style={{ width: 48, textAlign: 'center' }}>ลำดับที่</th>
+              <th style={{ width: 40, textAlign: 'center' }}>ลำดับ</th>
               <th>วันที่</th>
               <th>เวลาเข้า</th>
               <th>เวลาออก</th>
