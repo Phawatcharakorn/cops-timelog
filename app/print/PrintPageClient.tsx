@@ -119,9 +119,6 @@ export default function PrintPageClient() {
             box-shadow: none !important;
             margin: 0 !important;
           }
-          .print-header {
-            display: block !important;
-          }
         }
         table { border-collapse: collapse; width: 100%; }
         th, td { padding: 7px 10px; font-size: 12px; line-height: 1.6; }
@@ -160,16 +157,15 @@ export default function PrintPageClient() {
         </div>
       </div>
 
-      {/* Print-only header: date top-right */}
-      <div className="print-header" style={{ display: 'none', position: 'fixed', top: '0.6cm', right: '1.5cm', fontSize: 10, color: '#9ca3af' }}>
-        {format(new Date(), 'd/M/yy, HH:mm', { locale: th })}
-      </div>
-
       {/* A4 body */}
       <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10" style={{ minHeight: '29.7cm' }}>
 
         {/* ── Letterhead ── */}
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
+        <div style={{ position: 'relative', textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
+          {/* วันที่พิมพ์ — ขวาบน หน้าแรกเท่านั้น */}
+          <p style={{ position: 'absolute', top: 0, right: 0, fontSize: 10, color: '#9ca3af', margin: 0 }}>
+            {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
+          </p>
           <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 80, height: 80, margin: '0 auto 8px' }} />
           <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
             มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
@@ -256,16 +252,21 @@ export default function PrintPageClient() {
                 <td style={{ color: '#4b5563' }}>{log.work_summary || '-'}</td>
               </tr>
             ))}
-            {/* Total row */}
-            <tr>
-              <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700, color: '#1a3a5c', borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}>รวมทั้งหมด</td>
-              <td style={{ fontWeight: 700, color: '#15803d', borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}>
-                {totalHours}h {totalMinutes}m
-              </td>
-              <td style={{ borderTop: '2px solid #1a3a5c', background: '#f0f4ff' }}></td>
-            </tr>
           </tbody>
         </table>
+
+        {/* รวมเวลา — ชิดขวา นอกตาราง */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 6 }}>
+          <div style={{ background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: 6, padding: '8px 20px', textAlign: 'right' }}>
+            <span style={{ fontSize: 12, color: '#374151' }}>รวมทั้งหมด</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#15803d', marginLeft: 12 }}>
+              {totalHours} ชั่วโมง {totalMinutes} นาที
+            </span>
+            <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>
+              ({totalDays} วัน)
+            </span>
+          </div>
+        </div>
 
         {/* ── Signatures ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
