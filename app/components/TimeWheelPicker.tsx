@@ -1,29 +1,49 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 
-const IH = 40   // item height px
-const N  = 3    // visible items (center = selected)
+const IH     = 40   // item height px
+const N      = 3    // visible items (center = selected)
+const REPEAT = 3    // copies → ample room to scroll either way
 
-function Wheel({ values, value, onChange }: { values: string[]; value: string; onChange: (v: string) => void }) {
+function Wheel({ values, value, onChange }: {
+  values: string[]; value: string; onChange: (v: string) => void
+}) {
   const el       = useRef<HTMLDivElement>(null)
   const timer    = useRef<ReturnType<typeof setTimeout>>()
   const dragging = useRef(false)
-  const [center, setCenter] = useState(() => Math.max(0, values.indexOf(value)))
 
+  const looped = useMemo(() => Array.from({ length: REPEAT }, () => values).flat(), [values])
+  const mid    = values.length   // index offset of the middle copy
+
+  const [center, setCenter] = useState(() => mid + Math.max(0, values.indexOf(value)))
+
+  // Sync external value → scroll position (instant, no animation)
   useEffect(() => {
     const i = values.indexOf(value)
-    if (i >= 0 && el.current) { el.current.scrollTop = i * IH; setCenter(i) }
-  }, [value, values])
+    if (i >= 0 && el.current) {
+      el.current.scrollTop = (mid + i) * IH
+      setCenter(mid + i)
+    }
+  }, [value, values, mid])
 
+  // After drag/scroll stops: snap to nearest item, then silently re-center to middle copy
   const settle = useCallback(() => {
     if (!el.current) return
-    const i = Math.max(0, Math.min(values.length - 1, Math.round(el.current.scrollTop / IH)))
-    el.current.scrollTo({ top: i * IH, behavior: 'smooth' })
-    setCenter(i)
-    onChange(values[i])
-  }, [values, onChange])
+    const raw     = Math.round(el.current.scrollTop / IH)
+    const logical = ((raw % values.length) + values.length) % values.length
+    el.current.scrollTo({ top: raw * IH, behavior: 'smooth' })
+    setCenter(raw)
+    onChange(values[logical])
+    // After smooth animation finishes, jump to middle copy — no visual change since same number
+    setTimeout(() => {
+      if (!el.current) return
+      el.current.scrollTop = (mid + logical) * IH
+      setCenter(mid + logical)
+    }, 260)
+  }, [values, mid, onChange])
 
+  // Native scroll (touch / trackpad)
   const onScroll = useCallback(() => {
     if (!el.current || dragging.current) return
     setCenter(Math.round(el.current.scrollTop / IH))
@@ -31,13 +51,13 @@ function Wheel({ values, value, onChange }: { values: string[]; value: string; o
     timer.current = setTimeout(settle, 100)
   }, [settle])
 
+  // Mouse drag
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (!el.current) return
     dragging.current = true
     clearTimeout(timer.current)
     const y0 = e.clientY
     const t0 = el.current.scrollTop
-
     const move = (e: MouseEvent) => {
       if (!el.current) return
       el.current.scrollTop = t0 - (e.clientY - y0)
@@ -53,6 +73,7 @@ function Wheel({ values, value, onChange }: { values: string[]; value: string; o
     document.addEventListener('mouseup', up)
   }, [settle])
 
+  // Scroll wheel (one step at a time)
   useEffect(() => {
     const div = el.current
     if (!div) return
@@ -69,22 +90,23 @@ function Wheel({ values, value, onChange }: { values: string[]; value: string; o
 
   return (
     <div className="relative select-none" style={{ width: 56, height: IH * N }} onMouseDown={onMouseDown}>
-      {/* Highlight */}
+      {/* Selection highlight */}
       <div className="absolute rounded-lg bg-indigo-600 pointer-events-none"
         style={{ top: IH, left: 3, right: 3, height: IH, zIndex: 1 }} />
 
-      {/* Scroll list */}
+      {/* Looped list */}
       <style>{'.tw::-webkit-scrollbar{display:none}'}</style>
       <div ref={el} onScroll={onScroll} className="tw absolute inset-0 overflow-y-auto"
         style={{ scrollbarWidth: 'none', overscrollBehavior: 'contain', cursor: 'ns-resize', zIndex: 2, willChange: 'scroll-position' }}>
         <div style={{ height: IH }} />
-        {values.map((v, i) => (
-          <div key={v} className="flex items-center justify-center"
+        {looped.map((v, i) => (
+          <div key={i} className="flex items-center justify-center"
             style={{
-              height: IH, fontSize: 19, fontWeight: i === center ? 700 : 400,
+              height: IH, fontSize: 19, userSelect: 'none',
+              fontWeight: i === center ? 700 : 400,
               color: i === center ? '#fff' : '#9ca3af',
               transition: 'color .1s ease',
-              position: 'relative', zIndex: 3, userSelect: 'none',
+              position: 'relative', zIndex: 3,
             }}>
             {v}
           </div>
@@ -92,10 +114,9 @@ function Wheel({ values, value, onChange }: { values: string[]; value: string; o
         <div style={{ height: IH }} />
       </div>
 
-      {/* Top fade */}
+      {/* Fade edges */}
       <div className="absolute inset-x-0 top-0 pointer-events-none"
         style={{ height: IH, background: 'linear-gradient(to bottom,white 30%,transparent)', zIndex: 4 }} />
-      {/* Bottom fade */}
       <div className="absolute inset-x-0 bottom-0 pointer-events-none"
         style={{ height: IH, background: 'linear-gradient(to top,white 30%,transparent)', zIndex: 4 }} />
     </div>
@@ -104,9 +125,8 @@ function Wheel({ values, value, onChange }: { values: string[]; value: string; o
 
 export default function TimeWheelPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [hh, mm] = (value || '00:00').split(':')
-  const hours   = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))
-
+  const hours   = useMemo(() => Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')), [])
+  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')), [])
   return (
     <div className="flex items-center justify-center gap-0.5 bg-gray-50 rounded-xl py-1 px-2">
       <Wheel values={hours}   value={hh ?? '00'} onChange={h => onChange(`${h}:${mm ?? '00'}`)} />
