@@ -84,6 +84,10 @@ export default function AdminPage() {
   const [pinInput, setPinInput]   = useState('')
   const [pinSaving, setPinSaving] = useState(false)
 
+  // Search
+  const [searchIndividual, setSearchIndividual] = useState('')
+  const [searchManage, setSearchManage]         = useState('')
+
   // PIN reveal
   const [revealedPins, setRevealedPins] = useState<Set<string>>(new Set())
   const togglePinReveal = (id: string) =>
@@ -367,6 +371,14 @@ export default function AdminPage() {
     ? overview.filter(o => o.student.department === overviewDept)
     : overview
 
+  const q = (s: string) => s.toLowerCase()
+  const filteredStudentsIndividual = searchIndividual
+    ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual))
+    : students
+  const filteredStudentsManage = searchManage
+    ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage))
+    : students
+
   // ── Login UI ───────────────────────────────────────────────────────────────
   if (!authed) {
     return (
@@ -453,10 +465,16 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">นิสิต</label>
+                  <input
+                    className={inputCls + ' mb-1.5'}
+                    placeholder="ค้นหาชื่อหรือรหัสนิสิต..."
+                    value={searchIndividual}
+                    onChange={e => setSearchIndividual(e.target.value)}
+                  />
                   <select className={inputCls} value={selectedStudentId}
                     onChange={e => setSelectedStudentId(e.target.value)}>
                     <option value="">-- เลือกนิสิต --</option>
-                    {students.map(s => (
+                    {filteredStudentsIndividual.map(s => (
                       <option key={s.student_id} value={s.student_id}>{s.name} ({s.student_id})</option>
                     ))}
                   </select>
@@ -744,12 +762,25 @@ export default function AdminPage() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="font-semibold text-gray-700 text-sm">จัดการนิสิต</h2>
-                <p className="text-xs text-gray-400 mt-0.5">ลบนิสิตจะลบข้อมูลลงเวลาทั้งหมดของนิสิตคนนั้นด้วย</p>
+              <div className="px-5 py-4 border-b border-gray-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-semibold text-gray-700 text-sm">จัดการนิสิต</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">ลบนิสิตจะลบข้อมูลลงเวลาทั้งหมดของนิสิตคนนั้นด้วย</p>
+                  </div>
+                  <span className="text-xs text-gray-400">{filteredStudentsManage.length} / {students.length} คน</span>
+                </div>
+                <input
+                  className={inputCls}
+                  placeholder="ค้นหาชื่อหรือรหัสนิสิต..."
+                  value={searchManage}
+                  onChange={e => setSearchManage(e.target.value)}
+                />
               </div>
               {students.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูลนิสิต</div>
+              ) : filteredStudentsManage.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 text-sm">ไม่พบนิสิตที่ค้นหา</div>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500 text-xs">
@@ -763,7 +794,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {students.map(s => (
+                    {filteredStudentsManage.map(s => (
                       <tr key={s.student_id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
                         <td className="px-4 py-3 text-gray-500">{s.student_id}</td>
