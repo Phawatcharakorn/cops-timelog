@@ -970,13 +970,25 @@ export default function AdminPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า (เวลาไทย)</label>
-              <input type="datetime-local" className={inputCls}
-                value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" className={inputCls}
+                  value={editForm.check_in.slice(0, 10)}
+                  onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value + 'T' + (f.check_in.slice(11) || '00:00') }))} />
+                <input type="time" className={inputCls}
+                  value={editForm.check_in.slice(11)}
+                  onChange={e => setEditForm(f => ({ ...f, check_in: (f.check_in.slice(0, 10)) + 'T' + e.target.value }))} />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาออก (เวลาไทย)</label>
-              <input type="datetime-local" className={inputCls}
-                value={editForm.check_out} onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" className={inputCls}
+                  value={editForm.check_out.slice(0, 10)}
+                  onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value + 'T' + (f.check_out.slice(11) || '00:00') }))} />
+                <input type="time" className={inputCls}
+                  value={editForm.check_out.slice(11)}
+                  onChange={e => setEditForm(f => ({ ...f, check_out: (f.check_out.slice(0, 10)) + 'T' + e.target.value }))} />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
