@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, type Student, type TimeLog } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
+import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
@@ -969,26 +970,24 @@ export default function AdminPage() {
               </button>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า (เวลาไทย)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input type="date" className={inputCls}
-                  value={editForm.check_in.slice(0, 10)}
-                  onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value + 'T' + (f.check_in.slice(11) || '00:00') }))} />
-                <input type="time" className={inputCls}
-                  value={editForm.check_in.slice(11)}
-                  onChange={e => setEditForm(f => ({ ...f, check_in: (f.check_in.slice(0, 10)) + 'T' + e.target.value }))} />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่เข้า (เวลาไทย)</label>
+              <input type="date" className={inputCls}
+                value={editForm.check_in.slice(0, 10)}
+                onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value + 'T' + (f.check_in.slice(11) || '00:00') }))} />
+              <p className="text-xs text-gray-400 mt-1.5 mb-1">เวลาเข้า</p>
+              <TimeWheelPicker
+                value={editForm.check_in.slice(11) || '00:00'}
+                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เวลาออก (เวลาไทย)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input type="date" className={inputCls}
-                  value={editForm.check_out.slice(0, 10)}
-                  onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value + 'T' + (f.check_out.slice(11) || '00:00') }))} />
-                <input type="time" className={inputCls}
-                  value={editForm.check_out.slice(11)}
-                  onChange={e => setEditForm(f => ({ ...f, check_out: (f.check_out.slice(0, 10)) + 'T' + e.target.value }))} />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ออก (เวลาไทย)</label>
+              <input type="date" className={inputCls}
+                value={editForm.check_out.slice(0, 10)}
+                onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value + 'T' + (f.check_out.slice(11) || '00:00') }))} />
+              <p className="text-xs text-gray-400 mt-1.5 mb-1">เวลาออก</p>
+              <TimeWheelPicker
+                value={editForm.check_out.slice(11) || '00:00'}
+                onChange={t => setEditForm(f => ({ ...f, check_out: f.check_out.slice(0, 10) + 'T' + t }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
@@ -1098,19 +1097,28 @@ export default function AdminPage() {
                 value={addLogForm.date}
                 onChange={e => setAddLogForm(f => ({ ...f, date: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า (ไทย) <span className="text-red-400">*</span></label>
-                <input type="time" className={inputCls}
-                  value={addLogForm.check_in}
-                  onChange={e => setAddLogForm(f => ({ ...f, check_in: e.target.value }))} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า <span className="text-red-400">*</span></label>
+              <TimeWheelPicker
+                value={addLogForm.check_in || '00:00'}
+                onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="text-sm font-medium text-gray-700">เวลาออก</label>
+                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                  <input type="checkbox"
+                    checked={!!addLogForm.check_out}
+                    onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.checked ? '18:00' : '' }))}
+                  />
+                  ระบุเวลาออก
+                </label>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เวลาออก (ไทย)</label>
-                <input type="time" className={inputCls}
+              {addLogForm.check_out && (
+                <TimeWheelPicker
                   value={addLogForm.check_out}
-                  onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.value }))} />
-              </div>
+                  onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
