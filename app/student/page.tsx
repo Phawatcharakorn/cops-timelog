@@ -46,6 +46,8 @@ export default function StudentPage() {
   const [idLooking, setIdLooking]     = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
 
+  const [departmentCustom, setDepartmentCustom] = useState('')
+
   // PIN
   const [foundPin, setFoundPin]   = useState<string | null>(null)
   const [pinInput, setPinInput]   = useState('')     // verify mode
@@ -78,7 +80,9 @@ export default function StudentPage() {
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
       ])
       if (student) {
-        setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? FACULTIES[0], major: student.major ?? '' }))
+        const deptInList = DEPARTMENTS.includes(student.department)
+        setForm(f => ({ ...f, name: student.name, department: deptInList ? student.department : 'อื่นๆ', faculty: student.faculty ?? FACULTIES[0], major: student.major ?? '' }))
+        if (!deptInList) setDepartmentCustom(student.department)
         setStudentLocked(true)
         setFoundPin(student.pin ?? null)
         if (activeLogData) {
@@ -148,8 +152,9 @@ export default function StudentPage() {
     }
     setLoading(true)
     try {
+      const deptToSave = form.department === 'อื่นๆ' ? (departmentCustom.trim() || 'อื่นๆ') : form.department
       await supabase.from('students').upsert(
-        { student_id: form.student_id, name: form.name, department: form.department, faculty: form.faculty, major: form.major || null },
+        { student_id: form.student_id, name: form.name, department: deptToSave, faculty: form.faculty, major: form.major || null },
         { onConflict: 'student_id', ignoreDuplicates: true }
       )
       if (!foundPin && pinSetup) {
@@ -182,6 +187,7 @@ export default function StudentPage() {
       setStudentLocked(false)
       setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
+      setDepartmentCustom('')
       setForm({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
@@ -282,13 +288,19 @@ export default function StudentPage() {
               </div>
 
               {/* Department */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ฝ่าย Cops</label>
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">ฝ่าย Cops</label>
                 <select className={`${inputCls} cursor-pointer`} value={form.department}
-                  onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+                  onChange={e => { setForm(f => ({ ...f, department: e.target.value })); if (e.target.value !== 'อื่นๆ') setDepartmentCustom('') }}
                   disabled={!!activeLog || studentLocked}>
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
+                {form.department === 'อื่นๆ' && (
+                  <input className={inputCls} placeholder="กรอกตำแหน่ง / ฝ่ายของคุณ"
+                    value={departmentCustom}
+                    onChange={e => setDepartmentCustom(e.target.value)}
+                    disabled={!!activeLog || studentLocked} />
+                )}
               </div>
 
               {/* Faculty */}

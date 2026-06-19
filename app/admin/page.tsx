@@ -89,6 +89,10 @@ export default function AdminPage() {
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
   const [searchManage, setSearchManage]               = useState('')
 
+  // Custom department
+  const [addStudentCustomDept, setAddStudentCustomDept]   = useState('')
+  const [editStudentCustomDept, setEditStudentCustomDept] = useState('')
+
   // PIN reveal
   const [revealedPins, setRevealedPins] = useState<Set<string>>(new Set())
   const togglePinReveal = (id: string) =>
@@ -271,12 +275,13 @@ export default function AdminPage() {
     const { student_id, name, department, faculty, major, pin } = addStudentForm
     if (!student_id.trim() || !name.trim()) return alert('กรุณากรอกรหัสนิสิตและชื่อ')
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
       const { error } = await supabase.from('students').insert({
         student_id: student_id.trim(),
         name:       name.trim(),
-        department,
+        department: deptToSave,
         faculty,
         major:      major.trim() || null,
         pin:        pin || null,
@@ -284,6 +289,7 @@ export default function AdminPage() {
       if (error) throw error
       setAddStudentOpen(false)
       setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+      setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) {
       alert('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message)
@@ -334,11 +340,12 @@ export default function AdminPage() {
   const handleEditStudent = async () => {
     if (!editStudentModal) return
     if (!editStudentForm.name.trim()) return alert('กรุณากรอกชื่อ')
+    const deptToSave = editStudentForm.department === 'อื่นๆ' ? (editStudentCustomDept.trim() || 'อื่นๆ') : editStudentForm.department
     setEditStudentSaving(true)
     try {
       const { error } = await supabase.from('students').update({
         name:       editStudentForm.name.trim(),
-        department: editStudentForm.department,
+        department: deptToSave,
         faculty:    editStudentForm.faculty,
         major:      editStudentForm.major.trim() || null,
       }).eq('student_id', editStudentModal.student_id)
@@ -569,9 +576,9 @@ export default function AdminPage() {
                     </svg>
                     Export CSV
                   </button>
-                  <button onClick={handleExportPDF} disabled={!!selectedDate}
-                    className="bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
-                    title={selectedDate ? 'Export PDF ใช้ได้เฉพาะมุมมองรายเดือน' : ''}>
+                  <button onClick={handleExportPDF}
+                    className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
+                    title={selectedDate ? 'PDF จะแสดงข้อมูลทั้งเดือน' : ''}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -859,7 +866,12 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
-                            <button onClick={() => { setEditStudentModal(s); setEditStudentForm({ name: s.name, department: s.department, faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }) }}
+                            <button onClick={() => {
+                              const deptInList = DEPARTMENTS.includes(s.department)
+                              setEditStudentModal(s)
+                              setEditStudentForm({ name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' })
+                              setEditStudentCustomDept(deptInList ? '' : s.department)
+                            }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
                             <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
@@ -945,9 +957,14 @@ export default function AdminPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
               <select className={inputCls} value={addStudentForm.department}
-                onChange={e => setAddStudentForm(f => ({ ...f, department: e.target.value }))}>
+                onChange={e => { setAddStudentForm(f => ({ ...f, department: e.target.value })); if (e.target.value !== 'อื่นๆ') setAddStudentCustomDept('') }}>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+              {addStudentForm.department === 'อื่นๆ' && (
+                <input type="text" className={inputCls + ' mt-2'} placeholder="กรอกตำแหน่ง / ฝ่ายของคุณ"
+                  value={addStudentCustomDept}
+                  onChange={e => setAddStudentCustomDept(e.target.value)} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
@@ -1045,7 +1062,7 @@ export default function AdminPage() {
                 <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{editStudentModal.student_id}</p>
               </div>
-              <button onClick={() => setEditStudentModal(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setEditStudentModal(null); setEditStudentCustomDept('') }} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1059,9 +1076,14 @@ export default function AdminPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
               <select className={inputCls} value={editStudentForm.department}
-                onChange={e => setEditStudentForm(f => ({ ...f, department: e.target.value }))}>
+                onChange={e => { setEditStudentForm(f => ({ ...f, department: e.target.value })); if (e.target.value !== 'อื่นๆ') setEditStudentCustomDept('') }}>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+              {editStudentForm.department === 'อื่นๆ' && (
+                <input type="text" className={inputCls + ' mt-2'} placeholder="กรอกตำแหน่ง / ฝ่ายของคุณ"
+                  value={editStudentCustomDept}
+                  onChange={e => setEditStudentCustomDept(e.target.value)} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
@@ -1077,7 +1099,7 @@ export default function AdminPage() {
                 onChange={e => setEditStudentForm(f => ({ ...f, major: e.target.value }))} />
             </div>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setEditStudentModal(null)}
+              <button onClick={() => { setEditStudentModal(null); setEditStudentCustomDept('') }}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleEditStudent} disabled={editStudentSaving}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
