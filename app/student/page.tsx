@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 
-type FormState   = { name: string; student_id: string; department: string }
+type FormState   = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog   = { id: string; check_in: string }
 type HistoryLog  = {
   id: string; check_in: string; check_out: string | null; work_summary: string | null
@@ -12,6 +12,13 @@ type HistoryLog  = {
 }
 
 const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
+const FACULTIES = [
+  'คณะพาณิชยนาวีนานาชาติ',
+  'คณะเศรษฐศาสตร์ ศรีราชา',
+  'คณะวิทยาศาสตร์ ศรีราชา',
+  'คณะวิศวกรรมศาสตร์ ศรีราชา',
+  'คณะวิทยาการจัดการ',
+]
 
 const BKK = 'Asia/Bangkok'
 
@@ -31,7 +38,7 @@ function fmtShortDate(iso: string) {
 }
 
 export default function StudentPage() {
-  const [form, setForm]               = useState<FormState>({ name: '', student_id: '', department: 'Marketing' })
+  const [form, setForm]               = useState<FormState>({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
   const [studentLocked, setStudentLocked] = useState(false)
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
@@ -65,11 +72,11 @@ export default function StudentPage() {
     setIdLooking(true)
     try {
       const [{ data: student }, { data: activeLogData }] = await Promise.all([
-        supabase.from('students').select('name, department, pin').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('students').select('name, department, faculty, major, pin').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
       ])
       if (student) {
-        setForm(f => ({ ...f, name: student.name, department: student.department }))
+        setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? FACULTIES[0], major: student.major ?? '' }))
         setStudentLocked(true)
         setFoundPin(student.pin ?? null)
         if (activeLogData) {
@@ -135,7 +142,7 @@ export default function StudentPage() {
     setLoading(true)
     try {
       await supabase.from('students').upsert(
-        { student_id: form.student_id, name: form.name, department: form.department },
+        { student_id: form.student_id, name: form.name, department: form.department, faculty: form.faculty, major: form.major || null },
         { onConflict: 'student_id', ignoreDuplicates: true }
       )
       const { data, error } = await supabase.from('time_logs')
@@ -165,7 +172,7 @@ export default function StudentPage() {
       setStudentLocked(false)
       setFoundPin(null); setPinInput('')
       setShowHistory(false); setHistoryLogs([])
-      setForm({ name: '', student_id: '', department: 'Marketing' })
+      setForm({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally { setLoading(false) }
@@ -272,6 +279,25 @@ export default function StudentPage() {
                   disabled={!!activeLog || studentLocked}>
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
+              </div>
+
+              {/* Faculty */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">คณะ</label>
+                <select className={`${inputCls} cursor-pointer`} value={form.faculty}
+                  onChange={e => setForm(f => ({ ...f, faculty: e.target.value }))}
+                  disabled={!!activeLog || studentLocked}>
+                  {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+
+              {/* Major */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สาขาวิชา</label>
+                <input className={inputCls} placeholder="กรอกชื่อสาขาวิชาเต็ม"
+                  value={form.major}
+                  onChange={e => setForm(f => ({ ...f, major: e.target.value }))}
+                  disabled={!!activeLog || studentLocked} />
               </div>
 
               {/* PIN input — shown when student has PIN and hasn't checked in */}

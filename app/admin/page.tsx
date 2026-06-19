@@ -6,6 +6,13 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'HRD', 'Catering', 'อื่นๆ']
+const FACULTIES = [
+  'คณะพาณิชยนาวีนานาชาติ',
+  'คณะเศรษฐศาสตร์ ศรีราชา',
+  'คณะวิทยาศาสตร์ ศรีราชา',
+  'คณะวิศวกรรมศาสตร์ ศรีราชา',
+  'คณะวิทยาการจัดการ',
+]
 
 type LogWithDuration = TimeLog & { durationMinutes: number }
 type Summary = {
@@ -17,7 +24,7 @@ type StudentOverview = {
 }
 type EditForm     = { check_in: string; check_out: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
-type AddStudentForm = { student_id: string; name: string; department: string; pin: string }
+type AddStudentForm = { student_id: string; name: string; department: string; faculty: string; major: string; pin: string }
 type AddLogForm   = { date: string; check_in: string; check_out: string; work_summary: string }
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
@@ -64,7 +71,7 @@ export default function AdminPage() {
 
   // Add Student modal
   const [addStudentOpen, setAddStudentOpen]     = useState(false)
-  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', department: 'Marketing', pin: '' })
+  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
 
   // Add Log modal
@@ -79,7 +86,7 @@ export default function AdminPage() {
 
   // Edit Student modal
   const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing' })
+  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -251,7 +258,7 @@ export default function AdminPage() {
 
   // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
   const handleAddStudent = async () => {
-    const { student_id, name, department, pin } = addStudentForm
+    const { student_id, name, department, faculty, major, pin } = addStudentForm
     if (!student_id.trim() || !name.trim()) return alert('กรุณากรอกรหัสนิสิตและชื่อ')
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
     setAddStudentSaving(true)
@@ -260,11 +267,13 @@ export default function AdminPage() {
         student_id: student_id.trim(),
         name:       name.trim(),
         department,
+        faculty,
+        major:      major.trim() || null,
         pin:        pin || null,
       })
       if (error) throw error
       setAddStudentOpen(false)
-      setAddStudentForm({ student_id: '', name: '', department: 'Marketing', pin: '' })
+      setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
       await loadStudents()
     } catch (e) {
       alert('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message)
@@ -320,6 +329,8 @@ export default function AdminPage() {
       const { error } = await supabase.from('students').update({
         name:       editStudentForm.name.trim(),
         department: editStudentForm.department,
+        faculty:    editStudentForm.faculty,
+        major:      editStudentForm.major.trim() || null,
       }).eq('student_id', editStudentModal.student_id)
       if (error) throw error
       setEditStudentModal(null)
@@ -741,6 +752,7 @@ export default function AdminPage() {
                       <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
                       <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
                       <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
+                      <th className="px-4 py-3 text-left font-medium">คณะ / สาขา</th>
                       <th className="px-4 py-3 text-center font-medium">PIN</th>
                       <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                     </tr>
@@ -753,6 +765,10 @@ export default function AdminPage() {
                         <td className="px-4 py-3">
                           <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
                         </td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">
+                          <div>{s.faculty ?? <span className="text-gray-300">-</span>}</div>
+                          {s.major && <div className="text-gray-400">{s.major}</div>}
+                        </td>
                         <td className="px-4 py-3 text-center">
                           {s.pin
                             ? <span className="text-green-600 text-xs font-medium">🔒 ตั้งแล้ว</span>
@@ -760,7 +776,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
-                            <button onClick={() => { setEditStudentModal(s); setEditStudentForm({ name: s.name, department: s.department }) }}
+                            <button onClick={() => { setEditStudentModal(s); setEditStudentForm({ name: s.name, department: s.department, faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }) }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
                             <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
@@ -849,6 +865,19 @@ export default function AdminPage() {
                 onChange={e => setAddStudentForm(f => ({ ...f, department: e.target.value }))}>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
+              <select className={inputCls} value={addStudentForm.faculty}
+                onChange={e => setAddStudentForm(f => ({ ...f, faculty: e.target.value }))}>
+                {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สาขาวิชา</label>
+              <input type="text" className={inputCls} placeholder="กรอกชื่อสาขาวิชาเต็ม"
+                value={addStudentForm.major}
+                onChange={e => setAddStudentForm(f => ({ ...f, major: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">PIN (4 หลัก, ไม่บังคับ)</label>
@@ -950,6 +979,19 @@ export default function AdminPage() {
                 onChange={e => setEditStudentForm(f => ({ ...f, department: e.target.value }))}>
                 {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
+              <select className={inputCls} value={editStudentForm.faculty}
+                onChange={e => setEditStudentForm(f => ({ ...f, faculty: e.target.value }))}>
+                {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สาขาวิชา</label>
+              <input type="text" className={inputCls} placeholder="กรอกชื่อสาขาวิชาเต็ม"
+                value={editStudentForm.major}
+                onChange={e => setEditStudentForm(f => ({ ...f, major: e.target.value }))} />
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditStudentModal(null)}

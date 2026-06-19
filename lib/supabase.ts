@@ -5,6 +5,8 @@ export type Student = {
   student_id: string
   name: string
   department: string
+  faculty: string | null
+  major: string | null
   pin: string | null
   created_at: string
 }
