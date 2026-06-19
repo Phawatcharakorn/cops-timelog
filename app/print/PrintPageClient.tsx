@@ -112,8 +112,16 @@ export default function PrintPageClient() {
         @media print {
           .no-print { display: none !important; }
           body { background: white; }
-          @page { margin: 1.8cm 1.5cm; size: A4 portrait; }
-          .page-body { padding: 0 !important; max-width: none !important; box-shadow: none !important; }
+          @page { margin: 0; size: A4 portrait; }
+          .page-body {
+            padding: 1.5cm 1.5cm 1.5cm 1.5cm !important;
+            max-width: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+          }
+          .print-header {
+            display: block !important;
+          }
         }
         table { border-collapse: collapse; width: 100%; }
         th, td { padding: 7px 10px; font-size: 12px; line-height: 1.6; }
@@ -150,6 +158,11 @@ export default function PrintPageClient() {
             className="bg-gray-600 hover:bg-gray-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
           >ปิด</button>
         </div>
+      </div>
+
+      {/* Print-only header: date top-right */}
+      <div className="print-header" style={{ display: 'none', position: 'fixed', top: '0.6cm', right: '1.5cm', fontSize: 10, color: '#9ca3af' }}>
+        {format(new Date(), 'd/M/yy, HH:mm', { locale: th })}
       </div>
 
       {/* A4 body */}
