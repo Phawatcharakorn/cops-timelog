@@ -15,6 +15,10 @@ const FACULTIES = [
 ]
 
 type LogWithDuration = TimeLog & { durationMinutes: number }
+type UndoAction =
+  | { type: 'delete'; log: TimeLog }
+  | { type: 'edit';   log: TimeLog }
+  | { type: 'add';    id: string }
 type Summary = {
   totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
   logs: LogWithDuration[]; student: Student | null; month: string
@@ -84,6 +88,9 @@ export default function AdminPage() {
   const [pinInput, setPinInput]   = useState('')
   const [pinSaving, setPinSaving] = useState(false)
 
+  // Undo
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
+
   // Search
   const [searchIndividual, setSearchIndividual]       = useState('')
   const [showStudentDropdown, setShowStudentDropdown] = useState(false)
@@ -145,7 +152,7 @@ export default function AdminPage() {
       }))
       const toThaiDate = (iso: string) =>
         new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const totalMin = processed.reduce((s, l) => s + l.durationMinutes, 0)
+      const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
       setSummary({
         totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size,
         totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60,
@@ -252,6 +259,12 @@ export default function AdminPage() {
 
   const handleEditSave = async () => {
     if (!editingLog) return
+    if (editForm.check_out) {
+      const ci = new Date(editForm.check_in)
+      const co = new Date(editForm.check_out)
+      if (co <= ci) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
+    }
+    const prevLog = editingLog
     setEditSaving(true)
     try {
       const { error } = await supabase.from('time_logs').update({
@@ -260,6 +273,7 @@ export default function AdminPage() {
         work_summary: editForm.work_summary || null,
       }).eq('id', editingLog.id)
       if (error) throw error
+      setUndoAction({ type: 'edit', log: prevLog })
       setEditingLog(null)
       await fetchSummary()
     } catch (e) {
@@ -269,7 +283,9 @@ export default function AdminPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('ลบรายการนี้?')) return
+    const logToDelete = summary?.logs.find(l => l.id === id)
     await supabase.from('time_logs').delete().eq('id', id)
+    if (logToDelete) setUndoAction({ type: 'delete', log: logToDelete })
     await fetchSummary()
   }
 
@@ -306,13 +322,14 @@ export default function AdminPage() {
     if (check_out && check_out <= check_in) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
     setAddLogSaving(true)
     try {
-      const { error } = await supabase.from('time_logs').insert({
+      const { data: newLog, error } = await supabase.from('time_logs').insert({
         student_id:   selectedStudentId,
         check_in:     thaiToUTC(date, check_in),
         check_out:    check_out ? thaiToUTC(date, check_out) : null,
         work_summary: work_summary || null,
-      })
+      }).select('id').single()
       if (error) throw error
+      if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       setAddLogOpen(false)
       setAddLogForm({ date: todayThai(), check_in: '', check_out: '', work_summary: '' })
       await fetchSummary()
@@ -337,6 +354,32 @@ export default function AdminPage() {
     } catch (e) {
       alert('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
     } finally { setPinSaving(false) }
+  }
+
+  // ── Undo ───────────────────────────────────────────────────────────────────
+  const handleUndo = async () => {
+    if (!undoAction) return
+    try {
+      if (undoAction.type === 'delete') {
+        const { log } = undoAction
+        await supabase.from('time_logs').insert({
+          id: log.id, student_id: log.student_id,
+          check_in: log.check_in, check_out: log.check_out, work_summary: log.work_summary,
+        })
+      } else if (undoAction.type === 'edit') {
+        await supabase.from('time_logs').update({
+          check_in: undoAction.log.check_in,
+          check_out: undoAction.log.check_out,
+          work_summary: undoAction.log.work_summary,
+        }).eq('id', undoAction.log.id)
+      } else if (undoAction.type === 'add') {
+        await supabase.from('time_logs').delete().eq('id', undoAction.id)
+      }
+      setUndoAction(null)
+      await fetchSummary()
+    } catch (e) {
+      alert('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message)
+    }
   }
 
   // ── NEW: แก้ไขข้อมูลนิสิต ────────────────────────────────────────────────
@@ -510,6 +553,7 @@ export default function AdminPage() {
                             setSelectedStudentId(s.student_id)
                             setSearchIndividual(`${s.name} (${s.student_id})`)
                             setShowStudentDropdown(false)
+                            setUndoAction(null)
                           }}>
                           <span className="font-medium">{s.name}</span>
                           <span className="text-xs text-gray-400 ml-2">{s.student_id}</span>
@@ -589,6 +633,20 @@ export default function AdminPage() {
                   </button>
                 </div>
 
+                {undoAction && (
+                  <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <span className="text-sm text-amber-700">
+                      {undoAction.type === 'delete' ? '🗑 ลบรายการแล้ว'
+                        : undoAction.type === 'edit' ? '✏️ แก้ไขรายการแล้ว'
+                        : '➕ เพิ่มรายการแล้ว'}
+                    </span>
+                    <button onClick={handleUndo}
+                      className="text-sm font-semibold text-amber-800 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1 rounded-lg transition-colors">
+                      ↩ ย้อนกลับ
+                    </button>
+                  </div>
+                )}
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100">
                     <h2 className="font-semibold text-gray-700 text-sm">รายการลงเวลา</h2>
@@ -620,7 +678,11 @@ export default function AdminPage() {
                               {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
                             </td>
                             <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
-                              {log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
+                              {log.durationMinutes < 0
+                                ? <span className="text-red-500 text-xs font-medium">⚠ ข้อมูลผิด</span>
+                                : log.durationMinutes > 0
+                                  ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m`
+                                  : '-'}
                             </td>
                             <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="truncate">{log.work_summary || '-'}</div>
