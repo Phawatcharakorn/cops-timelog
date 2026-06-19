@@ -84,7 +84,7 @@ export default function PrintPageClient() {
       })
 
       if (!projectParam) {
-        setProjectTitle(`CoPs ${student.department}`)
+        setProjectTitle('')
       }
     })
   }, [studentId, month, projectParam])
@@ -136,7 +136,7 @@ export default function PrintPageClient() {
             className="flex-1 bg-gray-700 text-white text-sm px-3 py-1 rounded border border-gray-600 focus:outline-none focus:border-indigo-400 min-w-0"
             value={projectTitle}
             onChange={e => setProjectTitle(e.target.value)}
-            placeholder="เช่น CoPs Marketing"
+            placeholder="กรอกชื่อโครงการ"
           />
         </div>
         <div className="flex gap-2 flex-shrink-0">
