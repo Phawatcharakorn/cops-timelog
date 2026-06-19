@@ -122,14 +122,12 @@ export default function PrintPageClient() {
         @media print {
           .no-print { display: none !important; }
           body { background: white; }
-          @page { margin: 0; size: A4 portrait; }
+          @page { margin: 1.5cm; size: A4 portrait; }
           .page-body {
-            padding: 1.5cm !important;
+            padding: 0 !important;
             max-width: none !important;
             box-shadow: none !important;
             margin: 0 !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
           }
         }
         table { border-collapse: collapse; width: 100%; }
