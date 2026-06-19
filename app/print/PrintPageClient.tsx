@@ -156,19 +156,17 @@ export default function PrintPageClient() {
       <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10" style={{ minHeight: '29.7cm' }}>
 
         {/* ── Letterhead ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
-          <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 72, height: 72, flexShrink: 0 }} />
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
-              มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
-            </p>
-            <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
-              Kasetsart University Sriracha Campus
-            </p>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
-              {projectTitle}
-            </p>
-          </div>
+        <div style={{ textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
+          <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 80, height: 80, margin: '0 auto 8px' }} />
+          <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
+            มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
+          </p>
+          <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
+            Kasetsart University Sriracha Campus
+          </p>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
+            {projectTitle}
+          </p>
         </div>
 
         {/* ── Document title ── */}
