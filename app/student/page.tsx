@@ -48,7 +48,9 @@ export default function StudentPage() {
 
   // PIN
   const [foundPin, setFoundPin]   = useState<string | null>(null)
-  const [pinInput, setPinInput]   = useState('')
+  const [pinInput, setPinInput]   = useState('')     // verify mode
+  const [pinSetup, setPinSetup]   = useState('')     // setup mode (first entry)
+  const [pinConfirm, setPinConfirm] = useState('')   // setup mode (confirm)
 
   // Music
   const [playing, setPlaying] = useState(false)
@@ -138,13 +140,21 @@ export default function StudentPage() {
   // ── Check-in ──────────────────────────────────────────────────────────────
   const handleCheckIn = async () => {
     if (!form.name || !form.student_id) return showMsg('error', 'กรุณากรอกชื่อและรหัสนิสิต')
-    if (foundPin && pinInput !== foundPin)  return showMsg('error', 'PIN ไม่ถูกต้อง')
+    if (foundPin) {
+      if (pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
+    } else if (pinSetup) {
+      if (pinSetup.length < 4) return showMsg('error', 'PIN ต้องมี 4 หลัก')
+      if (pinSetup !== pinConfirm) return showMsg('error', 'PIN ไม่ตรงกัน กรุณากรอกใหม่')
+    }
     setLoading(true)
     try {
       await supabase.from('students').upsert(
         { student_id: form.student_id, name: form.name, department: form.department, faculty: form.faculty, major: form.major || null },
         { onConflict: 'student_id', ignoreDuplicates: true }
       )
+      if (!foundPin && pinSetup) {
+        await supabase.from('students').update({ pin: pinSetup }).eq('student_id', form.student_id)
+      }
       const { data, error } = await supabase.from('time_logs')
         .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
         .select('id, check_in').single()
@@ -170,7 +180,7 @@ export default function StudentPage() {
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
       setStudentLocked(false)
-      setFoundPin(null); setPinInput('')
+      setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
       setForm({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
     } catch (e: unknown) {
@@ -250,7 +260,7 @@ export default function StudentPage() {
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 10)
                       setForm(f => ({ ...f, student_id: val }))
-                      setStudentLocked(false); setFoundPin(null); setPinInput('')
+                      setStudentLocked(false); setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
                     }}
                     onBlur={handleStudentIdBlur} disabled={!!activeLog} />
                   {idLooking && (
@@ -300,7 +310,7 @@ export default function StudentPage() {
                   disabled={!!activeLog || studentLocked} />
               </div>
 
-              {/* PIN input — shown when student has PIN and hasn't checked in */}
+              {/* PIN verify — student has PIN */}
               {studentLocked && foundPin && !activeLog && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
@@ -315,6 +325,41 @@ export default function StudentPage() {
                     value={pinInput}
                     onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   />
+                </div>
+              )}
+
+              {/* PIN setup — student has no PIN (first time) */}
+              {studentLocked && !foundPin && !activeLog && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    ตั้ง PIN (ไม่บังคับ)
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    className={inputCls + ' tracking-widest'}
+                    placeholder="PIN 4 หลัก"
+                    value={pinSetup}
+                    onChange={e => setPinSetup(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
+                  {pinSetup.length === 4 && (
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      className={inputCls + ' tracking-widest ' + (pinConfirm && pinConfirm !== pinSetup ? 'ring-2 ring-red-400' : '')}
+                      placeholder="ยืนยัน PIN อีกครั้ง"
+                      value={pinConfirm}
+                      onChange={e => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    />
+                  )}
+                  {pinConfirm.length === 4 && pinConfirm === pinSetup && (
+                    <p className="text-xs text-green-600 font-medium">✓ PIN ตรงกัน</p>
+                  )}
+                  {pinConfirm.length === 4 && pinConfirm !== pinSetup && (
+                    <p className="text-xs text-red-500 font-medium">PIN ไม่ตรงกัน</p>
+                  )}
                 </div>
               )}
             </div>
