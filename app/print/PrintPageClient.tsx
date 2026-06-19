@@ -112,9 +112,9 @@ export default function PrintPageClient() {
         @media print {
           .no-print { display: none !important; }
           body { background: white; }
-          @page { margin: 0; size: A4 portrait; }
+          @page { margin: 1.5cm; size: A4 portrait; }
           .page-body {
-            padding: 1.5cm 1.5cm 1.5cm 1.5cm !important;
+            padding: 0 !important;
             max-width: none !important;
             box-shadow: none !important;
             margin: 0 !important;
@@ -141,7 +141,12 @@ export default function PrintPageClient() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              const t = document.title
+              document.title = ''
+              window.print()
+              document.title = t
+            }}
             className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
