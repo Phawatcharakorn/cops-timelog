@@ -151,19 +151,31 @@ export default function PrintPageClient() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <button
-            onClick={() => {
-              const t = document.title
-              document.title = ''
-              window.print()
-              document.title = t
+            onClick={async () => {
+              const element = document.querySelector('.page-body') as HTMLElement
+              if (!element) return
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const html2pdf = (await import('html2pdf.js' as any)).default
+              const filename = `timelog-${student.name}-${monthLabel}.pdf`
+              await html2pdf()
+                .set({
+                  margin: [15, 15, 15, 15],
+                  filename,
+                  image: { type: 'jpeg', quality: 0.98 },
+                  html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                  pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+                })
+                .from(element)
+                .save()
             }}
             className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            พิมพ์ / บันทึก PDF
+            ดาวน์โหลด PDF
           </button>
           <button
             onClick={() => window.close()}
