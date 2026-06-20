@@ -16,6 +16,8 @@
 }
 
 .anim-slide-up   { animation: slideUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+
+input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
 .anim-fade-in    { animation: fadeIn  0.35s ease both; }
 .anim-pop-in     { animation: popIn   0.4s  cubic-bezier(0.16,1,0.3,1) both; }
 .anim-delay-1    { animation-delay: 0.08s; }

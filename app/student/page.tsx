@@ -147,6 +147,15 @@ export default function StudentPage() {
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
     setLoading(true)
     try {
+      // Guard: ป้องกัน 2 tab check-in พร้อมกัน
+      const { data: openLog } = await supabase
+        .from('time_logs').select('id, check_in')
+        .eq('student_id', form.student_id).is('check_out', null).maybeSingle()
+      if (openLog) {
+        setActiveLog(openLog)
+        return showMsg('warn', `มีการลงเวลาเข้าค้างอยู่แล้ว (เข้าเมื่อ ${fmtHHMM(openLog.check_in)})`, 0)
+      }
+
       const { data, error } = await supabase.from('time_logs')
         .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
         .select('id, check_in').single()
@@ -248,7 +257,7 @@ export default function StudentPage() {
               <div className="relative">
                 <input
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium tracking-widest bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200 text-center"
-                  placeholder="0000000000"
+                  placeholder="กรอกรหัสนิสิต"
                   value={form.student_id}
                   inputMode="numeric"
                   maxLength={10}
