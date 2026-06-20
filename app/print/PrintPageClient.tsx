@@ -139,10 +139,11 @@ export default function PrintPageClient() {
           }
         }
         table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 7px 10px; font-size: 12px; line-height: 1.6; }
+        th, td { padding: 4px 8px; font-size: 11px; line-height: 1.45; }
         .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: left; }
         .data-table td { border-bottom: 1px solid #e5e7eb; color: #374151; }
         .data-table tr:nth-child(even) td { background: #f8fafc; }
+        .keep-with-next { break-after: avoid; page-break-after: avoid; }
       `}</style>
 
       {/* Toolbar */}
@@ -196,7 +197,7 @@ export default function PrintPageClient() {
       <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10" style={{ minHeight: '29.7cm' }}>
 
         {/* ── Letterhead ── */}
-        <div style={{ position: 'relative', textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 14, marginBottom: 20 }}>
+        <div style={{ position: 'relative', textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 14 }}>
           {/* วันที่พิมพ์ — ขวาบน หน้าแรกเท่านั้น */}
           <p style={{ position: 'absolute', top: 0, right: 0, fontSize: 10, color: '#9ca3af', margin: 0 }}>
             {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
@@ -214,7 +215,7 @@ export default function PrintPageClient() {
         </div>
 
         {/* ── Document title ── */}
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.6 }}>
             รายงานการลงเวลาปฏิบัติงาน
           </p>
@@ -224,7 +225,7 @@ export default function PrintPageClient() {
         </div>
 
         {/* ── Student info box ── */}
-        <div style={{ border: '1px solid #1a3a5c', borderRadius: 6, marginBottom: 18, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid #1a3a5c', borderRadius: 6, marginBottom: 12, overflow: 'hidden' }}>
           <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
             <p style={{ color: 'white', fontSize: 12, fontWeight: 600, margin: 0 }}>ข้อมูลนิสิต</p>
           </div>
@@ -238,7 +239,7 @@ export default function PrintPageClient() {
               ['ช่วงเวลา', monthLabel],
             ].map(([label, value], i) => (
               <div key={label} style={{
-                padding: '7px 14px',
+                padding: '5px 12px',
                 borderBottom: i < 4 ? '1px solid #e5e7eb' : undefined,
                 borderRight: i % 2 === 0 ? '1px solid #e5e7eb' : undefined,
               }}>
@@ -250,22 +251,22 @@ export default function PrintPageClient() {
         </div>
 
         {/* ── Summary boxes ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
           {[
             { label: 'จำนวนวันที่ปฏิบัติงาน', value: `${totalDays} วัน`, color: '#1d4ed8' },
             { label: 'ชั่วโมงรวมทั้งหมด',     value: `${totalHours} ชม. ${totalMinutes} นาที`, color: '#15803d' },
             { label: 'เฉลี่ยต่อวัน',           value: totalDays > 0 ? `${Math.floor(totalMin / totalDays / 60)} ชม. ${totalMin / totalDays % 60 | 0} นาที` : '-', color: '#7e22ce' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ border: `1px solid ${color}22`, borderRadius: 6, padding: '10px 14px', background: `${color}08`, textAlign: 'center' }}>
-              <p style={{ fontSize: 18, fontWeight: 700, color, margin: 0 }}>{value}</p>
-              <p style={{ fontSize: 10, color: '#6b7280', margin: 0, marginTop: 2 }}>{label}</p>
+            <div key={label} style={{ border: `1px solid ${color}22`, borderRadius: 6, padding: '7px 10px', background: `${color}08`, textAlign: 'center' }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color, margin: 0 }}>{value}</p>
+              <p style={{ fontSize: 9, color: '#6b7280', margin: 0, marginTop: 1 }}>{label}</p>
             </div>
           ))}
         </div>
 
         {/* ── Time log table ── */}
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#1a3a5c', marginBottom: 6, marginTop: 0 }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
-        <table className="data-table" style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', marginBottom: 32 }}>
+        <p className="keep-with-next" style={{ fontSize: 12, fontWeight: 700, color: '#1a3a5c', marginBottom: 4, marginTop: 0 }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
+        <table className="data-table" style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', marginBottom: 16, breakBefore: 'avoid', pageBreakBefore: 'avoid' }}>
           <thead>
             <tr>
               <th style={{ width: 40, textAlign: 'center' }}>ลำดับ</th>
@@ -293,7 +294,7 @@ export default function PrintPageClient() {
         {/* ── รวมทั้งหมด + ลายเซ็น + Footer — อยู่ด้วยกันเสมอ ── */}
         <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           {/* รวมเวลา */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 28, marginTop: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16, marginTop: 0 }}>
             <div style={{ width: 300 }}>
               <div style={{ borderTop: '1px solid #d1d5db', paddingTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -311,14 +312,14 @@ export default function PrintPageClient() {
           </div>
 
           {/* ลายเซ็น */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
             {[
               { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
               { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล', sub: '(.................................)' },
               { label: 'ลายมือชื่อผู้อนุมัติ',         sub: '(.................................)' },
             ].map(({ label, sub }) => (
               <div key={label} style={{ textAlign: 'center', width: 185 }}>
-                <div style={{ borderTop: '1px solid #374151', marginTop: 52, marginBottom: 5 }} />
+                <div style={{ borderTop: '1px solid #374151', marginTop: 40, marginBottom: 5 }} />
                 <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6 }}>{label}</p>
                 <p style={{ fontSize: 11, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.6 }}>{sub}</p>
               </div>
