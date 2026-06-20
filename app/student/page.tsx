@@ -44,6 +44,7 @@ export default function StudentPage() {
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
   const [loading, setLoading]         = useState(false)
+  const [cooldown, setCooldown]       = useState(0)
   const [idLooking, setIdLooking]     = useState(false)
   const [studentNotFound, setStudentNotFound] = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
@@ -66,6 +67,13 @@ export default function StudentPage() {
   const [historyMonth, setHistoryMonth]     = useState(() =>
     new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7)
   )
+
+  const startCooldown = (seconds = 3) => {
+    setCooldown(seconds)
+    const iv = setInterval(() => {
+      setCooldown(prev => { if (prev <= 1) { clearInterval(iv); return 0 } return prev - 1 })
+    }, 1000)
+  }
 
   const showMsg = (type: 'success' | 'error' | 'warn', text: string, duration = 5000) => {
     setMessage({ type, text })
@@ -159,6 +167,7 @@ export default function StudentPage() {
         .select('id, check_in').single()
       if (error) throw error
       setActiveLog(data)
+      startCooldown(3)
       showMsg('success', `บันทึกเวลาเข้า ${fmtHHMM(data.check_in)} สำเร็จ`)
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
@@ -176,6 +185,7 @@ export default function StudentPage() {
       }).eq('id', activeLog.id)
       if (error) throw error
       const duration = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
+      startCooldown(3)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
       setStudentLocked(false); setStudentNotFound(false)
@@ -359,14 +369,14 @@ export default function StudentPage() {
             {/* Action button */}
             <div>
               {!activeLog ? (
-                <button onClick={handleCheckIn} disabled={loading || studentNotFound}
+                <button onClick={handleCheckIn} disabled={loading || studentNotFound || cooldown > 0}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300">
-                  {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาเข้า'}
+                  {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาเข้า'}
                 </button>
               ) : (
-                <button onClick={handleCheckOut} disabled={loading}
+                <button onClick={handleCheckOut} disabled={loading || cooldown > 0}
                   className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-amber-200 hover:shadow-lg hover:shadow-amber-300">
-                  {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาออก'}
+                  {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาออก'}
                 </button>
               )}
             </div>
