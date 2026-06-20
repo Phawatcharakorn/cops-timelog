@@ -82,7 +82,7 @@ export default function AdminPage() {
 
   // Add Log modal
   const [addLogOpen, setAddLogOpen]     = useState(false)
-  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '', check_out: '', work_summary: '' })
+  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
   const [addLogSaving, setAddLogSaving] = useState(false)
 
   // PIN modal
@@ -336,7 +336,7 @@ export default function AdminPage() {
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       setAddLogOpen(false)
-      setAddLogForm({ date: todayThai(), check_in: '', check_out: '', work_summary: '' })
+      setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
       await fetchSummary()
     } catch (e) {
       alert('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message)
@@ -601,7 +601,7 @@ export default function AdminPage() {
                   )}
                   {/* NEW: เพิ่ม Log */}
                   {selectedStudentId && !selectedDate && (
-                    <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
+                    <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
                       className="px-3 py-2.5 border border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
