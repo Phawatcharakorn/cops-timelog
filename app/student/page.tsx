@@ -9,6 +9,7 @@ type ActiveLog   = { id: string; check_in: string }
 type HistoryLog  = {
   id: string; check_in: string; check_out: string | null; work_summary: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
+  status: 'pending' | 'approved'
 }
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
@@ -44,6 +45,7 @@ export default function StudentPage() {
   const [workSummary, setWorkSummary] = useState('')
   const [loading, setLoading]         = useState(false)
   const [idLooking, setIdLooking]     = useState(false)
+  const [studentNotFound, setStudentNotFound] = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
 
   const [departmentCustom, setDepartmentCustom] = useState('')
@@ -84,6 +86,7 @@ export default function StudentPage() {
         setForm(f => ({ ...f, name: student.name, department: deptInList ? student.department : 'อื่นๆ', faculty: student.faculty ?? FACULTIES[0], major: student.major ?? '' }))
         if (!deptInList) setDepartmentCustom(student.department)
         setStudentLocked(true)
+        setStudentNotFound(false)
         setFoundPin(student.pin ?? null)
         if (activeLogData) {
           if (isToday(activeLogData.check_in)) {
@@ -103,6 +106,9 @@ export default function StudentPage() {
         } else {
           showMsg('success', `พบข้อมูล: ${student.name} (${student.department})${student.pin ? ' 🔒' : ''}`)
         }
+      } else {
+        setStudentNotFound(true)
+        showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ', 0)
       }
     } finally { setIdLooking(false) }
   }
@@ -131,6 +137,7 @@ export default function StudentPage() {
         checkInStr:  fmtHHMM(log.check_in),
         checkOutStr: log.check_out ? fmtHHMM(log.check_out) : '-',
         durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
+        status: (log.status ?? 'pending') as 'pending' | 'approved',
       }
     }))
     setHistoryLoading(false)
@@ -143,23 +150,10 @@ export default function StudentPage() {
 
   // ── Check-in ──────────────────────────────────────────────────────────────
   const handleCheckIn = async () => {
-    if (!form.name || !form.student_id) return showMsg('error', 'กรุณากรอกชื่อและรหัสนิสิต')
-    if (foundPin) {
-      if (pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
-    } else if (pinSetup) {
-      if (pinSetup.length < 4) return showMsg('error', 'PIN ต้องมี 4 หลัก')
-      if (pinSetup !== pinConfirm) return showMsg('error', 'PIN ไม่ตรงกัน กรุณากรอกใหม่')
-    }
+    if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
+    if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
     setLoading(true)
     try {
-      const deptToSave = form.department === 'อื่นๆ' ? (departmentCustom.trim() || 'อื่นๆ') : form.department
-      await supabase.from('students').upsert(
-        { student_id: form.student_id, name: form.name, department: deptToSave, faculty: form.faculty, major: form.major || null },
-        { onConflict: 'student_id', ignoreDuplicates: true }
-      )
-      if (!foundPin && pinSetup) {
-        await supabase.from('students').update({ pin: pinSetup }).eq('student_id', form.student_id)
-      }
       const { data, error } = await supabase.from('time_logs')
         .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
         .select('id, check_in').single()
@@ -184,7 +178,7 @@ export default function StudentPage() {
       const duration = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
-      setStudentLocked(false)
+      setStudentLocked(false); setStudentNotFound(false)
       setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
       setDepartmentCustom('')
@@ -266,7 +260,8 @@ export default function StudentPage() {
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 10)
                       setForm(f => ({ ...f, student_id: val }))
-                      setStudentLocked(false); setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
+                      setStudentLocked(false); setStudentNotFound(false)
+                      setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
                     }}
                     onBlur={handleStudentIdBlur} disabled={!!activeLog} />
                   {idLooking && (
@@ -340,38 +335,11 @@ export default function StudentPage() {
                 </div>
               )}
 
-              {/* PIN setup — student has no PIN (first time) */}
-              {studentLocked && !foundPin && !activeLog && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                    ตั้ง PIN (ไม่บังคับ)
-                  </label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    className={inputCls + ' tracking-widest'}
-                    placeholder="PIN 4 หลัก"
-                    value={pinSetup}
-                    onChange={e => setPinSetup(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  />
-                  {pinSetup.length === 4 && (
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={4}
-                      className={inputCls + ' tracking-widest ' + (pinConfirm && pinConfirm !== pinSetup ? 'ring-2 ring-red-400' : '')}
-                      placeholder="ยืนยัน PIN อีกครั้ง"
-                      value={pinConfirm}
-                      onChange={e => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    />
-                  )}
-                  {pinConfirm.length === 4 && pinConfirm === pinSetup && (
-                    <p className="text-xs text-green-600 font-medium">✓ PIN ตรงกัน</p>
-                  )}
-                  {pinConfirm.length === 4 && pinConfirm !== pinSetup && (
-                    <p className="text-xs text-red-500 font-medium">PIN ไม่ตรงกัน</p>
-                  )}
+              {/* Not registered warning */}
+              {studentNotFound && (
+                <div className="rounded-xl px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200 font-medium">
+                  ❌ ไม่พบรหัสนิสิตในระบบ<br />
+                  <span className="font-normal text-xs">กรุณาติดต่อผู้ดูแลระบบเพื่อลงทะเบียน</span>
                 </div>
               )}
             </div>
@@ -391,7 +359,7 @@ export default function StudentPage() {
             {/* Action button */}
             <div>
               {!activeLog ? (
-                <button onClick={handleCheckIn} disabled={loading}
+                <button onClick={handleCheckIn} disabled={loading || studentNotFound}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300">
                   {loading ? 'กำลังบันทึก...' : 'บันทึกเวลาเข้า'}
                 </button>
@@ -456,6 +424,7 @@ export default function StudentPage() {
                       <th className="px-3 py-2 text-left font-medium">ออก</th>
                       <th className="px-3 py-2 text-left font-medium">ชม.</th>
                       <th className="px-3 py-2 text-left font-medium">งาน</th>
+                      <th className="px-3 py-2 text-left font-medium">สถานะ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -467,6 +436,12 @@ export default function StudentPage() {
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.durationStr}</td>
                         <td className="px-3 py-2 text-gray-400 max-w-[120px]" style={{ lineHeight: 1.8 }}>
                           <div className="truncate">{log.work_summary || '-'}</div>
+                        </td>
+                        <td className="px-3 py-2" style={{ lineHeight: 1.8 }}>
+                          {log.status === 'approved'
+                            ? <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">✓ อนุมัติแล้ว</span>
+                            : <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">รออนุมัติ</span>
+                          }
                         </td>
                       </tr>
                     ))}

@@ -19,6 +19,11 @@ export type TimeLog = {
   work_summary: string | null
   photo_url: string | null
   created_at: string
+  status: 'pending' | 'approved'
+  approved_by: string | null
+  approved_at: string | null
+  approved_lat: number | null
+  approved_lng: number | null
 }
 
 const url  = process.env.NEXT_PUBLIC_SUPABASE_URL!

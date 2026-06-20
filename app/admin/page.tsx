@@ -44,11 +44,12 @@ function todayThai() {
 const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400'
 
 export default function AdminPage() {
-  const [authed, setAuthed]       = useState(false)
-  const [userInput, setUserInput] = useState('')
-  const [pwInput, setPwInput]     = useState('')
-  const [pwError, setPwError]     = useState(false)
-  const [tab, setTab]             = useState<'individual' | 'overview' | 'manage'>('individual')
+  const [authed, setAuthed]           = useState(false)
+  const [adminUsername, setAdminUsername] = useState('')
+  const [userInput, setUserInput]     = useState('')
+  const [pwInput, setPwInput]         = useState('')
+  const [pwError, setPwError]         = useState(false)
+  const [tab, setTab]                 = useState<'individual' | 'overview' | 'manage'>('individual')
 
   // Individual tab
   const [students, setStudents]                     = useState<Student[]>([])
@@ -114,7 +115,10 @@ export default function AdminPage() {
   // ── Effects ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (localStorage.getItem('admin_authed') === '1') setAuthed(true)
+    if (localStorage.getItem('admin_authed') === '1') {
+      setAuthed(true)
+      setAdminUsername(localStorage.getItem('admin_username') || 'admin')
+    }
   }, [])
 
   const loadStudents = useCallback(async () => {
@@ -404,6 +408,29 @@ export default function AdminPage() {
     } finally { setEditStudentSaving(false) }
   }
 
+  const handleApprove = async (logId: string) => {
+    let lat: number | null = null
+    let lng: number | null = null
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
+        )
+        lat = pos.coords.latitude
+        lng = pos.coords.longitude
+      } catch { /* GPS denied — approve without location */ }
+    }
+    const { error } = await supabase.from('time_logs').update({
+      status: 'approved',
+      approved_by: adminUsername,
+      approved_at: new Date().toISOString(),
+      approved_lat: lat,
+      approved_lng: lng,
+    }).eq('id', logId)
+    if (error) return alert('อนุมัติไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
   const handleLogin = async () => {
     try {
       const res = await fetch('/api/admin/login', {
@@ -412,7 +439,10 @@ export default function AdminPage() {
         body:    JSON.stringify({ username: userInput, password: pwInput }),
       })
       if (res.ok) {
-        localStorage.setItem('admin_authed', '1'); setAuthed(true)
+        localStorage.setItem('admin_authed', '1')
+        localStorage.setItem('admin_username', userInput)
+        setAdminUsername(userInput)
+        setAuthed(true)
       } else {
         setPwError(true); setTimeout(() => setPwError(false), 2000)
       }
@@ -484,7 +514,7 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-4">
           <a href="/student" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors">หน้าบันทึกเวลา</a>
-          <button onClick={() => { localStorage.removeItem('admin_authed'); setAuthed(false) }}
+          <button onClick={() => { localStorage.removeItem('admin_authed'); localStorage.removeItem('admin_username'); setAuthed(false); setAdminUsername('') }}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors">ออกจากระบบ</button>
         </div>
       </header>
@@ -666,6 +696,7 @@ export default function AdminPage() {
                           <th className="px-4 py-3 text-left font-medium">เวลาออก</th>
                           <th className="px-4 py-3 text-left font-medium">ชม.</th>
                           <th className="px-4 py-3 text-left font-medium">สรุปงาน</th>
+                          <th className="px-4 py-3 text-left font-medium">สถานะ</th>
                           <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                         </tr>
                       </thead>
@@ -687,6 +718,42 @@ export default function AdminPage() {
                             </td>
                             <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="truncate">{log.work_summary || '-'}</div>
+                            </td>
+                            <td style={{ padding: '12px 16px', lineHeight: 1.8, minWidth: '160px' }}>
+                              {log.status === 'approved' ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">
+                                    ✓ อนุมัติแล้ว
+                                  </span>
+                                  <div className="text-xs text-gray-400 space-y-0.5 mt-1">
+                                    <div>โดย: <span className="text-gray-600 font-medium">{log.approved_by}</span></div>
+                                    <div>{log.approved_at ? `${fmtDate(log.approved_at)} ${fmtTime(log.approved_at)}` : ''}</div>
+                                    {log.approved_lat != null && log.approved_lng != null && (
+                                      <a
+                                        href={`https://www.google.com/maps?q=${log.approved_lat},${log.approved_lng}`}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
+                                      >
+                                        📍 ดูพิกัด
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200">
+                                    รออนุมัติ
+                                  </span>
+                                  <div>
+                                    <button
+                                      onClick={() => handleApprove(log.id)}
+                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors"
+                                    >
+                                      อนุมัติ
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </td>
                             <td style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="flex gap-2">
