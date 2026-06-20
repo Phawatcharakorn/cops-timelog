@@ -1,29 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 
-type FormState   = { name: string; student_id: string; department: string; faculty: string; major: string }
-type ActiveLog   = { id: string; check_in: string }
-type HistoryLog  = {
+type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
+type ActiveLog  = { id: string; check_in: string }
+type HistoryLog = {
   id: string; check_in: string; check_out: string | null; work_summary: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'
 }
 
-const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
-const FACULTIES = [
-  'คณะพาณิชยนาวีนานาชาติ',
-  'คณะเศรษฐศาสตร์ ศรีราชา',
-  'คณะวิทยาศาสตร์ ศรีราชา',
-  'คณะวิศวกรรมศาสตร์ ศรีราชา',
-  'คณะวิทยาการจัดการ',
-]
-
 const BKK = 'Asia/Bangkok'
 
-// Used only for date-string extraction (toISOString after +7h shift) — NOT for display
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
 }
@@ -37,36 +27,44 @@ function fmtHHMM(iso: string) {
 function fmtShortDate(iso: string) {
   return new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', timeZone: BKK })
 }
+function getInitials(name: string) {
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) return parts[0][0] + parts[1][0]
+  return name.slice(0, 2)
+}
 
 export default function StudentPage() {
-  const [form, setForm]               = useState<FormState>({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
+  const [form, setForm]               = useState<FormState>({ name: '', student_id: '', department: '', faculty: '', major: '' })
   const [studentLocked, setStudentLocked] = useState(false)
+  const [studentNotFound, setStudentNotFound] = useState(false)
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
   const [workSummary, setWorkSummary] = useState('')
   const [loading, setLoading]         = useState(false)
   const [cooldown, setCooldown]       = useState(0)
   const [idLooking, setIdLooking]     = useState(false)
-  const [studentNotFound, setStudentNotFound] = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
 
-  const [departmentCustom, setDepartmentCustom] = useState('')
+  const [foundPin, setFoundPin] = useState<string | null>(null)
+  const [pinInput, setPinInput] = useState('')
 
-  // PIN
-  const [foundPin, setFoundPin]   = useState<string | null>(null)
-  const [pinInput, setPinInput]   = useState('')     // verify mode
-  const [pinSetup, setPinSetup]   = useState('')     // setup mode (first entry)
-  const [pinConfirm, setPinConfirm] = useState('')   // setup mode (confirm)
+  const [now, setNow] = useState(new Date())
 
-  // Music
-  const [playing, setPlaying] = useState(false)
-
-  // History
   const [showHistory, setShowHistory]       = useState(false)
   const [historyLogs, setHistoryLogs]       = useState<HistoryLog[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyMonth, setHistoryMonth]     = useState(() =>
     new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7)
   )
+
+  const [playing, setPlaying] = useState(false)
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(iv)
+  }, [])
+
+  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: BKK })
+  const dateStr = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: BKK })
 
   const startCooldown = (seconds = 3) => {
     setCooldown(seconds)
@@ -80,7 +78,6 @@ export default function StudentPage() {
     if (duration > 0) setTimeout(() => setMessage(null), duration)
   }
 
-  // ── Lookup student on ID blur ─────────────────────────────────────────────
   const handleStudentIdBlur = async () => {
     if (!form.student_id || studentLocked) return
     setIdLooking(true)
@@ -90,19 +87,15 @@ export default function StudentPage() {
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
       ])
       if (student) {
-        const deptInList = DEPARTMENTS.includes(student.department)
-        setForm(f => ({ ...f, name: student.name, department: deptInList ? student.department : 'อื่นๆ', faculty: student.faculty ?? FACULTIES[0], major: student.major ?? '' }))
-        if (!deptInList) setDepartmentCustom(student.department)
+        setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
         setStudentLocked(true)
         setStudentNotFound(false)
         setFoundPin(student.pin ?? null)
         if (activeLogData) {
           if (isToday(activeLogData.check_in)) {
-            // Still in today's session — jump straight to checkout
             setActiveLog(activeLogData)
             showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${fmtHHMM(activeLogData.check_in)})`, 0)
           } else {
-            // Stale log from a previous day — auto-close it at 18:00 that day
             const endOfDay = toThaiTime(activeLogData.check_in)
             endOfDay.setHours(18, 0, 0, 0)
             await supabase.from('time_logs').update({
@@ -111,8 +104,6 @@ export default function StudentPage() {
             }).eq('id', activeLogData.id)
             showMsg('warn', `พบการลงเวลาค้างจากวันก่อน ระบบปิดให้อัตโนมัติแล้ว — ${student.name}`, 8000)
           }
-        } else {
-          showMsg('success', `พบข้อมูล: ${student.name} (${student.department})${student.pin ? ' 🔒' : ''}`)
         }
       } else {
         setStudentNotFound(true)
@@ -121,23 +112,18 @@ export default function StudentPage() {
     } finally { setIdLooking(false) }
   }
 
-  // ── Fetch this-month history ──────────────────────────────────────────────
   const fetchHistory = async (month: string) => {
     setHistoryLoading(true)
     const TZ    = 7 * 60 * 60 * 1000
     const [y, m] = month.split('-').map(Number)
     const start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
     const end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
-
     const { data } = await supabase.from('time_logs').select('*')
       .eq('student_id', form.student_id)
       .gte('check_in', start).lte('check_in', end)
       .order('check_in', { ascending: true })
-
     setHistoryLogs((data ?? []).map(log => {
-      const dur = log.check_out
-        ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
-        : 0
+      const dur = log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
       return {
         id: log.id, check_in: log.check_in, check_out: log.check_out,
         work_summary: log.work_summary,
@@ -156,7 +142,6 @@ export default function StudentPage() {
     setShowHistory(h => !h)
   }
 
-  // ── Check-in ──────────────────────────────────────────────────────────────
   const handleCheckIn = async () => {
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
@@ -174,7 +159,6 @@ export default function StudentPage() {
     } finally { setLoading(false) }
   }
 
-  // ── Check-out ─────────────────────────────────────────────────────────────
   const handleCheckOut = async () => {
     if (!activeLog) return
     setLoading(true)
@@ -189,26 +173,22 @@ export default function StudentPage() {
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
       setStudentLocked(false); setStudentNotFound(false)
-      setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
+      setFoundPin(null); setPinInput('')
       setShowHistory(false); setHistoryLogs([])
-      setDepartmentCustom('')
-      setForm({ name: '', student_id: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
+      setForm({ name: '', student_id: '', department: '', faculty: '', major: '' })
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally { setLoading(false) }
   }
 
-  // ── History totals ────────────────────────────────────────────────────────
   const historyTotalMin = historyLogs.reduce((s, l) => {
     if (!l.check_out) return s
     return s + differenceInMinutes(new Date(l.check_out), new Date(l.check_in))
   }, 0)
   const historyDays = new Set(historyLogs.map(l => toThaiTime(l.check_in).toISOString().slice(0, 10))).size
 
-  const inputCls = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200"
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col items-center justify-start p-4 pt-10 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col items-center justify-start p-4 pt-8 pb-24">
 
       {/* Admin link */}
       <a href="/admin"
@@ -222,15 +202,17 @@ export default function StudentPage() {
 
       <div className="w-full max-w-sm space-y-4">
 
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold text-gray-900">บันทึกเวลาทำงาน</h1>
-          <p className="text-sm text-gray-400">Cops — กรอกข้อมูลแล้วกดบันทึกเวลาเข้า</p>
+        {/* Live clock */}
+        <div className="text-center py-2 anim-fade-in">
+          <div className="text-6xl font-light text-gray-900 tracking-tight tabular-nums leading-none">
+            {timeStr}
+          </div>
+          <div className="text-sm text-gray-400 mt-2">{dateStr}</div>
         </div>
 
         {/* Alert */}
         {message && (
-          <div className={`rounded-xl px-4 py-3 text-sm font-medium border ${
+          <div className={`rounded-xl px-4 py-3 text-sm font-medium border anim-slide-up ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
             message.type === 'warn'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                          'bg-red-50 text-red-700 border-red-200'
@@ -242,146 +224,135 @@ export default function StudentPage() {
         {/* Main card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-          {/* Status bar when checked in */}
+          {/* Active status bar */}
           {activeLog && (
             <div className="bg-indigo-600 px-5 py-3 flex items-center justify-between">
-              <div className="text-white text-sm">
-                <span className="text-indigo-300 text-xs">เวลาเข้างาน </span>
-                <span className="font-bold">{fmtHHMM(activeLog.check_in)}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-indigo-200 text-xs">กำลังทำงาน</span>
+              </div>
+              <div className="text-white text-sm">
+                <span className="text-indigo-300 text-xs">เข้างาน </span>
+                <span className="font-semibold">{fmtHHMM(activeLog.check_in)}</span>
               </div>
             </div>
           )}
 
           <div className="p-5 space-y-4">
-            <div className="space-y-3">
 
-              {/* Student ID */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รหัสนิสิต</label>
-                <div className="relative">
-                  <input className={inputCls} placeholder="รหัสนิสิต (10 หลัก)"
-                    value={form.student_id}
-                    inputMode="numeric"
-                    maxLength={10}
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 10)
-                      setForm(f => ({ ...f, student_id: val }))
-                      setStudentLocked(false); setStudentNotFound(false)
-                      setFoundPin(null); setPinInput(''); setPinSetup(''); setPinConfirm('')
-                    }}
-                    onBlur={handleStudentIdBlur} disabled={!!activeLog} />
-                  {idLooking && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400 animate-pulse">ค้นหา...</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Name */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                  ชื่อ-นามสกุล
-                  {studentLocked && <span className="ml-2 normal-case text-indigo-400 font-normal tracking-normal">จากระบบ</span>}
-                </label>
-                <input className={inputCls} placeholder="ชื่อ-นามสกุล"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  disabled={!!activeLog || studentLocked} />
-              </div>
-
-              {/* Department */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">ฝ่าย Cops</label>
-                <select className={`${inputCls} cursor-pointer`} value={form.department}
-                  onChange={e => { setForm(f => ({ ...f, department: e.target.value })); if (e.target.value !== 'อื่นๆ') setDepartmentCustom('') }}
-                  disabled={!!activeLog || studentLocked}>
-                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-                {form.department === 'อื่นๆ' && (
-                  <input className={inputCls} placeholder="กรอกตำแหน่ง / ฝ่ายของคุณ"
-                    value={departmentCustom}
-                    onChange={e => setDepartmentCustom(e.target.value)}
-                    disabled={!!activeLog || studentLocked} />
+            {/* Student ID */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                รหัสนิสิต
+              </label>
+              <div className="relative">
+                <input
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium tracking-widest bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200 text-center"
+                  placeholder="0000000000"
+                  value={form.student_id}
+                  inputMode="numeric"
+                  maxLength={10}
+                  disabled={!!activeLog}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    setForm(f => ({ ...f, student_id: val }))
+                    setStudentLocked(false); setStudentNotFound(false)
+                    setFoundPin(null); setPinInput('')
+                  }}
+                  onBlur={handleStudentIdBlur}
+                />
+                {idLooking && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400 animate-pulse">ค้นหา...</span>
                 )}
               </div>
-
-              {/* Faculty */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">คณะ</label>
-                <select className={`${inputCls} cursor-pointer`} value={form.faculty}
-                  onChange={e => setForm(f => ({ ...f, faculty: e.target.value }))}
-                  disabled={!!activeLog || studentLocked}>
-                  {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-
-              {/* Major */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สาขาวิชา</label>
-                <input className={inputCls} placeholder="กรอกชื่อสาขาวิชาเต็ม"
-                  value={form.major}
-                  onChange={e => setForm(f => ({ ...f, major: e.target.value }))}
-                  disabled={!!activeLog || studentLocked} />
-              </div>
-
-              {/* PIN verify — student has PIN */}
-              {studentLocked && foundPin && !activeLog && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                    PIN 🔒
-                  </label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    className={inputCls + ' tracking-widest'}
-                    placeholder="กรอก PIN 4 หลัก"
-                    value={pinInput}
-                    onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  />
-                </div>
-              )}
-
-              {/* Not registered warning */}
               {studentNotFound && (
-                <div className="rounded-xl px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200 font-medium">
-                  ❌ ไม่พบรหัสนิสิตในระบบ<br />
-                  <span className="font-normal text-xs">กรุณาติดต่อผู้ดูแลระบบเพื่อลงทะเบียน</span>
-                </div>
+                <p className="text-xs text-red-500 mt-1.5 font-medium text-center">
+                  ❌ ไม่พบรหัสนิสิตในระบบ — ติดต่อผู้ดูแลระบบ
+                </p>
               )}
             </div>
 
-            {/* Work summary (check-out) */}
-            {activeLog && (
-              <div className="space-y-3 border-t border-gray-100 pt-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
-                  <textarea className={`${inputCls} resize-none`} rows={3}
-                    placeholder="อธิบายงานที่ทำในวันนี้..."
-                    value={workSummary} onChange={e => setWorkSummary(e.target.value)} />
+            {/* Student info card */}
+            {studentLocked && (
+              <div className="anim-slide-up rounded-xl border border-indigo-100 overflow-hidden">
+                <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-indigo-400 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                    {getInitials(form.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-white font-medium text-sm truncate">{form.name}</div>
+                    <div className="text-indigo-300 text-xs">{form.student_id} · {form.department}</div>
+                  </div>
                 </div>
+                {(form.faculty || form.major) && (
+                  <div className="px-4 py-2.5 bg-indigo-50 grid grid-cols-2 gap-x-4 gap-y-1">
+                    {form.faculty && (
+                      <div>
+                        <div className="text-xs text-indigo-400">คณะ</div>
+                        <div className="text-xs text-indigo-800 font-medium leading-tight mt-0.5">{form.faculty}</div>
+                      </div>
+                    )}
+                    {form.major && (
+                      <div>
+                        <div className="text-xs text-indigo-400">สาขา</div>
+                        <div className="text-xs text-indigo-800 font-medium leading-tight mt-0.5">{form.major}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PIN verify */}
+            {studentLocked && foundPin && !activeLog && (
+              <div className="anim-slide-up">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                  placeholder="กรอก PIN 4 หลัก"
+                  value={pinInput}
+                  onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+              </div>
+            )}
+
+            {/* Work summary for check-out */}
+            {activeLog && (
+              <div className="anim-slide-up border-t border-gray-100 pt-4">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
+                <textarea
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none"
+                  rows={3}
+                  placeholder="อธิบายงานที่ทำในวันนี้..."
+                  value={workSummary}
+                  onChange={e => setWorkSummary(e.target.value)}
+                />
               </div>
             )}
 
             {/* Action button */}
-            <div>
-              {!activeLog ? (
-                <button onClick={handleCheckIn} disabled={loading || studentNotFound || cooldown > 0}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300">
-                  {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาเข้า'}
-                </button>
-              ) : (
-                <button onClick={handleCheckOut} disabled={loading || cooldown > 0}
-                  className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-amber-200 hover:shadow-lg hover:shadow-amber-300">
-                  {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาออก'}
-                </button>
-              )}
-            </div>
+            {!activeLog ? (
+              <button
+                onClick={handleCheckIn}
+                disabled={loading || studentNotFound || cooldown > 0 || !studentLocked}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300"
+              >
+                {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาเข้า'}
+              </button>
+            ) : (
+              <button
+                onClick={handleCheckOut}
+                disabled={loading || cooldown > 0}
+                className="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-amber-200 hover:shadow-lg hover:shadow-amber-300"
+              >
+                {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาออก'}
+              </button>
+            )}
 
-            {/* ดูประวัติ toggle */}
+            {/* History toggle */}
             {studentLocked && (
               <button onClick={handleToggleHistory}
                 className="w-full text-xs text-gray-400 hover:text-indigo-500 font-medium py-1 transition-colors flex items-center justify-center gap-1">
@@ -396,7 +367,7 @@ export default function StudentPage() {
 
         {/* History panel */}
         {showHistory && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden anim-slide-up">
             <div className="px-5 py-3 border-b border-gray-100 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">ประวัติการลงเวลา</p>
@@ -419,7 +390,6 @@ export default function StudentPage() {
                 )}
               </div>
             </div>
-
             {historyLoading ? (
               <div className="py-8 text-center text-gray-400 text-xs">กำลังโหลด...</div>
             ) : historyLogs.length === 0 ? (
@@ -444,12 +414,12 @@ export default function StudentPage() {
                         <td className="px-3 py-2 text-green-600 font-medium" style={{ lineHeight: 1.8 }}>{log.checkInStr}</td>
                         <td className="px-3 py-2 text-rose-500 font-medium" style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.durationStr}</td>
-                        <td className="px-3 py-2 text-gray-400 max-w-[120px]" style={{ lineHeight: 1.8 }}>
+                        <td className="px-3 py-2 text-gray-400 max-w-[100px]" style={{ lineHeight: 1.8 }}>
                           <div className="truncate">{log.work_summary || '-'}</div>
                         </td>
                         <td className="px-3 py-2" style={{ lineHeight: 1.8 }}>
                           {log.status === 'approved'
-                            ? <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">✓ อนุมัติแล้ว</span>
+                            ? <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">✓ อนุมัติ</span>
                             : <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">รออนุมัติ</span>
                           }
                         </td>
@@ -475,7 +445,7 @@ export default function StudentPage() {
               { label: 'Facebook',  href: 'https://www.facebook.com/winny.5621149/', external: true },
               { label: 'Instagram', href: 'https://www.instagram.com/potato_ps.ps/', external: true },
               { label: 'About Me',  href: 'https://sawaddee-khonnarak.onrender.com/', external: true },
-              { label: 'คู่มือ',  href: '/guide', external: false },
+              { label: 'คู่มือ',   href: '/guide', external: false },
             ].map(l => (
               <a key={l.label} href={l.href}
                 {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
@@ -485,10 +455,9 @@ export default function StudentPage() {
             ))}
           </div>
         </div>
-
       </div>
 
-      {/* Toothless mascot — click to toggle music */}
+      {/* Toothless mascot */}
       <div className="fixed bottom-3 right-3 z-10 flex flex-col items-center gap-1 cursor-pointer select-none"
         onClick={() => setPlaying(p => !p)}>
         {playing && (
@@ -508,7 +477,6 @@ export default function StudentPage() {
         </div>
       </div>
 
-      {/* Hidden YouTube player */}
       {playing && (
         <iframe
           src="https://www.youtube.com/embed/9MCiixIkzUk?autoplay=1&loop=1&playlist=9MCiixIkzUk"
