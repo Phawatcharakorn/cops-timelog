@@ -409,23 +409,10 @@ export default function AdminPage() {
   }
 
   const handleApprove = async (logId: string) => {
-    let lat: number | null = null
-    let lng: number | null = null
-    if (navigator.geolocation) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-        )
-        lat = pos.coords.latitude
-        lng = pos.coords.longitude
-      } catch { /* GPS denied — approve without location */ }
-    }
     const { error } = await supabase.from('time_logs').update({
       status: 'approved',
       approved_by: adminUsername,
       approved_at: new Date().toISOString(),
-      approved_lat: lat,
-      approved_lng: lng,
     }).eq('id', logId)
     if (error) return alert('อนุมัติไม่สำเร็จ: ' + error.message)
     await fetchSummary()
@@ -728,15 +715,6 @@ export default function AdminPage() {
                                   <div className="text-xs text-gray-400 space-y-0.5 mt-1">
                                     <div>โดย: <span className="text-gray-600 font-medium">{log.approved_by}</span></div>
                                     <div>{log.approved_at ? `${fmtDate(log.approved_at)} ${fmtTime(log.approved_at)}` : ''}</div>
-                                    {log.approved_lat != null && log.approved_lng != null && (
-                                      <a
-                                        href={`https://www.google.com/maps?q=${log.approved_lat},${log.approved_lng}`}
-                                        target="_blank" rel="noopener noreferrer"
-                                        className="text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
-                                      >
-                                        📍 ดูพิกัด
-                                      </a>
-                                    )}
                                   </div>
                                 </div>
                               ) : (
