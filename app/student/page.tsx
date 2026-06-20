@@ -266,6 +266,7 @@ export default function StudentPage() {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 10)
                     setForm(f => ({ ...f, student_id: val }))
                     setStudentLocked(false); setStudentNotFound(false)
+                    setMessage(null)
                     setFoundPin(null); setPinInput('')
                   }}
                   onBlur={handleStudentIdBlur}
