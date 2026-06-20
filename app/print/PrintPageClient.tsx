@@ -146,6 +146,7 @@ export default function PrintPageClient() {
         .data-table tr:nth-child(even) td { background: #e8edf5; }
         .data-table tr { break-inside: avoid; page-break-inside: avoid; }
         .keep-with-next { break-after: avoid; page-break-after: avoid; }
+        .kus-logo { display: block !important; width: 80px !important; height: 80px !important; margin: 0 auto 8px !important; object-fit: contain !important; }
       `}</style>
 
       {/* Toolbar */}
@@ -204,7 +205,7 @@ export default function PrintPageClient() {
           <p style={{ position: 'absolute', top: 0, right: 0, fontSize: 10, color: '#9ca3af', margin: 0 }}>
             {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
           </p>
-          <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 80, height: 80, margin: '0 auto 8px' }} />
+          <img src="/kus-logo.svg" alt="KUS Logo" className="kus-logo" />
           <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
             มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
           </p>
@@ -271,11 +272,11 @@ export default function PrintPageClient() {
         <table className="data-table" style={{ marginBottom: 16 }}>
           <thead>
             <tr>
-              <th style={{ width: 40, textAlign: 'center' }}>ลำดับ</th>
-              <th>วันที่</th>
-              <th>เวลาเข้า</th>
-              <th>เวลาออก</th>
-              <th>ชั่วโมง</th>
+              <th style={{ width: 36, textAlign: 'center' }}>ลำดับ</th>
+              <th style={{ width: 88 }}>วันที่</th>
+              <th style={{ width: 68, textAlign: 'center' }}>เวลาเข้า</th>
+              <th style={{ width: 68, textAlign: 'center' }}>เวลาออก</th>
+              <th style={{ width: 62, textAlign: 'center' }}>ชั่วโมง</th>
               <th>สรุปงานที่ปฏิบัติ</th>
             </tr>
           </thead>
@@ -284,9 +285,9 @@ export default function PrintPageClient() {
               <tr key={log.id}>
                 <td style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11 }}>{i + 1}</td>
                 <td>{log.dateStr}</td>
-                <td style={{ color: '#15803d', fontWeight: 500 }}>{log.checkInStr}</td>
-                <td style={{ color: '#dc2626', fontWeight: 500 }}>{log.checkOutStr}</td>
-                <td>{log.durationStr}</td>
+                <td style={{ color: '#15803d', fontWeight: 500, textAlign: 'center' }}>{log.checkInStr}</td>
+                <td style={{ color: '#dc2626', fontWeight: 500, textAlign: 'center' }}>{log.checkOutStr}</td>
+                <td style={{ textAlign: 'center' }}>{log.durationStr}</td>
                 <td style={{ color: '#4b5563' }}>{log.work_summary || '-'}</td>
               </tr>
             ))}
