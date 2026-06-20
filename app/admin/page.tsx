@@ -232,11 +232,6 @@ export default function AdminPage() {
 
   const handleExportPDF = () => {
     if (!summary) return
-    const pending = summary.logs.filter(l => l.status === 'pending').length
-    if (pending > 0) {
-      alert(`ยังมีรายการรออนุมัติ ${pending} รายการ\nกรุณาอนุมัติให้ครบก่อนพิมพ์`)
-      return
-    }
     const url = `/print?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     window.open(url, '_blank')
   }
