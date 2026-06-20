@@ -22,7 +22,7 @@ type UndoAction =
   | { type: 'add';    id: string }
 type Summary = {
   totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
-  logs: LogWithDuration[]; student: Student | null; month: string
+  logs: LogWithDuration[]; student: Student | null; dateFrom: string; dateTo: string
 }
 type StudentOverview = {
   student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
@@ -54,8 +54,10 @@ export default function AdminPage() {
   // Individual tab
   const [students, setStudents]                     = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId]   = useState('')
-  const [selectedMonth, setSelectedMonth]           = useState(format(new Date(), 'yyyy-MM'))
-  const [selectedDate, setSelectedDate]             = useState('')
+  const [dateFrom, setDateFrom] = useState(() => {
+    const n = new Date(); return format(new Date(n.getFullYear(), n.getMonth(), 1), 'yyyy-MM-dd')
+  })
+  const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [summary, setSummary]                       = useState<Summary | null>(null)
   const [loading, setLoading]                       = useState(false)
 
@@ -134,16 +136,8 @@ export default function AdminPage() {
     if (!selectedStudentId) return
     setLoading(true)
     try {
-      let start: string, end: string
-      if (selectedDate) {
-        const d = new Date(selectedDate)
-        start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString()
-        end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString()
-      } else {
-        const [y, m] = selectedMonth.split('-').map(Number)
-        start = new Date(y, m - 1, 1).toISOString()
-        end   = new Date(y, m, 1, 0, 0, 0, -1).toISOString()
-      }
+      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
+      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
       const [{ data: logs }, { data: student }] = await Promise.all([
         supabase.from('time_logs').select('*').eq('student_id', selectedStudentId)
           .gte('check_in', start).lte('check_in', end).order('check_in', { ascending: true }),
@@ -162,17 +156,16 @@ export default function AdminPage() {
         totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size,
         totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60,
         taskCount: processed.length,
-        logs: processed, student, month: selectedMonth,
+        logs: processed, student, dateFrom, dateTo,
       })
     } finally { setLoading(false) }
-  }, [selectedStudentId, selectedMonth, selectedDate])
+  }, [selectedStudentId, dateFrom, dateTo])
 
   const fetchOverview = useCallback(async () => {
     setOverviewLoading(true)
     try {
-      const [y, m] = selectedMonth.split('-').map(Number)
-      const start = new Date(y, m - 1, 1).toISOString()
-      const end   = new Date(y, m, 1, 0, 0, 0, -1).toISOString()
+      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
+      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
       const [{ data: allStudents }, { data: allLogs }] = await Promise.all([
         supabase.from('students').select('*').order('name'),
         supabase.from('time_logs').select('*').gte('check_in', start).lte('check_in', end),
@@ -193,7 +186,7 @@ export default function AdminPage() {
       })
       setOverview(result)
     } finally { setOverviewLoading(false) }
-  }, [selectedMonth])
+  }, [dateFrom, dateTo])
 
   const fetchMultiStats = useCallback(async () => {
     if (!selectedStudentId || !rangeStart || !rangeEnd) return
@@ -232,16 +225,14 @@ export default function AdminPage() {
   const handleExportCSV = (useRange = false) => {
     const url = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
-      : `/api/export-csv?studentId=${selectedStudentId}&month=${selectedMonth}`
+      : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     const a = document.createElement('a')
     a.href = url; a.download = `timelog_${selectedStudentId}.csv`; a.click()
   }
 
   const handleExportPDF = () => {
     if (!summary) return
-    const url = selectedDate
-      ? `/print?studentId=${selectedStudentId}&date=${selectedDate}`
-      : `/print?studentId=${selectedStudentId}&month=${selectedMonth}`
+    const url = `/print?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     window.open(url, '_blank')
   }
 
@@ -566,30 +557,19 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* 2. Date filters side-by-side */}
+              {/* 2. Date range */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
-                  <input type="month" className={inputCls} value={selectedMonth}
-                    onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
+                  <input type="date" className={inputCls} value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)} />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-gray-500">หรือเฉพาะวันที่</label>
-                    {selectedDate && (
-                      <button onClick={() => setSelectedDate('')}
-                        className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">ล้าง ✕</button>
-                    )}
-                  </div>
-                  <input type="date" className={inputCls + (selectedDate ? ' border-indigo-400 ring-1 ring-indigo-200' : '')}
-                    value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
+                  <input type="date" className={inputCls} value={dateTo} min={dateFrom}
+                    onChange={e => setDateTo(e.target.value)} />
                 </div>
               </div>
-              {selectedDate && (
-                <p className="text-xs text-indigo-500 -mt-1">
-                  กรองเฉพาะวันที่ {format(new Date(selectedDate), 'd MMMM yyyy', { locale: th })}
-                </p>
-              )}
 
               {/* 3. Action buttons */}
               <div className="flex gap-2">
@@ -637,7 +617,7 @@ export default function AdminPage() {
                   </button>
                   <button onClick={handleExportPDF}
                     className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors"
-                    title={selectedDate ? 'PDF จะแสดงข้อมูลทั้งเดือน' : ''}>
+                    >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -664,7 +644,9 @@ export default function AdminPage() {
                     <h2 className="font-semibold text-gray-700 text-sm">รายการลงเวลา</h2>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {summary.student?.name}
-                      {selectedDate ? ` — ${format(new Date(selectedDate), 'd MMMM yyyy', { locale: th })}` : ` — ${selectedMonth}`}
+                      {dateFrom === dateTo
+                        ? ` — ${format(new Date(dateFrom), 'd MMMM yyyy', { locale: th })}`
+                        : ` — ${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`}
                     </p>
                   </div>
                   <div className="overflow-x-auto">
@@ -824,9 +806,14 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
-                <input type="month" className={inputCls + ' w-auto'} value={selectedMonth}
-                  onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
+                <input type="date" className={inputCls + ' w-auto'} value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
+                <input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom}
+                  onChange={e => setDateTo(e.target.value)} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
@@ -847,7 +834,10 @@ export default function AdminPage() {
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลาทุกคน</h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {selectedMonth} — {filteredOverview.length} คน
+                    {dateFrom === dateTo
+                      ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th })
+                      : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`
+                    } — {filteredOverview.length} คน
                     {overviewDept && ` (ฝ่าย ${overviewDept})`}
                   </p>
                 </div>

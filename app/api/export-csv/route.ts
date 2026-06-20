@@ -15,6 +15,8 @@ function toThai(iso: string) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const studentId  = searchParams.get('studentId')
+  const from       = searchParams.get('from')
+  const to         = searchParams.get('to')
   const month      = searchParams.get('month')
   const startMonth = searchParams.get('startMonth')
   const endMonth   = searchParams.get('endMonth')
@@ -23,7 +25,11 @@ export async function GET(req: NextRequest) {
 
   let start: string, end: string, label: string
 
-  if (startMonth && endMonth) {
+  if (from && to) {
+    start = new Date(from + 'T00:00:00+07:00').toISOString()
+    end   = new Date(to   + 'T23:59:59+07:00').toISOString()
+    label = from === to ? from : `${from}_to_${to}`
+  } else if (startMonth && endMonth) {
     const [sy, sm] = startMonth.split('-').map(Number)
     const [ey, em] = endMonth.split('-').map(Number)
     start = new Date(Date.UTC(sy, sm - 1, 1) - TZ).toISOString()
@@ -35,7 +41,7 @@ export async function GET(req: NextRequest) {
     end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
     label = month
   } else {
-    return NextResponse.json({ error: 'Missing month params' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing date params' }, { status: 400 })
   }
 
   const db = supabaseAdmin()
