@@ -232,6 +232,11 @@ export default function AdminPage() {
 
   const handleExportPDF = () => {
     if (!summary) return
+    const pending = summary.logs.filter(l => l.status === 'pending').length
+    if (pending > 0) {
+      alert(`ยังมีรายการรออนุมัติ ${pending} รายการ\nกรุณาอนุมัติให้ครบก่อนพิมพ์`)
+      return
+    }
     const url = `/print?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     window.open(url, '_blank')
   }
@@ -694,18 +699,16 @@ export default function AdminPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="space-y-1.5">
-                                  <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">
                                     รออนุมัติ
                                   </span>
-                                  <div>
-                                    <button
-                                      onClick={() => handleApprove(log.id)}
-                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors"
-                                    >
-                                      อนุมัติ
-                                    </button>
-                                  </div>
+                                  <button
+                                    onClick={() => handleApprove(log.id)}
+                                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap"
+                                  >
+                                    อนุมัติ
+                                  </button>
                                 </div>
                               )}
                             </td>

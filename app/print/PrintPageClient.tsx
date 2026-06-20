@@ -32,7 +32,9 @@ export default function PrintPageClient() {
   const searchParams = useSearchParams()
   const studentId    = searchParams.get('studentId')
   const month        = searchParams.get('month')
-  const date         = searchParams.get('date')   // yyyy-MM-dd (เฉพาะวัน)
+  const date         = searchParams.get('date')
+  const from         = searchParams.get('from')   // yyyy-MM-dd (date range)
+  const to           = searchParams.get('to')
   const projectParam = searchParams.get('project') ?? ''
 
   const [data,  setData]  = useState<ReportData | null>(null)
@@ -40,13 +42,18 @@ export default function PrintPageClient() {
   const [projectTitle, setProjectTitle] = useState(projectParam)
 
   useEffect(() => {
-    if (!studentId || (!month && !date)) { setError('Missing params'); return }
+    if (!studentId || (!month && !date && !from)) { setError('Missing params'); return }
 
     const TZ = 7 * 60 * 60 * 1000
     let start: string, end: string, periodLabel: string
 
-    if (date) {
-      // กรองเฉพาะวัน
+    if (from && to) {
+      start = new Date(from + 'T00:00:00+07:00').toISOString()
+      end   = new Date(to   + 'T23:59:59+07:00').toISOString()
+      periodLabel = from === to
+        ? format(new Date(from + 'T12:00:00'), 'd MMMM yyyy', { locale: th })
+        : `${format(new Date(from + 'T12:00:00'), 'd MMM yyyy', { locale: th })} – ${format(new Date(to + 'T12:00:00'), 'd MMM yyyy', { locale: th })}`
+    } else if (date) {
       const d = new Date(date + 'T00:00:00+07:00')
       start = new Date(d.getTime() - TZ).toISOString()
       end   = new Date(d.getTime() - TZ + 86400000 - 1).toISOString()
@@ -68,7 +75,8 @@ export default function PrintPageClient() {
       if (sErr || !student) { setError('ไม่พบข้อมูลนิสิต'); return }
       if (lErr)              { setError('โหลดข้อมูลไม่สำเร็จ'); return }
 
-      const processed: ProcessedLog[] = (logs ?? []).map(log => {
+      const approvedLogs = (logs ?? []).filter(l => l.status === 'approved')
+      const processed: ProcessedLog[] = approvedLogs.map(log => {
         const dur = log.check_out
           ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
           : 0
@@ -97,7 +105,7 @@ export default function PrintPageClient() {
 
       if (!projectParam) setProjectTitle('')
     })
-  }, [studentId, month, date, projectParam])
+  }, [studentId, month, date, from, to, projectParam])
 
   if (error) return (
     <div className="p-8 text-center text-red-500 text-sm">{error}</div>
@@ -211,7 +219,7 @@ export default function PrintPageClient() {
             รายงานการลงเวลาปฏิบัติงาน
           </p>
           <p style={{ fontSize: 14, color: '#374151', margin: 0, lineHeight: 1.6 }}>
-            {date ? 'วันที่' : 'ประจำเดือน'} {monthLabel}
+            {(date || (from && from !== to)) ? 'ช่วงวันที่' : 'ประจำเดือน'} {monthLabel}
           </p>
         </div>
 
@@ -227,7 +235,7 @@ export default function PrintPageClient() {
               ['คณะ', student.faculty ?? '-'],
               ['สาขาวิชา', student.major ?? '-'],
               ['ฝ่าย / กลุ่มงาน', student.department],
-              ['ช่วงเวลา', `${date ? 'วันที่ ' : ''}${monthLabel}`],
+              ['ช่วงเวลา', monthLabel],
             ].map(([label, value], i) => (
               <div key={label} style={{
                 padding: '7px 14px',
