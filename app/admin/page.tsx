@@ -889,6 +889,7 @@ export default function AdminPage() {
               ) : filteredStudentsManage.length === 0 ? (
                 <div className="text-center py-12 text-gray-400 text-sm">ไม่พบนิสิตที่ค้นหา</div>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500 text-xs">
                     <tr>
@@ -903,14 +904,14 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-100">
                     {filteredStudentsManage.map(s => (
                       <tr key={s.student_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                        <td className="px-4 py-3 text-gray-500">{s.student_id}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{s.name}</td>
+                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">
-                          <div>{s.faculty ?? <span className="text-gray-300">-</span>}</div>
-                          {s.major && <div className="text-gray-400">{s.major}</div>}
+                        <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px]">
+                          <div className="truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
+                          {s.major && <div className="text-gray-400 truncate">{s.major}</div>}
                         </td>
                         <td className="px-4 py-3 text-center">
                           {s.pin ? (
@@ -951,6 +952,7 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
