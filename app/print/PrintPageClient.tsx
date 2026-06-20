@@ -141,8 +141,8 @@ export default function PrintPageClient() {
         table { border-collapse: collapse; width: 100%; }
         th, td { padding: 5px 9px; font-size: 11px; line-height: 1.45; }
         .data-table { border-top: 3px solid #1a3a5c; }
-        .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: left; border: 1px solid #0f2744; }
-        .data-table td { border: 1px solid #d1d5db; color: #374151; }
+        .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: center; border: 1px solid #0f2744; }
+        .data-table td { border: 1px solid #d1d5db; color: #374151; text-align: center; }
         .data-table tr:nth-child(even) td { background: #e8edf5; }
         .data-table tr { break-inside: avoid; page-break-inside: avoid; }
         .keep-with-next { break-after: avoid; page-break-after: avoid; }
