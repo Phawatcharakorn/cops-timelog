@@ -139,10 +139,11 @@ export default function PrintPageClient() {
           }
         }
         table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 4px 8px; font-size: 11px; line-height: 1.45; }
-        .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: left; }
-        .data-table td { border-bottom: 1px solid #e5e7eb; color: #374151; }
-        .data-table tr:nth-child(even) td { background: #f8fafc; }
+        th, td { padding: 5px 9px; font-size: 11px; line-height: 1.45; }
+        .data-table { border-top: 3px solid #1a3a5c; }
+        .data-table th { background: #1a3a5c; color: white; font-weight: 600; text-align: left; border: 1px solid #0f2744; }
+        .data-table td { border: 1px solid #d1d5db; color: #374151; }
+        .data-table tr:nth-child(even) td { background: #e8edf5; }
         .data-table tr { break-inside: avoid; page-break-inside: avoid; }
         .keep-with-next { break-after: avoid; page-break-after: avoid; }
       `}</style>
@@ -169,7 +170,7 @@ export default function PrintPageClient() {
               const filename = `timelog-${student.name}-${monthLabel}.pdf`
               await html2pdf()
                 .set({
-                  margin: [15, 15, 30, 15],
+                  margin: [15, 20, 30, 20],
                   filename,
                   image: { type: 'jpeg', quality: 0.98 },
                   html2canvas: { scale: 2, useCORS: true, letterRendering: true },
@@ -267,7 +268,7 @@ export default function PrintPageClient() {
 
         {/* ── Time log table ── */}
         <p className="keep-with-next" style={{ fontSize: 12, fontWeight: 700, color: '#1a3a5c', marginBottom: 4, marginTop: 0 }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
-        <table className="data-table" style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
+        <table className="data-table" style={{ marginBottom: 16 }}>
           <thead>
             <tr>
               <th style={{ width: 40, textAlign: 'center' }}>ลำดับ</th>
