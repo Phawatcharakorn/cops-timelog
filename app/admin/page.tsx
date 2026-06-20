@@ -508,114 +508,108 @@ export default function AdminPage() {
 
       <main className="max-w-6xl mx-auto p-6 space-y-6">
 
-        {/* Month selector + tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">เดือน</label>
-              <input type="month" className={inputCls + ' w-auto'}
-                value={selectedMonth} onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
-            </div>
-            <div className="flex gap-1 ml-auto">
-              {(['individual', 'overview', 'manage'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    tab === t ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}>
-                  {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวมทุกคน' : 'จัดการนิสิต'}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
+          {(['individual', 'overview', 'manage'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
+              }`}>
+              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวมทุกคน' : 'จัดการนิสิต'}
+            </button>
+          ))}
         </div>
 
         {/* ── Tab: Individual ─────────────────────────────────────────────── */}
         {tab === 'individual' && (
           <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="font-semibold text-gray-700 text-sm mb-4">เลือกนิสิต</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+              {/* 1. Student search */}
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">นิสิต</label>
                 <div className="relative">
-                  <label className="block text-xs text-gray-500 mb-1">นิสิต</label>
-                  <div className="relative">
-                    <input
-                      className={inputCls}
-                      placeholder="พิมพ์ชื่อหรือรหัสนิสิต..."
-                      value={searchIndividual}
-                      onChange={e => {
-                        setSearchIndividual(e.target.value)
-                        setSelectedStudentId('')
-                        setShowStudentDropdown(true)
-                      }}
-                      onFocus={() => setShowStudentDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowStudentDropdown(false), 150)}
-                      autoComplete="off"
-                    />
-                    {searchIndividual && (
-                      <button
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        onMouseDown={e => { e.preventDefault(); setSearchIndividual(''); setSelectedStudentId(''); }}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  {showStudentDropdown && filteredStudentsIndividual.length > 0 && (
-                    <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                      {filteredStudentsIndividual.map(s => (
-                        <li key={s.student_id}
-                          className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${selectedStudentId === s.student_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
-                          onMouseDown={() => {
-                            setSelectedStudentId(s.student_id)
-                            setSearchIndividual(`${s.name} (${s.student_id})`)
-                            setShowStudentDropdown(false)
-                            setUndoAction(null)
-                          }}>
-                          <span className="font-medium">{s.name}</span>
-                          <span className="text-xs text-gray-400 ml-2">{s.student_id}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {showStudentDropdown && searchIndividual && filteredStudentsIndividual.length === 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-400">
-                      ไม่พบนิสิต
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">วันที่ (เฉพาะวัน)</label>
-                  <input type="date" className={inputCls} value={selectedDate}
-                    onChange={e => setSelectedDate(e.target.value)} />
-                </div>
-                <div className="flex items-end gap-2 md:col-span-2">
-                  <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
-                    {loading ? 'กำลังโหลด...' : 'ดึงข้อมูล'}
-                  </button>
-                  {selectedDate && (
-                    <button onClick={() => setSelectedDate('')}
-                      className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-500 hover:bg-gray-50">ล้าง</button>
-                  )}
-                  {/* NEW: เพิ่ม Log */}
-                  {selectedStudentId && !selectedDate && (
-                    <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
-                      className="px-3 py-2.5 border border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    className={inputCls + ' pl-9'}
+                    placeholder="พิมพ์ชื่อหรือรหัสนิสิต..."
+                    value={searchIndividual}
+                    onChange={e => { setSearchIndividual(e.target.value); setSelectedStudentId(''); setShowStudentDropdown(true) }}
+                    onFocus={() => setShowStudentDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowStudentDropdown(false), 150)}
+                    autoComplete="off"
+                  />
+                  {searchIndividual && (
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onMouseDown={e => { e.preventDefault(); setSearchIndividual(''); setSelectedStudentId('') }}>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      เพิ่ม Log
                     </button>
                   )}
                 </div>
+                {showStudentDropdown && filteredStudentsIndividual.length > 0 && (
+                  <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                    {filteredStudentsIndividual.map(s => (
+                      <li key={s.student_id}
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${selectedStudentId === s.student_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                        onMouseDown={() => { setSelectedStudentId(s.student_id); setSearchIndividual(`${s.name} (${s.student_id})`); setShowStudentDropdown(false); setUndoAction(null) }}>
+                        <span className="font-medium">{s.name}</span>
+                        <span className="text-xs text-gray-400 ml-2">{s.student_id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {showStudentDropdown && searchIndividual && filteredStudentsIndividual.length === 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-400">ไม่พบนิสิต</div>
+                )}
+              </div>
+
+              {/* 2. Date filters side-by-side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
+                  <input type="month" className={inputCls} value={selectedMonth}
+                    onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-gray-500">หรือเฉพาะวันที่</label>
+                    {selectedDate && (
+                      <button onClick={() => setSelectedDate('')}
+                        className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">ล้าง ✕</button>
+                    )}
+                  </div>
+                  <input type="date" className={inputCls + (selectedDate ? ' border-indigo-400 ring-1 ring-indigo-200' : '')}
+                    value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                </div>
               </div>
               {selectedDate && (
-                <p className="text-xs text-indigo-500 mt-2">
+                <p className="text-xs text-indigo-500 -mt-1">
                   กรองเฉพาะวันที่ {format(new Date(selectedDate), 'd MMMM yyyy', { locale: th })}
                 </p>
               )}
+
+              {/* 3. Action buttons */}
+              <div className="flex gap-2">
+                <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  {loading
+                    ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</>
+                    : 'ดึงข้อมูล'
+                  }
+                </button>
+                {selectedStudentId && (
+                  <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
+                    className="px-4 py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    เพิ่ม Log
+                  </button>
+                )}
+              </div>
             </div>
 
             {summary && (
@@ -828,10 +822,14 @@ export default function AdminPage() {
         {/* ── Tab: Overview ───────────────────────────────────────────────── */}
         {tab === 'overview' && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* NEW: department filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">ฝ่าย</label>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
+                <input type="month" className={inputCls + ' w-auto'} value={selectedMonth}
+                  onChange={e => { setSelectedMonth(e.target.value); setSelectedDate('') }} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
                 <select className={inputCls + ' w-auto'}
                   value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
                   <option value="">ทุกฝ่าย</option>
@@ -839,8 +837,8 @@ export default function AdminPage() {
                 </select>
               </div>
               <button onClick={fetchOverview} disabled={overviewLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
-                {overviewLoading ? 'กำลังโหลด...' : `ดูภาพรวม ${selectedMonth}`}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
+                {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
               </button>
             </div>
 
