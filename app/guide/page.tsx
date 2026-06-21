@@ -22,10 +22,10 @@ export default function GuidePage() {
               'นิสิตบันทึกเวลาเข้า-ออกด้วยตัวเอง',
               'ตั้ง PIN ป้องกันการลงเวลาแทนกัน',
               'ดูประวัติการลงเวลาย้อนหลังรายเดือน',
-              'แอดมินดูภาพรวมทุกคน กรองตามฝ่าย',
-              'แอดมินส่งออกรายงาน PDF รายบุคคล',
-              'แอดมินเพิ่มนิสิตใหม่ และเพิ่ม log ย้อนหลังได้',
-              'แอดมินแก้ไขข้อมูลนิสิต และแก้ไข log',
+              'manager ดูภาพรวมทุกคน กรองตามฝ่าย',
+              'manager ส่งออกรายงาน PDF รายบุคคล',
+              'manager เพิ่มนิสิตใหม่ และเพิ่ม log ย้อนหลังได้',
+              'manager แก้ไขข้อมูลนิสิต และแก้ไข log',
             ].map(t => (
               <li key={t} className="flex items-start gap-2">
                 <span className="text-indigo-400 mt-0.5">✓</span>
@@ -51,7 +51,7 @@ export default function GuidePage() {
               {
                 step: '2',
                 title: 'กรอก PIN (ถ้ามี)',
-                desc: 'ถ้าแอดมินตั้ง PIN ไว้ให้คุณ จะมีช่อง PIN ขึ้นมา กรอกให้ถูกก่อนกดบันทึกเวลาเข้า',
+                desc: 'ครั้งแรกระบบจะให้ตั้ง PIN เอง กรอก PIN 2 ครั้งเพื่อยืนยัน จากนั้นใช้ PIN นั้นทุกครั้ง',
               },
               {
                 step: '3',
@@ -89,10 +89,10 @@ export default function GuidePage() {
         {/* Admin guide */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <span className="text-2xl">🛠️</span> วิธีใช้งานสำหรับแอดมิน
+            <span className="text-2xl">🛠️</span> วิธีใช้งานสำหรับ Manager
           </h2>
 
-          <p className="text-xs text-gray-500">เข้าหน้าแอดมินได้จากปุ่ม "Admin" มุมขวาบนของหน้าหลัก</p>
+          <p className="text-xs text-gray-500">เข้าหน้า Manager ได้จากปุ่ม "Manager" มุมขวาบนของหน้าหลัก</p>
 
           <div className="space-y-5">
             {[
@@ -188,9 +188,9 @@ export default function GuidePage() {
             <p className="text-xs font-semibold text-gray-700">โครงสร้างไฟล์สำคัญ</p>
             <div className="bg-gray-900 rounded-xl p-4 text-xs font-mono text-gray-300 space-y-1 leading-relaxed">
               <p><span className="text-indigo-400">app/student/page.tsx</span>  — หน้าหลัก นิสิตลงเวลา</p>
-              <p><span className="text-indigo-400">app/admin/page.tsx</span>    — แผงแอดมิน</p>
+              <p><span className="text-indigo-400">app/manager/page.tsx</span>  — แผง Manager</p>
               <p><span className="text-indigo-400">app/print/</span>            — หน้าพิมพ์ PDF</p>
-              <p><span className="text-indigo-400">app/api/admin/login/</span>  — API ยืนยันรหัสแอดมิน</p>
+              <p><span className="text-indigo-400">app/api/manager/login/</span> — API ยืนยันรหัส Manager</p>
               <p><span className="text-indigo-400">lib/supabase.ts</span>       — client + type definitions</p>
               <p><span className="text-indigo-400">public/fonts/</span>         — Sarabun TTF สำหรับ PDF</p>
             </div>
@@ -202,8 +202,8 @@ export default function GuidePage() {
               <p><span className="text-green-400">NEXT_PUBLIC_SUPABASE_URL</span>      — URL ของ Supabase project</p>
               <p><span className="text-green-400">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> — anon/public key</p>
               <p><span className="text-yellow-400">SUPABASE_SERVICE_ROLE_KEY</span>    — service role key (server-only)</p>
-              <p><span className="text-yellow-400">ADMIN_USERNAME</span>               — username แอดมิน</p>
-              <p><span className="text-yellow-400">ADMIN_PASSWORD</span>               — รหัสผ่านแอดมิน</p>
+              <p><span className="text-yellow-400">ADMIN_USERNAME</span>               — username Dev</p>
+              <p><span className="text-yellow-400">ADMIN_PASSWORD</span>               — รหัสผ่าน Dev</p>
             </div>
           </div>
 
@@ -258,7 +258,7 @@ export default function GuidePage() {
           <p>
             <a href="/" className="text-indigo-400 hover:text-indigo-600 transition-colors">← กลับหน้าหลัก</a>
             <span className="mx-2">·</span>
-            <a href="/admin" className="text-indigo-400 hover:text-indigo-600 transition-colors">Admin Panel →</a>
+            <a href="/manager" className="text-indigo-400 hover:text-indigo-600 transition-colors">Manager Panel →</a>
           </p>
         </div>
 
