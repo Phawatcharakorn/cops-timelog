@@ -294,7 +294,7 @@ export default function PrintPageClient() {
                 <td style={{ color: '#15803d', fontWeight: 500, textAlign: 'center' }}>{log.checkInStr}</td>
                 <td style={{ color: '#dc2626', fontWeight: 500, textAlign: 'center' }}>{log.checkOutStr}</td>
                 <td style={{ textAlign: 'center' }}>{log.durationStr}</td>
-                <td style={{ color: '#4b5563' }}>{log.work_summary || '-'}</td>
+                <td style={{ color: '#4b5563', textAlign: 'left' }}>{log.work_summary || '-'}</td>
               </tr>
             ))}
           </tbody>
