@@ -34,8 +34,11 @@ export type Manager = {
 
 export type FeedbackCampaign = {
   id: string
+  title: string
   message: string
   active: boolean
+  duration_days: number | null
+  end_date: string | null
   created_at: string
   ended_at: string | null
 }

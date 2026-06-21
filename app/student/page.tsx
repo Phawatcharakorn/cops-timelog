@@ -199,11 +199,15 @@ export default function StudentPage() {
         const res = await fetch('/api/feedback/campaign')
         const campaign = await res.json()
         if (campaign?.id) {
-          setFeedbackRating(0)
-          setFeedbackComment('')
-          setFeedbackModal({ campaignId: campaign.id, message: campaign.message })
-          // store student info for submission (captured above before reset)
-          ;(window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent = { id: studentId, name: studentName }
+          // check if this student already submitted for this campaign
+          const checkRes = await fetch(`/api/feedback/response?campaign_id=${campaign.id}&respondent_type=student&respondent_id=${studentId}`)
+          const existing = await checkRes.json()
+          if (existing.length === 0) {
+            setFeedbackRating(0)
+            setFeedbackComment('')
+            setFeedbackModal({ campaignId: campaign.id, message: campaign.message })
+            ;(window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent = { id: studentId, name: studentName }
+          }
         }
       } catch { /* ignore */ }
     } catch (e: unknown) {
@@ -534,7 +538,7 @@ export default function StudentPage() {
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setFeedbackRating(s)}
-                  className={`text-4xl transition-transform hover:scale-110 ${s <= feedbackRating ? 'text-yellow-400' : 'text-gray-200'}`}>
+                  className={`text-4xl transition-transform hover:scale-110 ${s <= feedbackRating ? 'text-yellow-400' : 'text-gray-300'}`}>
                   ★
                 </button>
               ))}

@@ -55,7 +55,9 @@ export default function DevPage() {
   const [activeCampaign, setActiveCampaign]   = useState<FeedbackCampaign | null>(null)
   const [feedbackResponses, setFeedbackResponses] = useState<FeedbackResponse[]>([])
   const [feedbackLoading, setFeedbackLoading] = useState(false)
-  const [newCampaignMsg, setNewCampaignMsg]   = useState('')
+  const [newCampaignTitle, setNewCampaignTitle] = useState('')
+  const [newCampaignMsg, setNewCampaignMsg]     = useState('')
+  const [newCampaignDays, setNewCampaignDays]   = useState('')
   const [campaignSaving, setCampaignSaving]   = useState(false)
 
   // Managers tab
@@ -516,9 +518,13 @@ export default function DevPage() {
     await fetch('/api/feedback/campaign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: newCampaignMsg }),
+      body: JSON.stringify({
+        title: newCampaignTitle,
+        message: newCampaignMsg,
+        duration_days: newCampaignDays ? parseInt(newCampaignDays) : null,
+      }),
     })
-    setNewCampaignMsg('')
+    setNewCampaignTitle(''); setNewCampaignMsg(''); setNewCampaignDays('')
     await loadFeedback()
     setCampaignSaving(false)
   }
@@ -1101,9 +1107,16 @@ export default function DevPage() {
                   </div>
                   <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2">{activeCampaign.message}</p>
                   <p className="text-xs text-gray-400">เริ่ม: {new Date(activeCampaign.created_at).toLocaleString('th-TH')}</p>
-                  <p className="text-sm text-gray-600">ตอบแล้ว <strong>{feedbackResponses.length}</strong> คน
+                  <p className="text-sm text-gray-600">
+                    ตอบแล้ว <strong>{feedbackResponses.length}</strong> คน
                     {avgRating && <> · คะแนนเฉลี่ย <strong className="text-indigo-600">{avgRating}/5</strong></>}
                   </p>
+                  {activeCampaign.end_date && (
+                    <p className="text-xs text-gray-400">
+                      สิ้นสุด: {new Date(activeCampaign.end_date).toLocaleDateString('th-TH')}
+                      {' '}({Math.max(0, Math.ceil((new Date(activeCampaign.end_date).getTime() - Date.now()) / 86400000))} วันที่เหลือ)
+                    </p>
+                  )}
                   <button onClick={stopCampaign} disabled={campaignSaving}
                     className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                     {campaignSaving ? 'กำลังหยุด...' : 'หยุด Campaign'}
@@ -1112,13 +1125,35 @@ export default function DevPage() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500">ไม่มี campaign ที่เปิดอยู่</p>
-                  <textarea
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    rows={3}
-                    placeholder="ข้อความ / คำถามถึงผู้ใช้ (ไม่กรอกใช้ข้อความเริ่มต้น)"
-                    value={newCampaignMsg}
-                    onChange={e => setNewCampaignMsg(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">หัวข้อ</label>
+                    <input
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      placeholder="เช่น ความพึงพอใจระบบ ประจำเดือน มิ.ย."
+                      value={newCampaignTitle}
+                      onChange={e => setNewCampaignTitle(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">คำถาม / ข้อความถึงผู้ใช้</label>
+                    <textarea
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      rows={2}
+                      placeholder="กรุณาให้ความคิดเห็นเกี่ยวกับระบบ (ไม่กรอกใช้ข้อความเริ่มต้น)"
+                      value={newCampaignMsg}
+                      onChange={e => setNewCampaignMsg(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">ระยะเวลา (วัน) — ว่าง = ไม่จำกัด</label>
+                    <input
+                      type="number" min={1}
+                      className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      placeholder="เช่น 30"
+                      value={newCampaignDays}
+                      onChange={e => setNewCampaignDays(e.target.value)}
+                    />
+                  </div>
                   <button onClick={startCampaign} disabled={campaignSaving}
                     className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                     {campaignSaving ? 'กำลังเริ่ม...' : 'เริ่ม Campaign'}

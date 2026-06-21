@@ -326,7 +326,7 @@ export default function ManagerPage() {
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setFeedbackRating(s)}
-                  className={`text-4xl transition-transform hover:scale-110 ${s <= feedbackRating ? 'text-yellow-400' : 'text-gray-200'}`}>★</button>
+                  className={`text-4xl transition-transform hover:scale-110 ${s <= feedbackRating ? 'text-yellow-400' : 'text-gray-300'}`}>★</button>
               ))}
             </div>
             {feedbackRating > 0 && (

@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-// GET: active campaign (for student/manager to check)
+// GET: active campaign (checks duration/end_date too)
 export async function GET() {
-  const { data } = await supabaseAdmin()
+  const db = supabaseAdmin()
+
+  // auto-deactivate expired campaigns
+  await db
+    .from('feedback_campaigns')
+    .update({ active: false, ended_at: new Date().toISOString() })
+    .eq('active', true)
+    .not('end_date', 'is', null)
+    .lt('end_date', new Date().toISOString())
+
+  const { data } = await db
     .from('feedback_campaigns')
     .select('*')
     .eq('active', true)
@@ -14,19 +24,31 @@ export async function GET() {
   return NextResponse.json(data ?? null)
 }
 
-// POST: create new campaign (dev only)
+// POST: create new campaign
 export async function POST(req: NextRequest) {
-  const { message } = await req.json()
+  const { title, message, duration_days } = await req.json()
+
+  const db = supabaseAdmin()
 
   // deactivate any existing campaigns first
-  await supabaseAdmin()
+  await db
     .from('feedback_campaigns')
     .update({ active: false, ended_at: new Date().toISOString() })
     .eq('active', true)
 
-  const { data, error } = await supabaseAdmin()
+  const end_date = duration_days
+    ? new Date(Date.now() + duration_days * 86400000).toISOString()
+    : null
+
+  const { data, error } = await db
     .from('feedback_campaigns')
-    .insert({ message: message || 'กรุณาให้ความคิดเห็นเกี่ยวกับระบบ', active: true })
+    .insert({
+      title: title || 'Feedback',
+      message: message || 'กรุณาให้ความคิดเห็นเกี่ยวกับระบบ',
+      duration_days: duration_days || null,
+      end_date,
+      active: true,
+    })
     .select()
     .single()
 
