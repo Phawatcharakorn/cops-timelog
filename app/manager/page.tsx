@@ -94,6 +94,15 @@ export default function ManagerPage() {
   const [feedbackComment, setFeedbackComment] = useState('')
   const [feedbackSaving, setFeedbackSaving]   = useState(false)
 
+  const [settingsOpen, setSettingsOpen]       = useState(false)
+  const [settingsTab, setSettingsTab]         = useState<'info' | 'password'>('info')
+  const [pwCurrent, setPwCurrent]             = useState('')
+  const [pwNew, setPwNew]                     = useState('')
+  const [pwConfirm, setPwConfirm]             = useState('')
+  const [pwSavingSettings, setPwSavingSettings] = useState(false)
+  const [pwSettingsError, setPwSettingsError] = useState('')
+  const [pwSettingsSuccess, setPwSettingsSuccess] = useState(false)
+
   useEffect(() => {
     if (localStorage.getItem('mgr_authed') === '1') {
       setAuthed(true)
@@ -331,6 +340,13 @@ export default function ManagerPage() {
         </div>
         <div className="flex items-center gap-4">
           <a href="/student" className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">หน้าบันทึกเวลา</a>
+          <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
+            className="text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
           <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">ออกจากระบบ</button>
         </div>
       </header>
@@ -760,6 +776,79 @@ export default function ManagerPage() {
               <button onClick={() => { setPinModal(null); setPinInput('') }} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleSetPin} disabled={pinSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{pinSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Settings Modal ─────────────────────────────────────────────────── */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">ตั้งค่าบัญชี</h3>
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex rounded-lg border border-gray-200 p-1 gap-1">
+              {(['info', 'password'] as const).map(t => (
+                <button key={t} onClick={() => { setSettingsTab(t); setPwSettingsError(''); setPwSettingsSuccess(false) }}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${settingsTab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}>
+                  {t === 'info' ? 'ข้อมูลบัญชี' : 'เปลี่ยนรหัสผ่าน'}
+                </button>
+              ))}
+            </div>
+
+            {settingsTab === 'info' && (
+              <div className="space-y-3">
+                {[
+                  { label: 'ชื่อผู้ใช้', value: localStorage.getItem('mgr_username') || '-' },
+                  { label: 'ชื่อ-นามสกุล', value: mgrName || '-' },
+                  { label: 'ฝ่าย', value: mgrDept || 'ทุกแผนก' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-gray-50 rounded-lg px-4 py-3">
+                    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                    <p className="text-sm font-medium text-gray-800">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {settingsTab === 'password' && (
+              <div className="space-y-3">
+                {pwSettingsSuccess ? (
+                  <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm text-center">เปลี่ยนรหัสผ่านสำเร็จ</div>
+                ) : (
+                  <>
+                    {pwSettingsError && <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-2 text-xs text-center">{pwSettingsError}</div>}
+                    <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสผ่านปัจจุบัน</label><input type="password" className={inputCls} placeholder="••••••••" value={pwCurrent} onChange={e => { setPwCurrent(e.target.value); setPwSettingsError('') }} /></div>
+                    <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสผ่านใหม่</label><input type="password" className={inputCls} placeholder="อย่างน้อย 6 ตัวอักษร" value={pwNew} onChange={e => { setPwNew(e.target.value); setPwSettingsError('') }} /></div>
+                    <div><label className="block text-xs font-medium text-gray-600 mb-1">ยืนยันรหัสผ่านใหม่</label><input type="password" className={inputCls} placeholder="••••••••" value={pwConfirm} onChange={e => { setPwConfirm(e.target.value); setPwSettingsError('') }} /></div>
+                    <button
+                      disabled={pwSavingSettings || !pwCurrent || !pwNew || !pwConfirm}
+                      onClick={async () => {
+                        if (pwNew !== pwConfirm) return setPwSettingsError('รหัสผ่านใหม่ไม่ตรงกัน')
+                        if (pwNew.length < 6) return setPwSettingsError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')
+                        setPwSavingSettings(true); setPwSettingsError('')
+                        try {
+                          const res = await fetch('/api/manager/settings', {
+                            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: localStorage.getItem('mgr_username') || '', currentPassword: pwCurrent, newPassword: pwNew }),
+                          })
+                          const data = await res.json()
+                          if (!res.ok) setPwSettingsError(data.error || 'เกิดข้อผิดพลาด')
+                          else { setPwSettingsSuccess(true); setPwCurrent(''); setPwNew(''); setPwConfirm('') }
+                        } catch { setPwSettingsError('เกิดข้อผิดพลาด กรุณาลองใหม่') } finally { setPwSavingSettings(false) }
+                      }}
+                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                      {pwSavingSettings ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
