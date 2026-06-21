@@ -196,7 +196,7 @@ export default function PrintPageClient() {
       </div>
 
       {/* A4 body */}
-      <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10" style={{ minHeight: '29.7cm' }}>
+      <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10">
 
         {/* ── Letterhead ── */}
         <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 14 }}>
