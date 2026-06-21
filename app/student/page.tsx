@@ -44,8 +44,12 @@ export default function StudentPage() {
   const [idLooking, setIdLooking]     = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
 
-  const [foundPin, setFoundPin] = useState<string | null>(null)
-  const [pinInput, setPinInput] = useState('')
+  const [foundPin, setFoundPin]       = useState<string | null>(null)
+  const [pinInput, setPinInput]       = useState('')
+  const [pinSetStep, setPinSetStep]   = useState<'first' | 'confirm' | null>(null)
+  const [pinFirst, setPinFirst]       = useState('')
+  const [pinConfirm, setPinConfirm]   = useState('')
+  const [pinSetting, setPinSetting]   = useState(false)
 
   const [now, setNow] = useState(new Date())
 
@@ -97,6 +101,7 @@ export default function StudentPage() {
         setStudentLocked(true)
         setStudentNotFound(false)
         setFoundPin(student.pin ?? null)
+        if (!student.pin) { setPinSetStep('first'); setPinFirst(''); setPinConfirm('') }
         if (activeLogData) {
           if (isToday(activeLogData.check_in)) {
             setActiveLog(activeLogData)
@@ -148,6 +153,28 @@ export default function StudentPage() {
     setShowHistory(h => !h)
   }
 
+  const handleSetNewPin = async () => {
+    if (pinSetStep === 'first') {
+      if (pinFirst.length !== 4) return showMsg('error', 'PIN ต้องเป็นตัวเลข 4 หลัก')
+      setPinSetStep('confirm'); setPinConfirm('')
+      return
+    }
+    if (pinConfirm !== pinFirst) {
+      showMsg('error', 'PIN ไม่ตรงกัน กรุณาลองใหม่')
+      setPinSetStep('first'); setPinFirst(''); setPinConfirm('')
+      return
+    }
+    setPinSetting(true)
+    try {
+      const { error } = await supabase.from('students').update({ pin: pinFirst }).eq('student_id', form.student_id)
+      if (error) throw error
+      setFoundPin(pinFirst); setPinSetStep(null); setPinFirst(''); setPinConfirm('')
+      showMsg('success', 'ตั้ง PIN สำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
+    } catch (e) {
+      showMsg('error', 'ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setPinSetting(false) }
+  }
+
   const handleCheckIn = async () => {
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
@@ -190,7 +217,7 @@ export default function StudentPage() {
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
       setStudentLocked(false); setStudentNotFound(false)
-      setFoundPin(null); setPinInput('')
+      setFoundPin(null); setPinInput(''); setPinSetStep(null); setPinFirst(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
       setForm({ name: '', student_id: '', department: '', faculty: '', major: '' })
 
@@ -338,14 +365,37 @@ export default function StudentPage() {
               </div>
             )}
 
-            {/* PIN verify */}
-            {studentLocked && foundPin && !activeLog && (
+            {/* PIN setup (first time) */}
+            {studentLocked && pinSetStep && (
+              <div className="anim-slide-up space-y-3">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                  {pinSetStep === 'first' ? 'ตั้ง PIN ครั้งแรก 🔑' : 'ยืนยัน PIN อีกครั้ง 🔒'}
+                </label>
+                <input
+                  type="password" inputMode="numeric" maxLength={4} autoFocus
+                  className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                  placeholder="PIN 4 หลัก"
+                  value={pinSetStep === 'first' ? pinFirst : pinConfirm}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
+                    pinSetStep === 'first' ? setPinFirst(v) : setPinConfirm(v)
+                  }}
+                  onKeyDown={e => e.key === 'Enter' && handleSetNewPin()}
+                />
+                <button
+                  onClick={handleSetNewPin} disabled={pinSetting || (pinSetStep === 'first' ? pinFirst.length !== 4 : pinConfirm.length !== 4)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                  {pinSetting ? 'กำลังบันทึก...' : pinSetStep === 'first' ? 'ถัดไป' : 'ยืนยัน PIN'}
+                </button>
+              </div>
+            )}
+
+            {/* PIN verify (has PIN) */}
+            {studentLocked && foundPin && !pinSetStep && !activeLog && (
               <div className="anim-slide-up">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
+                  type="password" inputMode="numeric" maxLength={4}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
                   placeholder="กรอก PIN 4 หลัก"
                   value={pinInput}
@@ -369,7 +419,7 @@ export default function StudentPage() {
             )}
 
             {/* Action button */}
-            {!activeLog ? (
+            {!pinSetStep && (!activeLog ? (
               <button
                 onClick={handleCheckIn}
                 disabled={loading || studentNotFound || cooldown > 0 || !studentLocked}
@@ -385,7 +435,7 @@ export default function StudentPage() {
               >
                 {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาออก'}
               </button>
-            )}
+            ))}
 
             {/* History toggle */}
             {studentLocked && (
