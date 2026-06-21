@@ -201,29 +201,30 @@ export default function PrintPageClient() {
 
         {/* ── Letterhead ── */}
         <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-            {/* spacer ซ้าย — เท่ากับความกว้างของวันที่ขวา */}
-            <div style={{ flex: 1 }} />
-            {/* ตรงกลาง */}
-            <div style={{ flex: 'none', textAlign: 'center' }}>
-              <img src="/kus-logo.svg" alt="KUS Logo" className="kus-logo" />
-              <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
-                มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
-              </p>
-              <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
-                Kasetsart University Sriracha Campus
-              </p>
-              <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
-                {projectTitle}
-              </p>
-            </div>
-            {/* วันที่พิมพ์ — ขวาบน */}
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-              <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
-              </p>
-            </div>
-          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              <tr>
+                <td style={{ width: '20%', verticalAlign: 'top' }} />
+                <td style={{ width: '60%', textAlign: 'center', verticalAlign: 'top' }}>
+                  <img src="/kus-logo.svg" alt="KUS Logo" className="kus-logo" />
+                  <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
+                    มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
+                  </p>
+                  <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
+                    Kasetsart University Sriracha Campus
+                  </p>
+                  <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
+                    {projectTitle}
+                  </p>
+                </td>
+                <td style={{ width: '20%', textAlign: 'right', verticalAlign: 'top' }}>
+                  <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+                    {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* ── Document title ── */}
