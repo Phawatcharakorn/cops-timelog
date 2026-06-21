@@ -437,8 +437,10 @@ export default function DevPage() {
         body:    JSON.stringify({ username: userInput, password: pwInput }),
       })
       if (res.ok) {
+        const { token } = await res.json()
         localStorage.setItem('dev_authed', '1')
         localStorage.setItem('dev_username', userInput)
+        if (token) localStorage.setItem('dev_token', token)
         setAdminUsername(userInput)
         setAuthed(true)
       } else {
@@ -502,6 +504,11 @@ export default function DevPage() {
     )
   }
 
+  function devHeaders(extra?: Record<string, string>) {
+    const token = localStorage.getItem('dev_token') || ''
+    return { 'Content-Type': 'application/json', 'x-dev-token': token, ...extra }
+  }
+
   // ── Feedback helpers ───────────────────────────────────────────────────────
   const loadFeedback = async () => {
     setFeedbackLoading(true)
@@ -521,7 +528,7 @@ export default function DevPage() {
     setCampaignSaving(true)
     await fetch('/api/feedback/campaign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: devHeaders(),
       body: JSON.stringify({
         title: newCampaignTitle,
         message: newCampaignMsg,
@@ -535,7 +542,7 @@ export default function DevPage() {
 
   const stopCampaign = async () => {
     setCampaignSaving(true)
-    await fetch('/api/feedback/campaign', { method: 'PATCH' })
+    await fetch('/api/feedback/campaign', { method: 'PATCH', headers: devHeaders() })
     await loadFeedback()
     setCampaignSaving(false)
   }
@@ -561,7 +568,7 @@ export default function DevPage() {
     setNewMgrSaving(true)
     const res = await fetch('/api/managers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: devHeaders(),
       body: JSON.stringify(newMgrForm),
     })
     if (res.ok) {
@@ -578,7 +585,7 @@ export default function DevPage() {
     if (!confirm('ลบ manager นี้?')) return
     await fetch('/api/managers', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: devHeaders(),
       body: JSON.stringify({ id }),
     })
     await loadManagers()
@@ -596,7 +603,7 @@ export default function DevPage() {
     setEditMgrSaving(true)
     const res = await fetch('/api/managers', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: devHeaders(),
       body: JSON.stringify({ id: editMgrModal.id, name: editMgrForm.name, department: editMgrForm.department || null, password: editMgrForm.password || undefined }),
     })
     if (res.ok) { setEditMgrModal(null); await loadManagers() }
@@ -614,7 +621,7 @@ export default function DevPage() {
         </div>
         <div className="flex items-center gap-4">
           <a href="/student" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors">หน้าบันทึกเวลา</a>
-          <button onClick={() => { localStorage.removeItem('dev_authed'); localStorage.removeItem('dev_username'); setAuthed(false); setAdminUsername('') }}
+          <button onClick={() => { localStorage.removeItem('dev_authed'); localStorage.removeItem('dev_username'); localStorage.removeItem('dev_token'); setAuthed(false); setAdminUsername('') }}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors">ออกจากระบบ</button>
         </div>
       </header>

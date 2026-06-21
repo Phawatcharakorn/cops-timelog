@@ -16,3 +16,19 @@ export function verifyPassword(password: string, stored: string): boolean {
     return false
   }
 }
+
+/** Generate a daily rotating HMAC token for dev API calls. */
+export function makeDevToken(secret: string, date: string): string {
+  return crypto.createHmac('sha256', secret).update(`dev-token:${date}`).digest('hex')
+}
+
+/** Validate x-dev-token header against today and yesterday's tokens. */
+export function validateDevToken(token: string | null): boolean {
+  const secret = process.env.ADMIN_PASSWORD
+  if (!secret || !token) return false
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  const today     = makeDevToken(secret, fmt(new Date()))
+  const yesterday = makeDevToken(secret, fmt(new Date(Date.now() - 86400000)))
+  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(today))
+      || crypto.timingSafeEqual(Buffer.from(token), Buffer.from(yesterday))
+}

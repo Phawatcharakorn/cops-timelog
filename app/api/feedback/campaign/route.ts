@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { validateDevToken } from '@/lib/crypto'
+
+function unauthorized() {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
 
 // GET: active campaign (checks duration/end_date too)
 export async function GET() {
@@ -24,8 +29,9 @@ export async function GET() {
   return NextResponse.json(data ?? null)
 }
 
-// POST: create new campaign
+// POST: create new campaign (dev only)
 export async function POST(req: NextRequest) {
+  if (!validateDevToken(req.headers.get('x-dev-token'))) return unauthorized()
   const { title, message, duration_days } = await req.json()
 
   const db = supabaseAdmin()
@@ -56,8 +62,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data)
 }
 
-// PATCH: stop active campaign
-export async function PATCH() {
+// PATCH: stop active campaign (dev only)
+export async function PATCH(req: NextRequest) {
+  if (!validateDevToken(req.headers.get('x-dev-token'))) return unauthorized()
   const { error } = await supabaseAdmin()
     .from('feedback_campaigns')
     .update({ active: false, ended_at: new Date().toISOString() })

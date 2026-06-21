@@ -46,7 +46,7 @@ export default function StudentPage() {
 
   const [foundPin, setFoundPin]       = useState<string | null>(null)
   const [pinInput, setPinInput]       = useState('')
-  const [pinSetStep, setPinSetStep]   = useState<'first' | 'confirm' | null>(null)
+  const [pinSetStep, setPinSetStep]   = useState(false)
   const [pinFirst, setPinFirst]       = useState('')
   const [pinConfirm, setPinConfirm]   = useState('')
   const [pinSetting, setPinSetting]   = useState(false)
@@ -63,10 +63,11 @@ export default function StudentPage() {
   const [playing, setPlaying] = useState(false)
 
   // Feedback modal
-  const [feedbackModal, setFeedbackModal]   = useState<{ campaignId: string; message: string } | null>(null)
-  const [feedbackRating, setFeedbackRating] = useState(0)
+  const [feedbackModal, setFeedbackModal]     = useState<{ campaignId: string; message: string } | null>(null)
+  const [feedbackStudent, setFeedbackStudent] = useState<{ id: string; name: string } | null>(null)
+  const [feedbackRating, setFeedbackRating]   = useState(0)
   const [feedbackComment, setFeedbackComment] = useState('')
-  const [feedbackSaving, setFeedbackSaving] = useState(false)
+  const [feedbackSaving, setFeedbackSaving]   = useState(false)
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000)
@@ -101,7 +102,7 @@ export default function StudentPage() {
         setStudentLocked(true)
         setStudentNotFound(false)
         setFoundPin(student.pin ?? null)
-        if (!student.pin) { setPinSetStep('first'); setPinFirst(''); setPinConfirm('') }
+        if (!student.pin) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
         if (activeLogData) {
           if (isToday(activeLogData.check_in)) {
             setActiveLog(activeLogData)
@@ -164,7 +165,7 @@ export default function StudentPage() {
     try {
       const { error } = await supabase.from('students').update({ pin: pinFirst }).eq('student_id', form.student_id)
       if (error) throw error
-      setFoundPin(pinFirst); setPinSetStep(null); setPinFirst(''); setPinConfirm('')
+      setFoundPin(pinFirst); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       showMsg('success', 'ตั้ง PIN สำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
     } catch (e) {
       showMsg('error', 'ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
@@ -213,7 +214,7 @@ export default function StudentPage() {
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
       setStudentLocked(false); setStudentNotFound(false)
-      setFoundPin(null); setPinInput(''); setPinSetStep(null); setPinFirst(''); setPinConfirm('')
+      setFoundPin(null); setPinInput(''); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
       setForm({ name: '', student_id: '', department: '', faculty: '', major: '' })
 
@@ -229,7 +230,7 @@ export default function StudentPage() {
             setFeedbackRating(0)
             setFeedbackComment('')
             setFeedbackModal({ campaignId: campaign.id, message: campaign.message })
-            ;(window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent = { id: studentId, name: studentName }
+            setFeedbackStudent({ id: studentId, name: studentName })
           }
         }
       } catch { /* ignore */ }
@@ -623,15 +624,14 @@ export default function StudentPage() {
                 onClick={async () => {
                   if (!feedbackRating) return
                   setFeedbackSaving(true)
-                  const student = (window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent
                   await fetch('/api/feedback/response', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       campaign_id: feedbackModal.campaignId,
                       respondent_type: 'student',
-                      respondent_id: student?.id || 'unknown',
-                      respondent_name: student?.name,
+                      respondent_id: feedbackStudent?.id || 'unknown',
+                      respondent_name: feedbackStudent?.name,
                       rating: feedbackRating,
                       comment: feedbackComment || null,
                     }),
