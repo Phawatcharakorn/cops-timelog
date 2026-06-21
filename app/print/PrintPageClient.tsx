@@ -138,6 +138,8 @@ export default function PrintPageClient() {
             margin: 0 !important;
             min-height: auto !important;
           }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .stat-box { border: none !important; background: transparent !important; padding: 4px 0 !important; }
         }
         table { border-collapse: collapse; width: 100%; }
         th, td { padding: 5px 9px; font-size: 11px; line-height: 1.45; }
@@ -264,7 +266,7 @@ export default function PrintPageClient() {
             { label: 'ชั่วโมงรวมทั้งหมด',     value: `${totalHours} ชม. ${totalMinutes} นาที`, color: '#15803d' },
             { label: 'เฉลี่ยต่อวัน',           value: totalDays > 0 ? `${Math.floor(totalMin / totalDays / 60)} ชม. ${totalMin / totalDays % 60 | 0} นาที` : '-', color: '#7e22ce' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ border: `1px solid ${color}22`, borderRadius: 6, padding: '7px 10px', background: `${color}08`, textAlign: 'center' }}>
+            <div key={label} className="stat-box" style={{ border: `1px solid ${color}22`, borderRadius: 6, padding: '7px 10px', background: `${color}08`, textAlign: 'center' }}>
               <p style={{ fontSize: 15, fontWeight: 700, color, margin: 0 }}>{value}</p>
               <p style={{ fontSize: 9, color: '#6b7280', margin: 0, marginTop: 1 }}>{label}</p>
             </div>
