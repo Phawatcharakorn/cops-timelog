@@ -152,14 +152,6 @@ export default function PrintPageClient() {
         .kus-logo { display: block !important; width: 80px !important; height: 80px !important; margin: 0 auto 8px !important; object-fit: contain !important; }
       `}</style>
 
-      {/* Print tip */}
-      <div className="no-print bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center gap-2 text-amber-800 text-xs">
-        <svg className="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>เมื่อหน้าต่าง Print เปิดขึ้น ให้คลิก <strong>More settings</strong> แล้วปิด <strong>Headers and footers</strong> เพื่อซ่อน URL และวันที่ของ browser</span>
-      </div>
-
       {/* Toolbar */}
       <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-6 py-3 flex items-center gap-4">
         <span className="text-sm font-medium flex-shrink-0">{student.name} — {date ? 'วันที่ ' : ''}{monthLabel}</span>
