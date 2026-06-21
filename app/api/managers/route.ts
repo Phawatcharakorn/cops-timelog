@@ -31,6 +31,19 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data)
 }
 
+// PATCH: update manager (name, department, optional new password)
+export async function PATCH(req: NextRequest) {
+  const { id, name, department, password } = await req.json()
+  if (!id || !name) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+
+  const updates: Record<string, string | null> = { name, department: department || null }
+  if (password) updates.password_hash = hashPassword(password)
+
+  const { error } = await supabaseAdmin().from('managers').update(updates).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 // DELETE: remove manager by id
 export async function DELETE(req: NextRequest) {
   const { id } = await req.json()

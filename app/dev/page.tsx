@@ -66,6 +66,10 @@ export default function DevPage() {
   const [newMgrForm, setNewMgrForm]         = useState({ username: '', password: '', name: '', department: '' })
   const [newMgrSaving, setNewMgrSaving]     = useState(false)
   const [newMgrError, setNewMgrError]       = useState('')
+  const [editMgrModal, setEditMgrModal]     = useState<Manager | null>(null)
+  const [editMgrForm, setEditMgrForm]       = useState({ name: '', department: '', password: '' })
+  const [editMgrSaving, setEditMgrSaving]   = useState(false)
+  const [editMgrError, setEditMgrError]     = useState('')
 
   // Individual tab
   const [students, setStudents]                     = useState<Student[]>([])
@@ -578,6 +582,26 @@ export default function DevPage() {
       body: JSON.stringify({ id }),
     })
     await loadManagers()
+  }
+
+  const openEditMgr = (m: Manager) => {
+    setEditMgrModal(m)
+    setEditMgrForm({ name: m.name, department: m.department || '', password: '' })
+    setEditMgrError('')
+  }
+
+  const saveEditMgr = async () => {
+    if (!editMgrModal) return
+    if (!editMgrForm.name.trim()) { setEditMgrError('กรุณากรอกชื่อ'); return }
+    setEditMgrSaving(true)
+    const res = await fetch('/api/managers', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editMgrModal.id, name: editMgrForm.name, department: editMgrForm.department || null, password: editMgrForm.password || undefined }),
+    })
+    if (res.ok) { setEditMgrModal(null); await loadManagers() }
+    else { const { error } = await res.json(); setEditMgrError(error || 'เกิดข้อผิดพลาด') }
+    setEditMgrSaving(false)
   }
 
   // ── Main UI ────────────────────────────────────────────────────────────────
@@ -1246,8 +1270,10 @@ export default function DevPage() {
                         <p className="text-sm font-medium text-gray-800">{m.name} <span className="text-gray-400 font-normal">(@{m.username})</span></p>
                         <p className="text-xs text-gray-400">{m.department || 'ทุกแผนก'}</p>
                       </div>
-                      <button onClick={() => deleteManager(m.id)}
-                        className="text-xs text-red-400 hover:text-red-600 transition-colors">ลบ</button>
+                      <div className="flex gap-3">
+                        <button onClick={() => openEditMgr(m)} className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">แก้ไข</button>
+                        <button onClick={() => deleteManager(m.id)} className="text-xs text-red-400 hover:text-red-600 transition-colors">ลบ</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1256,6 +1282,36 @@ export default function DevPage() {
           </div>
         )}
       </main>
+
+      {/* ── Modal: Edit Manager ──────────────────────────────────────────────── */}
+      {editMgrModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-gray-800">แก้ไข Manager</h3>
+            <p className="text-xs text-gray-400">@{editMgrModal.username}</p>
+            {editMgrError && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{editMgrError}</p>}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ</label>
+              <input className={inputCls} value={editMgrForm.name} onChange={e => setEditMgrForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">แผนก (ว่าง = เห็นทุกแผนก)</label>
+              <select className={inputCls} value={editMgrForm.department} onChange={e => setEditMgrForm(f => ({ ...f, department: e.target.value }))}>
+                <option value="">ทุกแผนก</option>
+                {DEPARTMENTS.filter(d => d !== 'อื่นๆ').map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">รหัสผ่านใหม่ (ว่าง = ไม่เปลี่ยน)</label>
+              <input type="password" className={inputCls} placeholder="ใส่เพื่อเปลี่ยนรหัสผ่าน" value={editMgrForm.password} onChange={e => setEditMgrForm(f => ({ ...f, password: e.target.value }))} />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setEditMgrModal(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={saveEditMgr} disabled={editMgrSaving} className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editMgrSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Edit Log ──────────────────────────────────────────────────── */}
       {editingLog && (
