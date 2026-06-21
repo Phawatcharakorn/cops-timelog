@@ -201,30 +201,27 @@ export default function PrintPageClient() {
 
         {/* ── Letterhead ── */}
         <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 14 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              <tr>
-                <td style={{ width: '20%', verticalAlign: 'top' }} />
-                <td style={{ width: '60%', textAlign: 'center', verticalAlign: 'top' }}>
-                  <img src="/kus-logo.svg" alt="KUS Logo" className="kus-logo" />
-                  <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
-                    มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
-                  </p>
-                  <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
-                    Kasetsart University Sriracha Campus
-                  </p>
-                  <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
-                    {projectTitle}
-                  </p>
-                </td>
-                <td style={{ width: '20%', textAlign: 'right', verticalAlign: 'top' }}>
-                  <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                    {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
-                  </p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          {/* วันที่พิมพ์ — ขวาบน */}
+          <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: 0, lineHeight: 1.5 }}>
+            {format(new Date(), 'd MMM yyyy, HH:mm', { locale: th })}
+          </p>
+          {/* โลโก้และชื่อมหาวิทยาลัย — กึ่งกลาง */}
+          <div style={{ textAlign: 'center' }}>
+            <img
+              src="/kus-logo.svg"
+              alt="KUS Logo"
+              style={{ display: 'inline-block', width: 80, height: 80, objectFit: 'contain', verticalAlign: 'top', marginBottom: 8 }}
+            />
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0, lineHeight: 1.5 }}>
+              มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
+            </p>
+            <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 }}>
+              Kasetsart University Sriracha Campus
+            </p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.5 }}>
+              {projectTitle}
+            </p>
+          </div>
         </div>
 
         {/* ── Document title ── */}
@@ -294,7 +291,7 @@ export default function PrintPageClient() {
             {logs.map((log, i) => (
               <tr key={log.id}>
                 <td style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11 }}>{i + 1}</td>
-                <td>{log.dateStr}</td>
+                <td style={{ textAlign: 'center' }}>{log.dateStr}</td>
                 <td style={{ color: '#15803d', fontWeight: 500, textAlign: 'center' }}>{log.checkInStr}</td>
                 <td style={{ color: '#dc2626', fontWeight: 500, textAlign: 'center' }}>{log.checkOutStr}</td>
                 <td style={{ textAlign: 'center' }}>{log.durationStr}</td>
