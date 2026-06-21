@@ -129,10 +129,10 @@ export default function PrintPageClient() {
         body { margin: 0; background: #f3f4f6; }
         @media print {
           .no-print { display: none !important; }
-          body { background: white; }
-          @page { margin: 1.5cm; size: A4 portrait; }
+          body { background: white; margin: 0; }
+          @page { margin: 0; size: A4 portrait; }
           .page-body {
-            padding: 0 !important;
+            padding: 1.5cm 2cm 2cm !important;
             max-width: none !important;
             box-shadow: none !important;
             margin: 0 !important;
