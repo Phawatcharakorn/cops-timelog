@@ -163,23 +163,11 @@ export default function PrintPageClient() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <button
-            onClick={async () => {
-              const element = document.querySelector('.page-body') as HTMLElement
-              if (!element) return
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const html2pdf = (await import('html2pdf.js' as any)).default
-              const filename = `timelog-${student.name}-${monthLabel}.pdf`
-              await html2pdf()
-                .set({
-                  margin: [15, 20, 30, 20],
-                  filename,
-                  image: { type: 'jpeg', quality: 0.98 },
-                  html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-                  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                  pagebreak: { mode: ['css', 'legacy'] },
-                })
-                .from(element)
-                .save()
+            onClick={() => {
+              const prev = document.title
+              document.title = `timelog-${student.name}-${monthLabel}`
+              window.print()
+              document.title = prev
             }}
             className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
