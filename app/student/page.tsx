@@ -154,14 +154,10 @@ export default function StudentPage() {
   }
 
   const handleSetNewPin = async () => {
-    if (pinSetStep === 'first') {
-      if (pinFirst.length !== 4) return showMsg('error', 'PIN ต้องเป็นตัวเลข 4 หลัก')
-      setPinSetStep('confirm'); setPinConfirm('')
-      return
-    }
+    if (pinFirst.length !== 4) return showMsg('error', 'PIN ต้องเป็นตัวเลข 4 หลัก')
     if (pinConfirm !== pinFirst) {
       showMsg('error', 'PIN ไม่ตรงกัน กรุณาลองใหม่')
-      setPinSetStep('first'); setPinFirst(''); setPinConfirm('')
+      setPinFirst(''); setPinConfirm('')
       return
     }
     setPinSetting(true)
@@ -365,27 +361,36 @@ export default function StudentPage() {
               </div>
             )}
 
-            {/* PIN setup (first time) */}
+            {/* PIN setup (first time) — 2 fields at once */}
             {studentLocked && pinSetStep && (
               <div className="anim-slide-up space-y-3">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                  {pinSetStep === 'first' ? 'ตั้ง PIN ครั้งแรก 🔑' : 'ยืนยัน PIN อีกครั้ง 🔒'}
-                </label>
-                <input
-                  type="password" inputMode="numeric" maxLength={4} autoFocus
-                  className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
-                  placeholder="PIN 4 หลัก"
-                  value={pinSetStep === 'first' ? pinFirst : pinConfirm}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
-                    pinSetStep === 'first' ? setPinFirst(v) : setPinConfirm(v)
-                  }}
-                  onKeyDown={e => e.key === 'Enter' && handleSetNewPin()}
-                />
+                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest">ตั้ง PIN ครั้งแรก 🔑</p>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">PIN</label>
+                  <input
+                    type="password" inputMode="numeric" maxLength={4} autoFocus autoComplete="new-password"
+                    className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                    placeholder="• • • •"
+                    value={pinFirst}
+                    onChange={e => setPinFirst(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">ยืนยัน PIN</label>
+                  <input
+                    type="password" inputMode="numeric" maxLength={4} autoComplete="new-password"
+                    className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                    placeholder="• • • •"
+                    value={pinConfirm}
+                    onChange={e => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onKeyDown={e => e.key === 'Enter' && handleSetNewPin()}
+                  />
+                </div>
                 <button
-                  onClick={handleSetNewPin} disabled={pinSetting || (pinSetStep === 'first' ? pinFirst.length !== 4 : pinConfirm.length !== 4)}
+                  onClick={handleSetNewPin}
+                  disabled={pinSetting || pinFirst.length !== 4 || pinConfirm.length !== 4}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
-                  {pinSetting ? 'กำลังบันทึก...' : pinSetStep === 'first' ? 'ถัดไป' : 'ยืนยัน PIN'}
+                  {pinSetting ? 'กำลังบันทึก...' : 'ยืนยัน PIN'}
                 </button>
               </div>
             )}
@@ -395,7 +400,7 @@ export default function StudentPage() {
               <div className="anim-slide-up">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
-                  type="password" inputMode="numeric" maxLength={4}
+                  type="password" inputMode="numeric" maxLength={4} autoComplete="off"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
                   placeholder="กรอก PIN 4 หลัก"
                   value={pinInput}
