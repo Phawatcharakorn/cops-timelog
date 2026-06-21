@@ -9,7 +9,7 @@ export default function GuidePage() {
             📖 คู่มือการใช้งาน
           </div>
           <h1 className="text-3xl font-bold text-gray-900">ระบบลงเวลา CoPs</h1>
-          <p className="text-sm text-gray-400">เวอร์ชัน 1.0 · พัฒนาโดย Phawatcharakorn</p>
+          <p className="text-sm text-gray-400">เวอร์ชัน 2.0 · พัฒนาโดย Phawatcharakorn</p>
         </div>
 
         {/* Overview */}
@@ -19,13 +19,13 @@ export default function GuidePage() {
           </h2>
           <ul className="space-y-2 text-sm text-gray-600">
             {[
-              'นิสิตบันทึกเวลาเข้า-ออกด้วยตัวเอง',
-              'ตั้ง PIN ป้องกันการลงเวลาแทนกัน',
+              'นิสิตบันทึกเวลาเข้า-ออกด้วยตัวเอง ตั้ง PIN ครั้งแรกเองได้เลย',
               'ดูประวัติการลงเวลาย้อนหลังรายเดือน',
-              'manager ดูภาพรวมทุกคน กรองตามฝ่าย',
-              'manager ส่งออกรายงาน PDF รายบุคคล',
-              'manager เพิ่มนิสิตใหม่ และเพิ่ม log ย้อนหลังได้',
-              'manager แก้ไขข้อมูลนิสิต และแก้ไข log',
+              'Manager ดูรายบุคคล / ภาพรวม / จัดการนิสิตในฝ่ายของตัวเอง',
+              'Manager อนุมัติชั่วโมง และส่งออก Excel / PDF',
+              'Manager เพิ่ม แก้ไข ลบนิสิต และรีเซ็ต PIN ได้',
+              'Dev เปิด Feedback campaign กำหนดหัวข้อ + ระยะเวลาได้',
+              'นิสิตให้ Feedback ได้ครั้งเดียวต่อ campaign',
             ].map(t => (
               <li key={t} className="flex items-start gap-2">
                 <span className="text-indigo-400 mt-0.5">✓</span>
@@ -50,23 +50,23 @@ export default function GuidePage() {
               },
               {
                 step: '2',
-                title: 'กรอก PIN (ถ้ามี)',
-                desc: 'ครั้งแรกระบบจะให้ตั้ง PIN เอง กรอก PIN 2 ครั้งเพื่อยืนยัน จากนั้นใช้ PIN นั้นทุกครั้ง',
+                title: 'ตั้ง PIN (ครั้งแรก)',
+                desc: 'ครั้งแรกระบบจะให้ตั้ง PIN 4 หลักเอง กรอก 2 ช่อง (PIN + ยืนยัน PIN) แล้วกด "ยืนยัน PIN" จากนั้นใช้ PIN นั้นทุกครั้ง',
               },
               {
                 step: '3',
                 title: 'กดบันทึกเวลาเข้า',
-                desc: 'กดปุ่มสีน้ำเงิน ระบบบันทึกเวลาเข้าทันที แถบสีน้ำเงินด้านบนจะแสดงเวลาที่เข้า',
+                desc: 'กรอก PIN แล้วกดปุ่มสีน้ำเงิน ระบบบันทึกเวลาเข้าทันที',
               },
               {
                 step: '4',
                 title: 'กดบันทึกเวลาออก',
-                desc: 'เมื่อเสร็จงาน กรอกสรุปงานที่ทำ (ไม่บังคับ) แล้วกดปุ่มสีส้มเพื่อบันทึกเวลาออก',
+                desc: 'เมื่อเสร็จงาน กรอกรหัสนิสิต + PIN อีกครั้ง กรอกสรุปงานที่ทำ แล้วกดปุ่มสีส้ม',
               },
               {
                 step: '5',
                 title: 'ดูประวัติ',
-                desc: 'หลังกรอกรหัสนิสิตแล้ว กดปุ่ม "ดูประวัติการลงเวลา" เพื่อดูประวัติย้อนหลัง เปลี่ยนเดือนได้',
+                desc: 'กดปุ่ม "ดูประวัติเดือนนี้" ใต้ปุ่มบันทึก ดูย้อนหลังได้ทุกเดือน',
               },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-4">
@@ -86,39 +86,40 @@ export default function GuidePage() {
           </div>
         </section>
 
-        {/* Admin guide */}
+        {/* Manager guide */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <span className="text-2xl">🛠️</span> วิธีใช้งานสำหรับ Manager
           </h2>
 
-          <p className="text-xs text-gray-500">เข้าหน้า Manager ได้จากปุ่ม "Manager" มุมขวาบนของหน้าหลัก</p>
+          <p className="text-xs text-gray-500">เข้าหน้า Manager ได้จากปุ่ม "Manager" มุมขวาบนของหน้าหลัก แล้วล็อกอินด้วย username/password ที่ได้รับจาก Dev</p>
 
           <div className="space-y-5">
             {[
               {
-                tab: 'แท็บ Overview',
-                items: [
-                  'ดูสถิติรวม: จำนวนนิสิต, คนที่เข้าวันนี้, ชั่วโมงรวม',
-                  'กรองตามฝ่ายได้ (Marketing / Event / HRD / Catering / อื่นๆ)',
-                  'เห็น log ล่าสุดของทุกคน',
-                ],
-              },
-              {
-                tab: 'แท็บ Individual',
+                tab: 'แท็บ รายบุคคล',
                 items: [
                   'เลือกนิสิตและเดือนเพื่อดูรายละเอียด',
-                  'กด "+ เพิ่ม Log" เพื่อเพิ่มการลงเวลาย้อนหลัง',
+                  'กด "อนุมัติ" เพื่อยืนยันชั่วโมงทำงานแต่ละ log',
                   'กดปุ่มแก้ไขบนแต่ละ log เพื่อแก้ไขเวลา/สรุปงาน',
-                  'กด "ส่งออก PDF" เพื่อเปิดหน้าพิมพ์ PDF',
+                  'กด "+ เพิ่ม Log" เพื่อเพิ่มการลงเวลาย้อนหลัง',
+                  'กด "ส่งออก Excel" หรือ "PDF" เพื่อออกรายงานรายบุคคล',
                 ],
               },
               {
-                tab: 'แท็บ Manage',
+                tab: 'แท็บ ภาพรวม',
                 items: [
-                  'เพิ่มนิสิตใหม่ พร้อมตั้ง PIN ได้เลย',
+                  'ดูสรุปชั่วโมงรวมของนิสิตทุกคนในเดือนที่เลือก',
+                  'Export PDF รายงานภาพรวมได้',
+                ],
+              },
+              {
+                tab: 'แท็บ จัดการนิสิต',
+                items: [
+                  'เพิ่มนิสิตใหม่เข้าระบบ',
                   'กด "แก้ไข" เพื่อเปลี่ยนชื่อหรือฝ่ายของนิสิต',
-                  'กด "PIN" เพื่อตั้ง/เปลี่ยน PIN ให้นิสิต',
+                  'กด "PIN" เพื่อรีเซ็ต PIN ให้นิสิตที่ลืม',
+                  'กด "ลบ" เพื่อลบนิสิตออกจากระบบ',
                 ],
               },
             ].map(({ tab, items }) => (
@@ -135,6 +136,10 @@ export default function GuidePage() {
               </div>
             ))}
           </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-xs text-purple-700 leading-relaxed">
+            <strong>หมายเหตุ:</strong> Manager จะเห็นเฉพาะนิสิตในฝ่ายของตัวเอง (ถ้า Dev ตั้ง department ไว้) หากไม่ได้ตั้งจะเห็นนิสิตทั้งหมด
+          </div>
         </section>
 
         {/* Tech stack */}
@@ -146,36 +151,12 @@ export default function GuidePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              {
-                name: 'Next.js 14 (App Router)',
-                desc: 'Frontend + API routes ทั้งหมด ใช้ TypeScript',
-                color: 'bg-gray-50 border-gray-200',
-              },
-              {
-                name: 'Tailwind CSS',
-                desc: 'Styling ทั้งหมด ไม่มี CSS file แยก',
-                color: 'bg-sky-50 border-sky-200',
-              },
-              {
-                name: 'Supabase',
-                desc: 'Database (PostgreSQL) + Auth key จาก Supabase dashboard',
-                color: 'bg-green-50 border-green-200',
-              },
-              {
-                name: 'Vercel',
-                desc: 'Deploy อัตโนมัติจาก GitHub main branch',
-                color: 'bg-indigo-50 border-indigo-200',
-              },
-              {
-                name: 'date-fns',
-                desc: 'คำนวณและ format วันเวลา',
-                color: 'bg-orange-50 border-orange-200',
-              },
-              {
-                name: 'Browser Print API',
-                desc: 'ส่งออก PDF ผ่าน window.print() ไม่ใช้ library',
-                color: 'bg-purple-50 border-purple-200',
-              },
+              { name: 'Next.js 14 (App Router)', desc: 'Frontend + API routes ทั้งหมด ใช้ TypeScript', color: 'bg-gray-50 border-gray-200' },
+              { name: 'Tailwind CSS', desc: 'Styling ทั้งหมด ไม่มี CSS file แยก', color: 'bg-sky-50 border-sky-200' },
+              { name: 'Supabase', desc: 'Database (PostgreSQL) + service role key สำหรับ server-side', color: 'bg-green-50 border-green-200' },
+              { name: 'Vercel', desc: 'Deploy อัตโนมัติจาก GitHub main branch', color: 'bg-indigo-50 border-indigo-200' },
+              { name: 'xlsx', desc: 'Export Excel รายบุคคล', color: 'bg-orange-50 border-orange-200' },
+              { name: 'Browser Print API', desc: 'ส่งออก PDF ผ่าน window.print()', color: 'bg-purple-50 border-purple-200' },
             ].map(({ name, desc, color }) => (
               <div key={name} className={`rounded-xl border p-3 ${color}`}>
                 <p className="text-sm font-semibold text-gray-800">{name}</p>
@@ -187,12 +168,12 @@ export default function GuidePage() {
           <div className="space-y-2 pt-2">
             <p className="text-xs font-semibold text-gray-700">โครงสร้างไฟล์สำคัญ</p>
             <div className="bg-gray-900 rounded-xl p-4 text-xs font-mono text-gray-300 space-y-1 leading-relaxed">
-              <p><span className="text-indigo-400">app/student/page.tsx</span>  — หน้าหลัก นิสิตลงเวลา</p>
-              <p><span className="text-indigo-400">app/manager/page.tsx</span>  — แผง Manager</p>
-              <p><span className="text-indigo-400">app/print/</span>            — หน้าพิมพ์ PDF</p>
-              <p><span className="text-indigo-400">app/api/manager/login/</span> — API ยืนยันรหัส Manager</p>
-              <p><span className="text-indigo-400">lib/supabase.ts</span>       — client + type definitions</p>
-              <p><span className="text-indigo-400">public/fonts/</span>         — Sarabun TTF สำหรับ PDF</p>
+              <p><span className="text-indigo-400">app/student/page.tsx</span>    — หน้าหลัก นิสิตลงเวลา</p>
+              <p><span className="text-indigo-400">app/manager/page.tsx</span>    — แผง Manager</p>
+              <p><span className="text-indigo-400">app/dev/page.tsx</span>        — แผง Dev (จัดการทุกอย่าง)</p>
+              <p><span className="text-indigo-400">app/api/</span>                — API routes ทั้งหมด</p>
+              <p><span className="text-indigo-400">lib/supabase.ts</span>         — client + type definitions</p>
+              <p><span className="text-indigo-400">lib/crypto.ts</span>           — hash password + dev token</p>
             </div>
           </div>
 
@@ -211,9 +192,15 @@ export default function GuidePage() {
             <p className="text-xs font-semibold text-gray-700">ตาราง Supabase</p>
             <div className="bg-gray-900 rounded-xl p-4 text-xs font-mono text-gray-300 space-y-1 leading-relaxed">
               <p className="text-purple-400">students</p>
-              <p className="pl-4 text-gray-400">id, student_id, name, department, pin, created_at</p>
+              <p className="pl-4 text-gray-400">id, student_id, name, department, faculty, major, pin, created_at</p>
               <p className="text-purple-400 mt-2">time_logs</p>
-              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, photo_url, created_at</p>
+              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, approved, approved_by, approved_at</p>
+              <p className="text-purple-400 mt-2">managers</p>
+              <p className="pl-4 text-gray-400">id, username, password_hash, name, department, created_at</p>
+              <p className="text-purple-400 mt-2">feedback_campaigns</p>
+              <p className="pl-4 text-gray-400">id, title, message, active, duration_days, end_date, created_at, ended_at</p>
+              <p className="text-purple-400 mt-2">feedback_responses</p>
+              <p className="pl-4 text-gray-400">id, campaign_id, respondent_type, respondent_id, respondent_name, rating, comment, submitted_at</p>
             </div>
           </div>
         </section>
