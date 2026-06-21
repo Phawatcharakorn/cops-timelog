@@ -24,7 +24,34 @@ export type TimeLog = {
   approved_at: string | null
 }
 
-const url  = process.env.NEXT_PUBLIC_SUPABASE_URL!
+export type Manager = {
+  id: string
+  username: string
+  name: string
+  department: string | null
+  created_at: string
+}
+
+export type FeedbackCampaign = {
+  id: string
+  message: string
+  active: boolean
+  created_at: string
+  ended_at: string | null
+}
+
+export type FeedbackResponse = {
+  id: string
+  campaign_id: string
+  respondent_type: 'student' | 'manager'
+  respondent_id: string
+  respondent_name: string | null
+  rating: number
+  comment: string | null
+  submitted_at: string
+}
+
+const url     = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(url, anonKey)

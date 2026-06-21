@@ -58,6 +58,12 @@ export default function StudentPage() {
 
   const [playing, setPlaying] = useState(false)
 
+  // Feedback modal
+  const [feedbackModal, setFeedbackModal]   = useState<{ campaignId: string; message: string } | null>(null)
+  const [feedbackRating, setFeedbackRating] = useState(0)
+  const [feedbackComment, setFeedbackComment] = useState('')
+  const [feedbackSaving, setFeedbackSaving] = useState(false)
+
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(iv)
@@ -178,6 +184,8 @@ export default function StudentPage() {
       }).eq('id', activeLog.id)
       if (error) throw error
       const duration = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
+      const studentId = form.student_id
+      const studentName = form.name
       startCooldown(3)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary('')
@@ -185,6 +193,19 @@ export default function StudentPage() {
       setFoundPin(null); setPinInput('')
       setShowHistory(false); setHistoryLogs([])
       setForm({ name: '', student_id: '', department: '', faculty: '', major: '' })
+
+      // check for active feedback campaign
+      try {
+        const res = await fetch('/api/feedback/campaign')
+        const campaign = await res.json()
+        if (campaign?.id) {
+          setFeedbackRating(0)
+          setFeedbackComment('')
+          setFeedbackModal({ campaignId: campaign.id, message: campaign.message })
+          // store student info for submission (captured above before reset)
+          ;(window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent = { id: studentId, name: studentName }
+        }
+      } catch { /* ignore */ }
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally { setLoading(false) }
@@ -200,13 +221,13 @@ export default function StudentPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col items-center justify-start p-4 pt-8 pb-24">
 
       {/* Admin link */}
-      <a href="/admin"
+      <a href="/dev"
         className="fixed top-4 right-4 z-20 bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm transition-all duration-150 flex items-center gap-1.5">
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        Admin
+        Dev
       </a>
 
       <div className="w-full max-w-sm space-y-4">
@@ -493,6 +514,78 @@ export default function StudentPage() {
           allow="autoplay"
           style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', bottom: 0, right: 0 }}
         />
+      )}
+
+      {/* ── Feedback Modal ────────────────────────────────────────────────── */}
+      {feedbackModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <h3 className="font-bold text-gray-800 text-lg">ให้คะแนนระบบ</h3>
+              <p className="text-sm text-gray-500 mt-1">{feedbackModal.message}</p>
+            </div>
+
+            {/* Star rating */}
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setFeedbackRating(s)}
+                  className={`text-4xl transition-transform hover:scale-110 ${s <= feedbackRating ? 'text-yellow-400' : 'text-gray-200'}`}>
+                  ★
+                </button>
+              ))}
+            </div>
+            {feedbackRating > 0 && (
+              <p className="text-center text-sm text-gray-500">
+                {['', 'แย่มาก', 'พอใช้', 'ดี', 'ดีมาก', 'ยอดเยี่ยม'][feedbackRating]}
+              </p>
+            )}
+
+            {/* Comment */}
+            <textarea
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+              rows={3}
+              placeholder="ความคิดเห็นเพิ่มเติม (ไม่บังคับ)"
+              value={feedbackComment}
+              onChange={e => setFeedbackComment(e.target.value)}
+            />
+
+            <div className="flex gap-3">
+              <button onClick={() => setFeedbackModal(null)}
+                className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                ข้าม
+              </button>
+              <button
+                disabled={feedbackRating === 0 || feedbackSaving}
+                onClick={async () => {
+                  if (!feedbackRating) return
+                  setFeedbackSaving(true)
+                  const student = (window as Window & { _fbStudent?: { id: string; name: string } })._fbStudent
+                  await fetch('/api/feedback/response', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      campaign_id: feedbackModal.campaignId,
+                      respondent_type: 'student',
+                      respondent_id: student?.id || 'unknown',
+                      respondent_name: student?.name,
+                      rating: feedbackRating,
+                      comment: feedbackComment || null,
+                    }),
+                  })
+                  setFeedbackSaving(false)
+                  setFeedbackModal(null)
+                }}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                {feedbackSaving ? 'กำลังส่ง...' : 'ส่ง Feedback'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
