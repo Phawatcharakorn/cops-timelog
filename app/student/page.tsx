@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 
@@ -61,6 +61,9 @@ export default function StudentPage() {
   )
 
   const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => () => { audioRef.current?.pause() }, [])
 
   // Feedback modal
   const [feedbackModal, setFeedbackModal]     = useState<{ campaignId: string; message: string } | null>(null)
@@ -550,7 +553,19 @@ export default function StudentPage() {
 
       {/* Toothless mascot */}
       <div className="fixed bottom-3 right-3 z-10 flex flex-col items-center gap-1 cursor-pointer select-none"
-        onClick={() => setPlaying(p => !p)}>
+        onClick={() => {
+          if (!playing) {
+            if (!audioRef.current) {
+              audioRef.current = new Audio('/toothless.mp3')
+              audioRef.current.loop = true
+            }
+            audioRef.current.play().catch(() => {})
+            setPlaying(true)
+          } else {
+            audioRef.current?.pause()
+            setPlaying(false)
+          }
+        }}>
         {playing && (
           <span className="text-xs text-indigo-500 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm animate-pulse">
             ♪ กำลังเล่น
@@ -568,13 +583,6 @@ export default function StudentPage() {
         </div>
       </div>
 
-      {playing && (
-        <iframe
-          src="https://www.youtube.com/embed/9MCiixIkzUk?autoplay=1&loop=1&playlist=9MCiixIkzUk"
-          allow="autoplay"
-          style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', bottom: 0, right: 0 }}
-        />
-      )}
 
       {/* ── Feedback Modal ────────────────────────────────────────────────── */}
       {feedbackModal && (

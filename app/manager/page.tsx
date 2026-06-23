@@ -333,25 +333,25 @@ export default function ManagerPage() {
   // ── Main ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-bold text-gray-800">Manager Dashboard</h1>
-          <p className="text-xs text-gray-400 mt-0.5">{mgrName}{mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}</p>
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">Manager Dashboard</h1>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{mgrName}{mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="/student" className="text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors">หน้าบันทึกเวลา</a>
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <a href="/student" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึก</a>
           <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
             className="text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
-          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">ออกจากระบบ</button>
+          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6 space-y-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
@@ -417,23 +417,23 @@ export default function ManagerPage() {
 
             {summary && (
               <>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   {[
                     { label: 'Work Days',   value: `${summary.totalDays}`,                            color: 'bg-blue-50 text-blue-700 border-blue-100' },
                     { label: 'Total Hours', value: `${summary.totalHours}h ${summary.totalMinutes}m`, color: 'bg-green-50 text-green-700 border-green-100' },
                     { label: 'Tasks',       value: `${summary.taskCount}`,                            color: 'bg-purple-50 text-purple-700 border-purple-100' },
                   ].map(c => (
-                    <div key={c.label} className={`${c.color} border rounded-xl p-5 text-center`}>
-                      <p className="text-sm font-medium opacity-60 mb-3">{c.label}</p>
-                      <p className="text-3xl font-bold leading-none">{c.value}</p>
+                    <div key={c.label} className={`${c.color} border rounded-xl p-3 sm:p-5 text-center`}>
+                      <p className="text-xs sm:text-sm font-medium opacity-60 mb-1 sm:mb-3">{c.label}</p>
+                      <p className="text-xl sm:text-3xl font-bold leading-none break-all">{c.value}</p>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => handleExportCSV(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button onClick={() => handleExportCSV(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export CSV
                   </button>
-                  <button onClick={handleExportPDF} className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                  <button onClick={handleExportPDF} className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export PDF
                   </button>
                 </div>
@@ -444,11 +444,61 @@ export default function ManagerPage() {
                   </div>
                 )}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-100">
+                  <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
                     <h2 className="font-semibold text-gray-700 text-sm">รายการลงเวลา</h2>
                     <p className="text-xs text-gray-400 mt-0.5">{summary.student?.name} — {dateFrom === dateTo ? format(new Date(dateFrom), 'd MMMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`}</p>
                   </div>
-                  <div className="overflow-x-auto">
+
+                  {/* Mobile card view */}
+                  <div className="sm:hidden divide-y divide-gray-100">
+                    {summary.logs.length === 0 && <div className="text-center py-10 text-gray-400 text-sm">ไม่มีข้อมูล</div>}
+                    {summary.logs.map((log, idx) => (
+                      <div key={log.id} className="px-4 py-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs text-gray-400">#{idx + 1} · {fmtDate(log.check_in)}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className="text-sm font-semibold text-green-600">{fmtTime(log.check_in)}</span>
+                              <span className="text-gray-300 text-xs">→</span>
+                              {log.check_out
+                                ? <span className="text-sm font-semibold text-rose-500">{fmtTime(log.check_out)}</span>
+                                : <span className="text-sm text-yellow-500">ยังไม่ออก</span>}
+                              <span className="text-xs text-gray-400">
+                                {log.durationMinutes < 0
+                                  ? <span className="text-red-500">⚠ ข้อมูลผิด</span>
+                                  : log.durationMinutes > 0
+                                    ? `(${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m)`
+                                    : ''}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 flex-shrink-0">
+                            <button onClick={() => openEdit(log)} className="text-xs text-purple-600 hover:text-purple-800 font-semibold">แก้ไข</button>
+                            <button onClick={() => handleDelete(log.id)} className="text-xs text-red-500 hover:text-red-700 font-semibold">ลบ</button>
+                          </div>
+                        </div>
+                        {log.work_summary && (
+                          <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 line-clamp-2">{log.work_summary}</div>
+                        )}
+                        <div>
+                          {log.status === 'approved' ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
+                              <span className="text-xs text-gray-400">โดย {log.approved_by}{log.approved_at ? ` · ${fmtDate(log.approved_at)}` : ''}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200">รออนุมัติ</span>
+                              <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors">อนุมัติ</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table view */}
+                  <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-gray-500 text-xs">
                         <tr>
