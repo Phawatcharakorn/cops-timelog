@@ -614,15 +614,15 @@ export default function ManagerPage() {
                   <p className="text-xs text-gray-400 mt-0.5">{dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`} — {overview.length} คน{mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[600px] text-sm">
                     <thead className="bg-gray-50 text-gray-500 text-xs">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                        <th className="px-4 py-3 text-left font-medium">รหัส</th>
-                        <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
-                        <th className="px-4 py-3 text-center font-medium">วันทำงาน</th>
-                        <th className="px-4 py-3 text-center font-medium">ชั่วโมงรวม</th>
-                        <th className="px-4 py-3 text-center font-medium">งาน</th>
+                        <th className="px-4 py-3 text-left font-medium min-w-[120px]">ชื่อ-นามสกุล</th>
+                        <th className="px-4 py-3 text-left font-medium whitespace-nowrap">รหัส</th>
+                        <th className="px-4 py-3 text-left font-medium whitespace-nowrap">ฝ่าย</th>
+                        <th className="px-4 py-3 text-center font-medium whitespace-nowrap">วันทำงาน</th>
+                        <th className="px-4 py-3 text-center font-medium whitespace-nowrap">ชั่วโมงรวม</th>
+                        <th className="px-4 py-3 text-center font-medium whitespace-nowrap">งาน</th>
                         <th className="px-4 py-3"></th>
                       </tr>
                     </thead>
