@@ -4,15 +4,21 @@
   "description": "ระบบบันทึกเวลาทำงาน CoPs มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา",
   "start_url": "/student",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#4f46e5",
   "theme_color": "#4f46e5",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/kus-logo.svg",
+      "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
