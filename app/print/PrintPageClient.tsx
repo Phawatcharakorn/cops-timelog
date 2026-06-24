@@ -153,42 +153,36 @@ export default function PrintPageClient() {
       `}</style>
 
       {/* Toolbar */}
-      <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-6 py-3 flex items-center gap-4">
-        <span className="text-sm font-medium flex-shrink-0">{student.name} — {date ? 'วันที่ ' : ''}{monthLabel}</span>
-        <div className="flex-1 flex items-center gap-2">
-          <span className="text-xs text-gray-400 flex-shrink-0">ชื่อโครงการ:</span>
+      <div className="no-print sticky top-0 z-10 bg-gray-800 text-white px-3 sm:px-6 py-2 sm:py-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs sm:text-sm font-medium truncate max-w-[140px] sm:max-w-none">{student.name} — {monthLabel}</span>
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:inline">ชื่อโครงการ:</span>
           <input
-            className="flex-1 bg-gray-700 text-white text-sm px-3 py-1 rounded border border-gray-600 focus:outline-none focus:border-indigo-400 min-w-0"
+            className="flex-1 bg-gray-700 text-white text-xs sm:text-sm px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-indigo-400 min-w-0"
             value={projectTitle}
             onChange={e => setProjectTitle(e.target.value)}
-            placeholder="กรอกชื่อโครงการ"
+            placeholder="ชื่อโครงการ"
           />
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => {
-              const prev = document.title
-              document.title = `timelog-${student.name}-${monthLabel}`
-              window.print()
-              document.title = prev
-            }}
-            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            ดาวน์โหลด PDF
-          </button>
-          <button
-            onClick={() => window.close()}
-            className="bg-gray-600 hover:bg-gray-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          >ปิด</button>
-        </div>
+        <button
+          onClick={() => {
+            const prev = document.title
+            document.title = `timelog-${student.name}-${monthLabel}`
+            window.print()
+            document.title = prev
+          }}
+          className="bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors flex-shrink-0"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          ดาวน์โหลด PDF
+        </button>
       </div>
 
       {/* A4 body */}
-      <div className="page-body max-w-3xl mx-auto my-6 bg-white shadow-lg p-10">
+      <div className="page-body max-w-3xl mx-auto sm:my-6 bg-white sm:shadow-lg p-4 sm:p-10">
 
         {/* ── Letterhead ── */}
         <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 14 }}>
@@ -267,7 +261,8 @@ export default function PrintPageClient() {
 
         {/* ── Time log table ── */}
         <p className="keep-with-next" style={{ fontSize: 12, fontWeight: 700, color: '#1a3a5c', marginBottom: 4, marginTop: 0 }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
-        <table className="data-table" style={{ marginBottom: 16 }}>
+        <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+        <table className="data-table" style={{ minWidth: 480 }}>
           <thead>
             <tr>
               <th style={{ width: 36, textAlign: 'center' }}>ลำดับ</th>
@@ -291,6 +286,7 @@ export default function PrintPageClient() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* ── รวมทั้งหมด + ลายเซ็น + Footer — อยู่ด้วยกันเสมอ ── */}
         <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -313,13 +309,13 @@ export default function PrintPageClient() {
           </div>
 
           {/* ลายเซ็น */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', marginTop: 10 }}>
             {[
               { label: 'ลายมือชื่อนิสิต',             sub: `(${student.name})` },
               { label: 'ลงชื่อพี่เลี้ยงหรือคนดูแล', sub: '(.................................)' },
               { label: 'ลายมือชื่อผู้อนุมัติ',         sub: '(.................................)' },
             ].map(({ label, sub }) => (
-              <div key={label} style={{ textAlign: 'center', width: 185 }}>
+              <div key={label} style={{ textAlign: 'center', flex: '1 1 120px', minWidth: 100 }}>
                 <div style={{ borderTop: '1px solid #374151', marginTop: 40, marginBottom: 5 }} />
                 <p style={{ fontSize: 12, color: '#374151', margin: 0, lineHeight: 1.6 }}>{label}</p>
                 <p style={{ fontSize: 11, color: '#6b7280', margin: 0, marginTop: 2, lineHeight: 1.6 }}>{sub}</p>
