@@ -678,7 +678,7 @@ export default function DevPage() {
       <main className="max-w-6xl mx-auto p-6 space-y-6">
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto">
           {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t)
@@ -686,7 +686,7 @@ export default function DevPage() {
               if (t === 'managers') loadManagers()
               if (t === 'announce') fetchAnnouncements()
             }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex-shrink-0 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                 tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
               }`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : 'ประกาศ'}
@@ -765,7 +765,7 @@ export default function DevPage() {
                 </button>
                 {selectedStudentId && (
                   <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
-                    className="px-4 py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+                    className="flex-1 py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
