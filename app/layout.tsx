@@ -1,19 +1,21 @@
 import type { Metadata } from 'next'
 import { Sarabun } from 'next/font/google'
 import './globals.css'
+import SwRegister from './components/SwRegister'
 
 const sarabun = Sarabun({
   subsets: ['thai', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-sarabun',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
-  title: 'ระบบลงเวลา CoPs',
-  description: 'ระบบบันทึกเวลาทำงาน CoPs มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา',
+  title: 'ระบบลงเวลา SDEC',
+  description: 'ระบบบันทึกเวลาทำงาน SDEC มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา',
   manifest: '/manifest.json',
   themeColor: '#4f46e5',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'CoPs Time' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'SDEC' },
   viewport: { width: 'device-width', initialScale: 1, maximumScale: 1 },
 }
 
@@ -22,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="th">
       <body className={`${sarabun.variable} font-sarabun bg-gray-50 min-h-screen`}>
         {children}
+        <SwRegister />
       </body>
     </html>
   )

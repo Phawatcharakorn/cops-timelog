@@ -1,7 +1,7 @@
 {
-  "name": "ระบบลงเวลา CoPs",
-  "short_name": "CoPs Time",
-  "description": "ระบบบันทึกเวลาทำงาน CoPs มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา",
+  "name": "ระบบลงเวลา SDEC",
+  "short_name": "SDEC",
+  "description": "ระบบบันทึกเวลาทำงาน SDEC มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา",
   "start_url": "/student",
   "display": "standalone",
   "background_color": "#4f46e5",
