@@ -741,13 +741,14 @@ export default function DevPage() {
               </div>
 
               {/* 2. Date range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
                   <input type="date" className={inputCls} value={dateFrom}
                     onChange={e => setDateFrom(e.target.value)} />
                 </div>
-                <div>
+                <span className="text-gray-400 pb-2.5 text-sm flex-shrink-0">—</span>
+                <div className="flex-1">
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
                   <input type="date" className={inputCls} value={dateTo} min={dateFrom}
                     onChange={e => setDateTo(e.target.value)} />
