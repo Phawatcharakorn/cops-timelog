@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, type Announcement } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
@@ -64,6 +64,12 @@ export default function StudentPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => () => { audioRef.current?.pause() }, [])
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+
+  useEffect(() => {
+    fetch('/api/announcements').then(r => r.json()).then(setAnnouncements).catch(() => {})
+  }, [])
 
   // Feedback modal
   const [feedbackModal, setFeedbackModal]     = useState<{ campaignId: string; message: string } | null>(null)
@@ -458,6 +464,24 @@ export default function StudentPage() {
             )}
           </div>
         </div>
+
+        {/* Announcements */}
+        {announcements.length > 0 && (
+          <div className="space-y-2">
+            {announcements.map(a => (
+              <div key={a.id} className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg leading-none mt-0.5">📢</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-amber-900 text-sm">{a.title}</p>
+                    <p className="text-sm text-amber-800 mt-1 whitespace-pre-wrap leading-relaxed">{a.body}</p>
+                    <p className="text-xs text-amber-500 mt-2">โดย {a.author}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* History panel */}
         {showHistory && (

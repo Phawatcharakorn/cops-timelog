@@ -43,6 +43,16 @@ export type FeedbackCampaign = {
   ended_at: string | null
 }
 
+export type Announcement = {
+  id: string
+  title: string
+  body: string
+  author: string
+  active: boolean
+  created_at: string
+  expires_at: string | null
+}
+
 export type FeedbackResponse = {
   id: string
   campaign_id: string

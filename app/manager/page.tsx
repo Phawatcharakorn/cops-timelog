@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, type Student, type TimeLog } from '@/lib/supabase'
+import { supabase, type Student, type TimeLog, type Announcement } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
@@ -40,7 +40,15 @@ export default function ManagerPage() {
   const [userInput, setUserInput] = useState('')
   const [pwInput, setPwInput]     = useState('')
   const [pwError, setPwError]     = useState(false)
-  const [tab, setTab] = useState<'individual' | 'overview' | 'manage'>('individual')
+  const [tab, setTab] = useState<'individual' | 'overview' | 'manage' | 'announce'>('individual')
+
+  const [announcements, setAnnouncements]   = useState<Announcement[]>([])
+  const [annLoading, setAnnLoading]         = useState(false)
+  const [annTitle, setAnnTitle]             = useState('')
+  const [annBody, setAnnBody]               = useState('')
+  const [annExpires, setAnnExpires]         = useState('')
+  const [annSaving, setAnnSaving]           = useState(false)
+  const [annError, setAnnError]             = useState('')
 
   const [students, setStudents]                   = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
@@ -189,6 +197,37 @@ export default function ManagerPage() {
       setMultiStats(Object.entries(grouped).map(([month, g]) => ({ month, days: g.dates.size, hours: Math.floor(g.totalMin / 60), minutes: g.totalMin % 60, tasks: g.tasks })))
     } finally { setMultiLoading(false) }
   }, [selectedStudentId, rangeStart, rangeEnd])
+
+  const mgrUsername = () => (typeof window !== 'undefined' ? localStorage.getItem('mgr_username') || '' : '')
+
+  const fetchAnnouncements = async () => {
+    setAnnLoading(true)
+    try {
+      const res = await fetch('/api/announcements')
+      setAnnouncements(await res.json())
+    } finally { setAnnLoading(false) }
+  }
+
+  const handlePostAnnouncement = async () => {
+    if (!annTitle.trim() || !annBody.trim()) return setAnnError('กรุณากรอกหัวข้อและเนื้อหา')
+    setAnnSaving(true); setAnnError('')
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-mgr-username': mgrUsername() },
+        body: JSON.stringify({ title: annTitle, body: annBody, author: mgrName || mgrUsername(), expires_at: annExpires || null }),
+      })
+      if (!res.ok) { const d = await res.json(); setAnnError(d.error || 'เกิดข้อผิดพลาด'); return }
+      setAnnTitle(''); setAnnBody(''); setAnnExpires('')
+      await fetchAnnouncements()
+    } catch { setAnnError('เกิดข้อผิดพลาด') } finally { setAnnSaving(false) }
+  }
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm('ลบประกาศนี้?')) return
+    await fetch(`/api/announcements/${id}`, { method: 'DELETE', headers: { 'x-mgr-username': mgrUsername() } })
+    setAnnouncements(prev => prev.filter(a => a.id !== id))
+  }
 
   const handleExportCSV = (useRange = false) => {
     const url = useRange && rangeStart && rangeEnd ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}` : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
@@ -356,10 +395,10 @@ export default function ManagerPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
-          {(['individual', 'overview', 'manage'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
-              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : 'จัดการนิสิต'}
+          {(['individual', 'overview', 'manage', 'announce'] as const).map(t => (
+            <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements() }}
+              className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : 'ประกาศ'}
             </button>
           ))}
         </div>
@@ -827,6 +866,51 @@ export default function ManagerPage() {
               <button onClick={() => { setPinModal(null); setPinInput('') }} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleSetPin} disabled={pinSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{pinSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Announce Tab ────────────────────────────────────────────────────── */}
+      {tab === 'announce' && (
+        <div className="space-y-4">
+          {/* Post form */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-3">
+            <h2 className="font-semibold text-gray-700 text-sm">สร้างประกาศใหม่</h2>
+            {annError && <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{annError}</p>}
+            <div><label className="block text-xs font-medium text-gray-500 mb-1">หัวข้อ</label><input className={inputCls} placeholder="เช่น แจ้งกำหนดส่งงาน" value={annTitle} onChange={e => setAnnTitle(e.target.value)} /></div>
+            <div><label className="block text-xs font-medium text-gray-500 mb-1">เนื้อหา</label><textarea className={inputCls + ' resize-none'} rows={3} placeholder="รายละเอียดประกาศ..." value={annBody} onChange={e => setAnnBody(e.target.value)} /></div>
+            <div><label className="block text-xs font-medium text-gray-500 mb-1">หมดอายุ (ไม่บังคับ)</label><input type="datetime-local" className={inputCls + ' w-auto'} value={annExpires} onChange={e => setAnnExpires(e.target.value)} /></div>
+            <button onClick={handlePostAnnouncement} disabled={annSaving} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+              {annSaving ? 'กำลังโพสต์...' : 'โพสต์ประกาศ'}
+            </button>
+          </div>
+          {/* List */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-700 text-sm">ประกาศที่ใช้งานอยู่</h2>
+              <button onClick={fetchAnnouncements} disabled={annLoading} className="text-xs text-purple-600 hover:text-purple-800 font-medium">{annLoading ? '...' : 'รีเฟรช'}</button>
+            </div>
+            {annLoading ? (
+              <div className="py-10 text-center text-gray-400 text-sm">กำลังโหลด...</div>
+            ) : announcements.length === 0 ? (
+              <div className="py-10 text-center text-gray-400 text-sm">ยังไม่มีประกาศ</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {announcements.map(a => (
+                  <div key={a.id} className="px-5 py-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm">{a.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{a.body}</p>
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        โดย {a.author} · {format(new Date(a.created_at), 'd MMM yyyy HH:mm', { locale: th })}
+                        {a.expires_at && ` · หมดอายุ ${format(new Date(a.expires_at), 'd MMM yyyy HH:mm', { locale: th })}`}
+                      </p>
+                    </div>
+                    <button onClick={() => handleDeleteAnnouncement(a.id)} className="flex-shrink-0 text-xs text-red-400 hover:text-red-600 font-medium transition-colors">ลบ</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
