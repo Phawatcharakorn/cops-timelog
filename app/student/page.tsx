@@ -17,9 +17,10 @@ const BKK = 'Asia/Bangkok'
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
 }
-function isToday(iso: string) {
-  const fmt = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: BKK })
-  return fmt(new Date(iso)) === fmt(new Date())
+function isRecentCheckIn(iso: string) {
+  // true if checked in within the last 18 hours — covers overnight shifts
+  // (>18 h gap means they genuinely forgot to check out)
+  return Date.now() - new Date(iso).getTime() < 18 * 60 * 60 * 1000
 }
 function fmtHHMM(iso: string) {
   return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: BKK })
@@ -113,7 +114,7 @@ export default function StudentPage() {
         setFoundPin(student.pin ?? null)
         if (!student.pin) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
         if (activeLogData) {
-          if (isToday(activeLogData.check_in)) {
+          if (isRecentCheckIn(activeLogData.check_in)) {
             setActiveLog(activeLogData)
             showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${fmtHHMM(activeLogData.check_in)})`, 0)
           } else {
