@@ -778,15 +778,15 @@ export default function DevPage() {
 
             {summary && (
               <>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: 'Work Days',   value: `${summary.totalDays}`,                          color: 'bg-blue-50 text-blue-700 border-blue-100' },
-                    { label: 'Total Hours', value: `${summary.totalHours}h ${summary.totalMinutes}m`, color: 'bg-green-50 text-green-700 border-green-100' },
-                    { label: 'Tasks',       value: `${summary.taskCount}`,                          color: 'bg-purple-50 text-purple-700 border-purple-100' },
+                    { label: 'วันทำงาน',    value: `${summary.totalDays}`,                          color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                    { label: 'ชั่วโมงรวม', value: `${summary.totalHours}h ${summary.totalMinutes}m`, color: 'bg-green-50 text-green-700 border-green-100' },
+                    { label: 'งาน',         value: `${summary.taskCount}`,                          color: 'bg-purple-50 text-purple-700 border-purple-100' },
                   ].map(c => (
-                    <div key={c.label} className={`${c.color} border rounded-xl p-5 text-center`}>
-                      <p className="text-sm font-medium opacity-60 mb-3">{c.label}</p>
-                      <p className="text-3xl font-bold leading-none">{c.value}</p>
+                    <div key={c.label} className={`${c.color} border rounded-xl p-3 text-center`}>
+                      <p className="text-xs font-medium opacity-70 mb-1.5 whitespace-nowrap">{c.label}</p>
+                      <p className="text-xl font-bold leading-tight">{c.value}</p>
                     </div>
                   ))}
                 </div>
