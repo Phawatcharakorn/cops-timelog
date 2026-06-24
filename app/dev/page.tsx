@@ -124,6 +124,9 @@ export default function DevPage() {
   const [addStudentCustomDept, setAddStudentCustomDept]   = useState('')
   const [editStudentCustomDept, setEditStudentCustomDept] = useState('')
 
+  // Settings modal
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
   // PIN reveal
   const [revealedPins, setRevealedPins] = useState<Set<string>>(new Set())
   const togglePinReveal = (id: string) =>
@@ -614,15 +617,24 @@ export default function DevPage() {
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-bold text-gray-800">Dev Dashboard</h1>
-          <p className="text-xs text-gray-400 mt-0.5">CoPs — ระบบลงเวลา</p>
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">Dev Dashboard</h1>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">CoPs — ระบบลงเวลา</p>
+          </div>
+          <button onClick={() => setSettingsOpen(true)}
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="/student" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors">หน้าบันทึกเวลา</a>
+        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <a href="/student" className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึกเวลา</a>
           <button onClick={() => { localStorage.removeItem('dev_authed'); localStorage.removeItem('dev_username'); localStorage.removeItem('dev_token'); setAuthed(false); setAdminUsername('') }}
-            className="text-sm text-gray-400 hover:text-gray-600 transition-colors">ออกจากระบบ</button>
+            className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
         </div>
       </header>
 
@@ -1588,6 +1600,32 @@ export default function DevPage() {
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {pinSaving ? 'กำลังบันทึก...' : 'บันทึก PIN'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Settings Modal ─────────────────────────────────────────────────── */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">ข้อมูลบัญชี</h3>
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'ชื่อผู้ใช้', value: adminUsername || localStorage.getItem('dev_username') || '-' },
+                { label: 'สิทธิ์', value: 'Developer / Admin' },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-gray-50 rounded-lg px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                  <p className="text-sm font-medium text-gray-800">{value}</p>
+                </div>
+              ))}
+              <p className="text-xs text-gray-400 text-center pt-1">รหัสผ่านจัดการผ่าน Environment Variables</p>
             </div>
           </div>
         </div>

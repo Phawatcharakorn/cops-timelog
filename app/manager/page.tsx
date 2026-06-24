@@ -334,19 +334,21 @@ export default function ManagerPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">Manager Dashboard</h1>
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{mgrName}{mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}</p>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-          <a href="/student" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึก</a>
+        <div className="min-w-0 flex-1 flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">Manager Dashboard</h1>
+            <p className="text-xs text-gray-400 mt-0.5 truncate">{mgrName}{mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}</p>
+          </div>
           <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
-            className="text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <a href="/student" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึก</a>
           <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
         </div>
       </header>
