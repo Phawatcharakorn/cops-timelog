@@ -218,9 +218,9 @@ export default function GuidePage() {
               { label: 'Line', value: 'wave13045879' },
               { label: 'Email', value: 'phawatcharakornit@gmail.com' },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-50 rounded-xl p-3">
+              <div key={label} className="bg-gray-50 rounded-xl p-3 min-w-0">
                 <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                <p className="text-sm font-semibold text-gray-800">{value}</p>
+                <p className="text-sm font-semibold text-gray-800 break-all">{value}</p>
               </div>
             ))}
           </div>
