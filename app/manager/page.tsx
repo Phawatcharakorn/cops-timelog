@@ -783,14 +783,42 @@ export default function ManagerPage() {
       {addLogOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 className="font-bold text-gray-800">เพิ่ม Log ย้อนหลัง</h3>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">วันที่</label><input type="date" className={inputCls} value={addLogForm.date} onChange={e => setAddLogForm(f => ({ ...f, date: e.target.value }))} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาเข้า</label><input type="time" className={inputCls} value={addLogForm.check_in} onChange={e => setAddLogForm(f => ({ ...f, check_in: e.target.value }))} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาออก (ไม่บังคับ)</label><TimeWheelPicker value={addLogForm.check_out} onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">สรุปงาน</label><textarea className={inputCls} rows={2} value={addLogForm.work_summary} onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} /></div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">เพิ่ม Log ย้อนหลัง</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{students.find(s => s.student_id === selectedStudentId)?.name}</p>
+              </div>
+              <button onClick={() => setAddLogOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ <span className="text-red-400">*</span></label>
+              <input type="date" className={inputCls} value={addLogForm.date} onChange={e => setAddLogForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า <span className="text-red-400">*</span></label>
+              <TimeWheelPicker value={addLogForm.check_in || '00:00'} onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="text-sm font-medium text-gray-700">เวลาออก</label>
+                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                  <input type="checkbox" checked={!!addLogForm.check_out} onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.checked ? '18:00' : '' }))} />
+                  ระบุเวลาออก
+                </label>
+              </div>
+              {addLogForm.check_out && (
+                <TimeWheelPicker value={addLogForm.check_out} onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} />
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
+              <textarea rows={2} className={inputCls + ' resize-none'} placeholder="งานที่ทำ..." value={addLogForm.work_summary} onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} />
+            </div>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setAddLogOpen(false)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{addLogSaving ? 'กำลังบันทึก...' : 'เพิ่ม Log'}</button>
+              <button onClick={() => setAddLogOpen(false)} className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">{addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}</button>
             </div>
           </div>
         </div>
