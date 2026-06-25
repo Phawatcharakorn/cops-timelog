@@ -280,7 +280,9 @@ export default function DevPage() {
 
   const handleExportPDF = () => {
     if (!summary) return
-    const url = `/print?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
+    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo })
+    if (dateFrom) params.set('from', dateFrom)
+    const url = `/print?${params}`
     window.open(url, '_blank')
   }
 

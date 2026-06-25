@@ -42,19 +42,24 @@ export default function PrintPageClient() {
   const [projectTitle, setProjectTitle] = useState(projectParam)
 
   useEffect(() => {
-    if (!studentId || (!month && !date && !from)) { setError('Missing params'); return }
+    if (!studentId || (!month && !date && !from && !to)) { setError('Missing params'); return }
 
     const TZ = 7 * 60 * 60 * 1000
     let start: string, end: string, periodLabel: string
 
-    if (from && to) {
-      start = new Date(from + 'T00:00:00+07:00').toISOString()
-      end   = new Date(to   + 'T23:59:59+07:00').toISOString()
-      const fd = new Date(from + 'T12:00:00'), td = new Date(to + 'T12:00:00')
-      const sameMonth = fd.getFullYear() === td.getFullYear() && fd.getMonth() === td.getMonth()
-      periodLabel = sameMonth
-        ? format(fd, 'MMMM yyyy', { locale: th })
-        : `${format(fd, 'MMM yyyy', { locale: th })} – ${format(td, 'MMM yyyy', { locale: th })}`
+    if (to) {
+      end = new Date(to + 'T23:59:59+07:00').toISOString()
+      start = from ? new Date(from + 'T00:00:00+07:00').toISOString() : '2000-01-01T00:00:00.000Z'
+      const td = new Date(to + 'T12:00:00')
+      if (from) {
+        const fd = new Date(from + 'T12:00:00')
+        const sameMonth = fd.getFullYear() === td.getFullYear() && fd.getMonth() === td.getMonth()
+        periodLabel = sameMonth
+          ? format(fd, 'MMMM yyyy', { locale: th })
+          : `${format(fd, 'MMM yyyy', { locale: th })} – ${format(td, 'MMM yyyy', { locale: th })}`
+      } else {
+        periodLabel = `ทั้งหมด ถึง ${format(td, 'd MMM yyyy', { locale: th })}`
+      }
     } else if (date) {
       const d = new Date(date + 'T00:00:00+07:00')
       start = new Date(d.getTime() - TZ).toISOString()

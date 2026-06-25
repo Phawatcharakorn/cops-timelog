@@ -261,7 +261,12 @@ export default function ManagerPage() {
     const url = useRange && rangeStart && rangeEnd ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}` : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     const a = document.createElement('a'); a.href = url; a.download = `timelog_${selectedStudentId}.csv`; a.click()
   }
-  const handleExportPDF = () => { if (!summary) return; window.open(`/print?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`, '_blank') }
+  const handleExportPDF = () => {
+    if (!summary) return
+    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo })
+    if (dateFrom) params.set('from', dateFrom)
+    window.open(`/print?${params}`, '_blank')
+  }
 
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
