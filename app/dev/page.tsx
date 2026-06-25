@@ -1083,10 +1083,10 @@ export default function DevPage() {
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลาทุกคน</h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {dateFrom === dateTo
+                    {dateFrom && dateTo && (dateFrom === dateTo
                       ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th })
                       : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`
-                    } — {filteredOverview.length} คน
+                    )} — {filteredOverview.length} คน
                     {overviewDept && ` (ฝ่าย ${overviewDept})`}
                   </p>
                 </div>

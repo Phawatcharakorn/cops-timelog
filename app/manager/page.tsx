@@ -735,7 +735,7 @@ export default function ManagerPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลา</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`} — {overview.length} คน{mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{dateFrom && dateTo && (dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`)} — {overview.length} คน{mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-sm">

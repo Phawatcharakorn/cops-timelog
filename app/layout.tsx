@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'ระบบบันทึกเวลาทำงาน SDEC มหาวิทยาลัยเกษตรศาสตร์ ศรีราชา',
   manifest: '/manifest.json',
   themeColor: '#4f46e5',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'SDEC' },
+  appleWebApp: { statusBarStyle: 'default', title: 'SDEC' },
   viewport: { width: 'device-width', initialScale: 1, maximumScale: 1 },
 }
 
