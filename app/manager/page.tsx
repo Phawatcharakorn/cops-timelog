@@ -911,6 +911,7 @@ export default function ManagerPage() {
             </div>
           </div>
         )}
+        </div>{/* end tab-content */}
       </main>
 
       {/* ── Edit Log Modal ──────────────────────────────────────────────────── */}
@@ -1103,8 +1104,6 @@ export default function ManagerPage() {
           canEditStudentId
         />
       )}
-
-        </div>{/* end tab-content */}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (

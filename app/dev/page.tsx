@@ -1444,6 +1444,7 @@ export default function DevPage() {
             </div>
           </div>
         )}
+        </div>{/* end tab-content */}
       </main>
 
       {/* ── Modal: Edit Manager ──────────────────────────────────────────────── */}
@@ -1819,8 +1820,6 @@ export default function DevPage() {
           canEditStudentId
         />
       )}
-
-        </div>{/* end tab-content */}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (
