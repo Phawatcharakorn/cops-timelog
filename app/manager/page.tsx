@@ -541,7 +541,7 @@ export default function ManagerPage() {
                               </div>
                               {log.paid ? (
                                 <div className="flex items-center gap-1.5">
-                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">💰 จ่ายแล้ว</span>
+                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">จ่ายแล้ว</span>
                                   <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
                                 </div>
                               ) : (
@@ -595,7 +595,7 @@ export default function ManagerPage() {
                                   </div>
                                   {log.paid ? (
                                     <div className="flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">💰 จ่ายแล้ว</span>
+                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">จ่ายแล้ว</span>
                                       <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
                                     </div>
                                   ) : (
