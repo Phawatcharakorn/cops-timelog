@@ -82,6 +82,8 @@ export default function PrintRosterClient() {
                   <th>เบอร์โทร</th>
                   <th>E-mail</th>
                   <th>เลขบัตรประชาชน</th>
+                  <th>สถานะ</th>
+                  <th>หมายเหตุ</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,6 +101,8 @@ export default function PrintRosterClient() {
                     <td style={{ fontSize: 10 }}>{s.phone ?? '-'}</td>
                     <td style={{ fontSize: 10 }}>{s.email ?? '-'}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: 10 }}>{s.national_id ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.status ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.note ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>
