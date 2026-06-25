@@ -193,26 +193,24 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium">รุ่น</th>
-                    <th className="px-4 py-3 text-left font-medium">สถานะ</th>
-                    <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                    <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
-                    <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
-                    <th className="px-4 py-3 text-left font-medium">คณะ / สาขา</th>
-                    <th className="px-4 py-3 text-left font-medium">เบอร์โทร</th>
+                    <th className="px-3 py-2.5 text-left font-medium w-14">รุ่น</th>
+                    <th className="px-3 py-2.5 text-left font-medium w-24">สถานะ</th>
+                    <th className="px-3 py-2.5 text-left font-medium">ชื่อ-นามสกุล</th>
+                    <th className="px-3 py-2.5 text-left font-medium w-28">รหัสนิสิต</th>
+                    <th className="px-3 py-2.5 text-left font-medium w-32">ฝ่าย</th>
+                    <th className="px-3 py-2.5 text-left font-medium">คณะ / สาขา</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(s => (
                     <tr key={s.student_id} onClick={() => { setDetail(s); setEditing(false) }}
                       className="hover:bg-purple-50 cursor-pointer transition-colors">
-                      <td className="px-4 py-3"><GenBadge gen={s.gen} /></td>
-                      <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs font-mono">{s.student_id}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{s.department}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{s.phone || '-'}</td>
+                      <td className="px-3 py-2.5"><GenBadge gen={s.gen} /></td>
+                      <td className="px-3 py-2.5"><StatusBadge status={s.status} /></td>
+                      <td className="px-3 py-2.5 font-medium text-gray-800 text-sm">{s.name}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs font-mono">{s.student_id}</td>
+                      <td className="px-3 py-2.5 text-gray-600 text-xs">{s.department}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs max-w-[220px] truncate">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
                     </tr>
                   ))}
                 </tbody>
