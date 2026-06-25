@@ -1,6 +1,20 @@
 'use client'
 import { useState } from 'react'
 import { supabase, type Student } from '@/lib/supabase'
+import { showToast } from './Toast'
+
+function SkeletonRow() {
+  return (
+    <tr>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 48 }} /></td>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 36 }} /></td>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 120 }} /></td>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 90 }} /></td>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 80 }} /></td>
+      <td className="px-3 py-3"><div className="skeleton" style={{ width: 110 }} /></td>
+    </tr>
+  )
+}
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES   = ['คณะพาณิชยนาวีนานาชาติ','คณะเศรษฐศาสตร์ ศรีราชา','คณะวิทยาศาสตร์ ศรีราชา','คณะวิศวกรรมศาสตร์ ศรีราชา','คณะวิทยาการจัดการ']
@@ -122,7 +136,8 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
         note:        editForm.note.trim() || null,
         status:      editForm.status || null,
       }).eq('student_id', detail.student_id)
-      if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return }
+      if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
+      showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
       onRefresh()
       setDetail(null)
       setEditing(false)
@@ -163,7 +178,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
               })}
             </div>
             <div className="flex gap-2">
-              <a href={`/api/export-members?${exportParams}`} download
+              <a href={`/api/export-members?${exportParams}`} download onClick={() => showToast('กำลังดาวน์โหลด...', 'info')}
                 className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-2 min-h-[36px] rounded-lg font-medium flex items-center gap-1 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Excel
@@ -208,9 +223,11 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filtered.map(s => (
+                  {loading ? (
+                    Array.from({ length: 6 }, (_, i) => <SkeletonRow key={i} />)
+                  ) : filtered.map(s => (
                     <tr key={s.student_id} onClick={() => { setDetail(s); setEditing(false) }}
-                      className="hover:bg-purple-50 cursor-pointer transition-colors" style={{ minHeight: 44 }}>
+                      className="roster-row hover:bg-purple-50 cursor-pointer" style={{ minHeight: 44 }}>
                       <td className="px-3 py-2.5 whitespace-nowrap"><GenBadge gen={s.gen} /></td>
                       <td className="px-3 py-2.5 whitespace-nowrap"><StatusBadge status={s.status} /></td>
                       <td className="px-3 py-2.5 font-medium text-gray-800 text-sm whitespace-nowrap">{s.name}</td>

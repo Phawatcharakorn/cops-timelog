@@ -460,6 +460,9 @@ export default function ManagerPage() {
           ))}
         </div>
 
+        {/* Tab panels — key causes remount on switch, triggering tabFadeSlide */}
+        <div key={tab} className="tab-content space-y-4 sm:space-y-6">
+
         {/* ── Individual ──────────────────────────────────────────────────── */}
         {tab === 'individual' && (
           <>
@@ -1085,6 +1088,8 @@ export default function ManagerPage() {
           canEditStudentId
         />
       )}
+
+        </div>{/* end tab-content */}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (

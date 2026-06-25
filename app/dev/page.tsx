@@ -740,6 +740,9 @@ export default function DevPage() {
           ))}
         </div>
 
+        {/* Tab panels — key causes remount on switch, triggering tabFadeSlide */}
+        <div key={tab} className="tab-content space-y-4 sm:space-y-6">
+
         {/* ── Tab: Individual ─────────────────────────────────────────────── */}
         {tab === 'individual' && (
           <>
@@ -1804,6 +1807,8 @@ export default function DevPage() {
           canEditStudentId
         />
       )}
+
+        </div>{/* end tab-content */}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (

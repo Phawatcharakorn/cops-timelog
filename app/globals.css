@@ -72,3 +72,80 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
 .anim-delay-2    { animation-delay: 0.16s; }
 .anim-delay-3    { animation-delay: 0.24s; }
 .anim-delay-4    { animation-delay: 0.32s; }
+
+/* ── Smooth animation system ─────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes tabFadeSlide {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0)   scale(1); }
+  to   { opacity: 0; transform: translateY(8px) scale(0.95); }
+}
+
+/* Tab content: re-animates on every mount (tab switch) */
+.tab-content { animation: tabFadeSlide 0.25s ease both; }
+
+/* Skeleton shimmer bar */
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 4px;
+  height: 16px;
+}
+
+/* Staggered table-row entrance */
+.roster-row { animation: fadeInUp 0.30s ease both; }
+.roster-row:nth-child(1)  { animation-delay: 0.04s; }
+.roster-row:nth-child(2)  { animation-delay: 0.08s; }
+.roster-row:nth-child(3)  { animation-delay: 0.12s; }
+.roster-row:nth-child(4)  { animation-delay: 0.16s; }
+.roster-row:nth-child(5)  { animation-delay: 0.20s; }
+.roster-row:nth-child(6)  { animation-delay: 0.24s; }
+.roster-row:nth-child(7)  { animation-delay: 0.28s; }
+.roster-row:nth-child(8)  { animation-delay: 0.32s; }
+.roster-row:nth-child(9)  { animation-delay: 0.36s; }
+.roster-row:nth-child(10) { animation-delay: 0.40s; }
+
+/* Roster row hover: X-slide + entrance animation */
+.roster-row {
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.roster-row:hover { transform: translateX(2px); }
+
+/* Button hover lift (GPU-only: transform + shadow + brightness) */
+button {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  filter: brightness(1.05);
+}
+button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
