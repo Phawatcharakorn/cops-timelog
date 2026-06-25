@@ -55,9 +55,10 @@ interface Props {
   onRefresh: () => void
   lockedDept?: string
   accentColor?: string
+  canEditStudentId?: boolean
 }
 
-export default function RosterTab({ students, loading, onRefresh, lockedDept }: Props) {
+export default function RosterTab({ students, loading, onRefresh, lockedDept, canEditStudentId = false }: Props) {
   const [genFilter,  setGenFilter]  = useState<number | null>(null)
   const [deptFilter, setDeptFilter] = useState('')
   const [detail,     setDetail]     = useState<Student | null>(null)
@@ -272,10 +273,12 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
               </>
             ) : (
               <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต</label>
-                  <input className={inputCls + ' font-mono'} placeholder="รหัสนิสิต" value={editForm.student_id} onChange={set('student_id')} />
-                </div>
+                {canEditStudentId && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต</label>
+                    <input className={inputCls + ' font-mono'} placeholder="รหัสนิสิต" value={editForm.student_id} onChange={set('student_id')} />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label>
                   <input className={inputCls} value={editForm.name} onChange={set('name')} />

@@ -1081,6 +1081,7 @@ export default function ManagerPage() {
           loading={rosterLoading}
           onRefresh={fetchRoster}
           lockedDept={mgrDept || undefined}
+          canEditStudentId
         />
       )}
 

@@ -1796,6 +1796,7 @@ export default function DevPage() {
           loading={rosterLoading}
           onRefresh={fetchRoster}
           accentColor="indigo"
+          canEditStudentId
         />
       )}
 
