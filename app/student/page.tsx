@@ -52,14 +52,12 @@ export default function StudentPage() {
   const [pinConfirm, setPinConfirm]   = useState('')
   const [pinSetting, setPinSetting]   = useState(false)
 
-  const [now, setNow] = useState(new Date())
+  const [now, setNow] = useState<Date | null>(null)
 
   const [showHistory, setShowHistory]       = useState(false)
   const [historyLogs, setHistoryLogs]       = useState<HistoryLog[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
-  const [historyMonth, setHistoryMonth]     = useState(() =>
-    new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7)
-  )
+  const [historyMonth, setHistoryMonth]     = useState('')
 
   const [playing, setPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -80,12 +78,15 @@ export default function StudentPage() {
   const [feedbackSaving, setFeedbackSaving]   = useState(false)
 
   useEffect(() => {
+    const d = new Date()
+    setNow(d)
+    setHistoryMonth(new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7))
     const iv = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(iv)
   }, [])
 
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: BKK })
-  const dateStr = now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: BKK })
+  const timeStr = now?.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: BKK }) ?? ''
+  const dateStr = now?.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: BKK }) ?? ''
 
   const startCooldown = (seconds = 3) => {
     setCooldown(seconds)
@@ -160,7 +161,7 @@ export default function StudentPage() {
   }
 
   const handleToggleHistory = () => {
-    if (!showHistory) fetchHistory(historyMonth)
+    if (!showHistory && historyMonth) fetchHistory(historyMonth)
     setShowHistory(h => !h)
   }
 
