@@ -9,10 +9,22 @@ const GEN_COLORS: Record<number, string> = {
   1: '#7c3aed', 2: '#2563eb', 3: '#16a34a', 4: '#ea580c', 5: '#e11d48',
 }
 
+const tdS: React.CSSProperties = { border: '1px solid #d1d5db', padding: '5px 8px', color: '#374151', verticalAlign: 'top' }
+
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', borderBottom: '1px solid #e5e7eb', padding: '8px 14px', alignItems: 'start' }}>
+      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>{value || '-'}</span>
+    </div>
+  )
+}
+
 export default function PrintRosterClient() {
-  const params   = useSearchParams()
-  const dept     = params.get('dept') || ''
-  const genParam = params.get('gen')
+  const params      = useSearchParams()
+  const dept        = params.get('dept') || ''
+  const genParam    = params.get('gen')
+  const studentId   = params.get('studentId') || ''
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading]   = useState(true)
 
@@ -20,75 +32,145 @@ export default function PrintRosterClient() {
     ;(async () => {
       let q = supabase.from('students').select('*')
         .order('gen', { ascending: true, nullsFirst: false }).order('name')
-      if (dept) q = q.eq('department', dept)
-      if (genParam) q = q.eq('gen', Number(genParam))
+      if (studentId) q = q.eq('student_id', studentId)
+      else {
+        if (dept)     q = q.eq('department', dept)
+        if (genParam) q = q.eq('gen', Number(genParam))
+      }
       const { data } = await q
       setStudents(data ?? [])
       setLoading(false)
     })()
-  }, [dept, genParam])
+  }, [dept, genParam, studentId])
 
   useEffect(() => {
-    if (!loading && students.length > 0) {
-      setTimeout(() => window.print(), 700)
-    }
+    if (!loading && students.length > 0) setTimeout(() => window.print(), 700)
   }, [loading, students])
 
   if (loading) return <div style={{ padding: 40, color: '#999', fontFamily: 'Sarabun, sans-serif' }}>กำลังโหลด...</div>
 
-  const withGen    = students.filter(s => s.gen != null)
-  const withoutGen = students.filter(s => s.gen == null)
-  const gens       = Array.from(new Set(withGen.map(s => s.gen as number))).sort()
-
-  const subtitle = [dept, genParam ? `รุ่นที่ ${genParam}` : ''].filter(Boolean).join(' · ')
   const printedAt = format(new Date(), "d MMM yyyy, HH:mm 'น.'", { locale: th })
 
-  const TableSection = ({ group, genNum }: { group: Student[]; genNum: number | null }) => {
-    if (group.length === 0) return null
-    const color = genNum ? (GEN_COLORS[genNum] ?? '#374151') : '#374151'
+  /* ── Single student — full A4 portrait ── */
+  if (students.length === 1) {
+    const s = students[0]
     return (
-      <div style={{ marginBottom: 24, breakInside: 'avoid' }}>
-        {genNum != null ? (
-          <div style={{ background: color, color: 'white', padding: '5px 12px', borderRadius: '6px 6px 0 0', fontSize: 12, fontWeight: 700 }}>
-            รุ่นที่ {genNum} ({group.length} คน)
+      <div style={{ fontFamily: 'Sarabun, sans-serif' }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+          * { box-sizing: border-box; }
+          body { margin: 0; background: #f3f4f6; }
+          @page { size: A4 portrait; margin: 0; }
+          @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .page-body { padding: 1.8cm 2cm !important; box-shadow: none !important; margin: 0 !important; min-height: 100vh; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          }
+        `}</style>
+
+        <div className="no-print" style={{ background: '#1a3a5c', color: 'white', padding: '8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>รายละเอียดสมาชิก — {s.name}</span>
+          <button onClick={() => window.print()}
+            style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '6px 18px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+            พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+
+        <div className="page-body" style={{ maxWidth: 740, margin: '24px auto', background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,.12)', padding: '2cm 2.4cm', minHeight: '29.7cm' }}>
+
+          {/* Letterhead */}
+          <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 12, marginBottom: 20 }}>
+            <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: '0 0 8px' }}>{printedAt}</p>
+            <div style={{ textAlign: 'center' }}>
+              <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 8 }} />
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
+              <p style={{ fontSize: 13, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
+            </div>
           </div>
-        ) : (
-          <div style={{ background: '#6b7280', color: 'white', padding: '5px 12px', borderRadius: '6px 6px 0 0', fontSize: 12, fontWeight: 700 }}>
-            ยังไม่ระบุรุ่น ({group.length} คน)
+
+          {/* Title */}
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>รายละเอียดสมาชิก CoPs</p>
           </div>
-        )}
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 10 }}>
-          <thead>
-            <tr>
-              {['#','ชื่อ-นามสกุล','รหัสนิสิต','ฝ่าย','คณะ / สาขาวิชา','เพศ','วันเกิด','ศาสนา','สัญชาติ','เบอร์โทร','E-mail','เลขบัตรประชาชน','สถานะ','หมายเหตุ'].map(h => (
-                <th key={h} style={{ background: '#1a3a5c', color: 'white', padding: '5px 8px', textAlign: 'left', border: '1px solid #0f2744', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {group.map((s, i) => (
-              <tr key={s.student_id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', background: i % 2 === 1 ? '#e8edf5' : 'white' }}>
-                <td style={tdS}>{i + 1}</td>
-                <td style={{ ...tdS, fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
-                <td style={{ ...tdS, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{s.student_id}</td>
-                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.department}</td>
-                <td style={tdS}>{[s.faculty, s.major].filter(Boolean).join(' · ') || '-'}</td>
-                <td style={{ ...tdS, textAlign: 'center' }}>{s.gender ?? '-'}</td>
-                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH') : '-'}</td>
-                <td style={{ ...tdS, textAlign: 'center' }}>{s.religion ?? '-'}</td>
-                <td style={{ ...tdS, textAlign: 'center' }}>{s.nationality ?? '-'}</td>
-                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.phone ?? '-'}</td>
-                <td style={tdS}>{s.email ?? '-'}</td>
-                <td style={{ ...tdS, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{s.national_id ?? '-'}</td>
-                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.status ?? '-'}</td>
-                <td style={tdS}>{s.note ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+          {/* Info card */}
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
+              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัว</p>
+            </div>
+            <InfoRow label="ชื่อ-นามสกุล"        value={s.name} />
+            <InfoRow label="รหัสนิสิต"             value={s.student_id} />
+            <InfoRow label="ฝ่าย / กลุ่มงาน"      value={s.department} />
+            <InfoRow label="รุ่นที่ (Gen)"          value={s.gen != null ? `รุ่นที่ ${s.gen}` : null} />
+            <InfoRow label="สถานะ"                  value={s.status} />
+          </div>
+
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
+              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลการศึกษา</p>
+            </div>
+            <InfoRow label="คณะ"        value={s.faculty} />
+            <InfoRow label="สาขาวิชา"   value={s.major} />
+          </div>
+
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
+              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัวเพิ่มเติม</p>
+            </div>
+            <InfoRow label="เพศ"               value={s.gender} />
+            <InfoRow label="วันเกิด"            value={s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : null} />
+            <InfoRow label="ศาสนา"              value={s.religion} />
+            <InfoRow label="สัญชาติ"            value={s.nationality} />
+          </div>
+
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
+              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลการติดต่อ</p>
+            </div>
+            <InfoRow label="เบอร์โทรศัพท์"      value={s.phone} />
+            <InfoRow label="E-mail"               value={s.email} />
+            <InfoRow label="เลขบัตรประจำตัว"    value={s.national_id} />
+          </div>
+
+          {s.note && (
+            <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+              <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
+                <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>หมายเหตุ</p>
+              </div>
+              <div style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{s.note}</div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ marginTop: 'auto', paddingTop: 32, borderTop: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
+            <div>
+              <div style={{ height: 40 }} />
+              <div style={{ borderTop: '1px solid #374151', paddingTop: 4 }}>ลายมือชื่อสมาชิก ({s.name})</div>
+            </div>
+            <div>
+              <div style={{ height: 40 }} />
+              <div style={{ borderTop: '1px solid #374151', paddingTop: 4 }}>ลายมือชื่อผู้รับรอง (........................)</div>
+            </div>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 10, color: '#9ca3af', marginTop: 16 }}>สร้างโดยระบบลงเวลา CoPs — {printedAt}</p>
+        </div>
       </div>
     )
   }
+
+  /* ── Multi student — landscape A4 table ── */
+  const withGen    = students.filter(s => s.gen != null)
+  const withoutGen = students.filter(s => s.gen == null)
+  const gens       = Array.from(new Set(withGen.map(s => s.gen as number))).sort()
+  const subtitle   = [dept, genParam ? `รุ่นที่ ${genParam}` : ''].filter(Boolean).join(' · ')
+
+  // Continuous numbering across all groups
+  let globalIdx = 0
+  const sections: { genNum: number | null; group: Student[] }[] = [
+    ...gens.map(g => ({ genNum: g, group: withGen.filter(s => s.gen === g) })),
+    ...(withoutGen.length > 0 ? [{ genNum: null, group: withoutGen }] : []),
+  ]
 
   return (
     <div style={{ fontFamily: 'Sarabun, sans-serif', padding: '20px 24px', maxWidth: 1200, margin: '0 auto' }}>
@@ -98,7 +180,6 @@ export default function PrintRosterClient() {
         @media print {
           .no-print { display: none !important; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
-          .page-wrap { padding: 0 !important; max-width: none !important; }
         }
       `}</style>
 
@@ -119,11 +200,50 @@ export default function PrintRosterClient() {
         </div>
       </div>
 
-      {/* Tables by gen */}
-      {gens.map(g => (
-        <TableSection key={g} group={withGen.filter(s => s.gen === g)} genNum={g} />
-      ))}
-      <TableSection group={withoutGen} genNum={null} />
+      {/* Tables */}
+      {sections.map(({ genNum, group }) => {
+        if (group.length === 0) return null
+        const color = genNum != null ? (GEN_COLORS[genNum] ?? '#374151') : '#6b7280'
+        const label = genNum != null ? `รุ่นที่ ${genNum} (${group.length} คน)` : `ยังไม่ระบุรุ่น (${group.length} คน)`
+        return (
+          <div key={genNum ?? 'none'} style={{ marginBottom: 20, breakInside: 'avoid' }}>
+            <div style={{ background: color, color: 'white', padding: '5px 12px', borderRadius: '6px 6px 0 0', fontSize: 12, fontWeight: 700 }}>{label}</div>
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 10 }}>
+              <thead>
+                <tr>
+                  {['#','ชื่อ-นามสกุล','รหัสนิสิต','ฝ่าย','คณะ / สาขาวิชา','เพศ','วันเกิด','ศาสนา','สัญชาติ','เบอร์โทร','E-mail','เลขบัตรประชาชน','สถานะ','หมายเหตุ'].map(h => (
+                    <th key={h} style={{ background: '#1a3a5c', color: 'white', padding: '5px 8px', textAlign: 'left', border: '1px solid #0f2744', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {group.map((s, i) => {
+                  globalIdx++
+                  const num = globalIdx
+                  return (
+                    <tr key={s.student_id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid', background: i % 2 === 1 ? '#e8edf5' : 'white' }}>
+                      <td style={{ ...tdS, textAlign: 'center', color: '#9ca3af' }}>{num}</td>
+                      <td style={{ ...tdS, fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
+                      <td style={{ ...tdS, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{s.student_id}</td>
+                      <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.department}</td>
+                      <td style={tdS}>{[s.faculty, s.major].filter(Boolean).join(' · ') || '-'}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>{s.gender ?? '-'}</td>
+                      <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH') : '-'}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>{s.religion ?? '-'}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>{s.nationality ?? '-'}</td>
+                      <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.phone ?? '-'}</td>
+                      <td style={tdS}>{s.email ?? '-'}</td>
+                      <td style={{ ...tdS, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{s.national_id ?? '-'}</td>
+                      <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.status ?? '-'}</td>
+                      <td style={tdS}>{s.note ?? '-'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      })}
 
       <button className="no-print" onClick={() => window.print()}
         style={{ marginTop: 16, background: '#1a3a5c', color: 'white', border: 'none', borderRadius: 8, padding: '10px 28px', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
@@ -132,5 +252,3 @@ export default function PrintRosterClient() {
     </div>
   )
 }
-
-const tdS: React.CSSProperties = { border: '1px solid #d1d5db', padding: '5px 8px', color: '#374151', verticalAlign: 'top' }

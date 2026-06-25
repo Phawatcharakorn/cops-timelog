@@ -236,8 +236,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                   <h3 className="font-bold text-gray-800 text-base">{detail.name}</h3>
                   <button
                     onClick={() => {
-                      const today = new Date().toISOString().slice(0, 10)
-                      window.open(`/print?studentId=${detail.student_id}&to=${today}`, '_blank')
+                      window.open(`/print-roster?studentId=${detail.student_id}`, '_blank')
                     }}
                     className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:bg-indigo-50 px-2 py-0.5 rounded-full transition-colors"
                     title="โหลดรายละเอียดการลงเวลา">
