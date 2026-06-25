@@ -784,9 +784,9 @@ export default function DevPage() {
               </div>
 
               {/* 3. Action buttons */}
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading
                     ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</>
                     : 'ดึงข้อมูล'
@@ -794,7 +794,7 @@ export default function DevPage() {
                 </button>
                 <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
-                  className="flex-1 py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  className="py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>

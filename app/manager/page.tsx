@@ -471,14 +471,14 @@ export default function ManagerPage() {
                 <div><label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label><input type="date" className={inputCls} value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
                 <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label><input type="date" className={inputCls} value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)} /></div>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</> : 'ดึงข้อมูล'}
                 </button>
                 <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
-                  className="flex-1 py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  className="py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   เพิ่ม Log
                 </button>
