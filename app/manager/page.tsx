@@ -52,10 +52,11 @@ export default function ManagerPage() {
 
   const [students, setStudents]                   = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
-  const [dateFrom, setDateFrom] = useState(() => { const n = new Date(); return format(new Date(n.getFullYear(), n.getMonth(), 1), 'yyyy-MM-dd') })
+  const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [summary, setSummary]   = useState<Summary | null>(null)
   const [loading, setLoading]   = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [overview, setOverview]               = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
@@ -147,27 +148,34 @@ export default function ManagerPage() {
     if (!selectedStudentId) return
     setLoading(true)
     try {
-      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
-      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
+      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
+      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      let logsQ = supabase.from('time_logs').select('*').eq('student_id', selectedStudentId)
+      if (start) logsQ = logsQ.gte('check_in', start)
+      logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
       const [{ data: logs }, { data: student }] = await Promise.all([
-        supabase.from('time_logs').select('*').eq('student_id', selectedStudentId).gte('check_in', start).lte('check_in', end).order('check_in', { ascending: true }),
+        logsQ,
         supabase.from('students').select('*').eq('student_id', selectedStudentId).single(),
       ])
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
       setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom, dateTo })
+      setCurrentPage(1)
     } finally { setLoading(false) }
   }, [selectedStudentId, dateFrom, dateTo])
 
   const fetchOverview = useCallback(async () => {
     setOverviewLoading(true)
     try {
-      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
-      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
+      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
+      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
       let q = supabase.from('students').select('*').order('name')
       if (mgrDept) q = q.eq('department', mgrDept)
-      const [{ data: allStudents }, { data: allLogs }] = await Promise.all([q, supabase.from('time_logs').select('*').gte('check_in', start).lte('check_in', end)])
+      let logsQ = supabase.from('time_logs').select('*')
+      if (start) logsQ = logsQ.gte('check_in', start)
+      logsQ = logsQ.lte('check_in', end)
+      const [{ data: allStudents }, { data: allLogs }] = await Promise.all([q, logsQ])
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
         const totalMin = logs.reduce((sum, l) => sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
@@ -381,6 +389,11 @@ export default function ManagerPage() {
     )
   }
 
+  // ── Pagination ────────────────────────────────────────────────────────────
+  const LOGS_PER_PAGE = 15
+  const totalPages = summary ? Math.ceil(summary.logs.length / LOGS_PER_PAGE) : 0
+  const paginatedLogs = summary ? summary.logs.slice((currentPage - 1) * LOGS_PER_PAGE, currentPage * LOGS_PER_PAGE) : []
+
   // ── Main ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
@@ -459,7 +472,7 @@ export default function ManagerPage() {
                 </button>
                 {selectedStudentId && (
                   <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
-                    className="px-4 py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+                    className="flex-1 py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                     เพิ่ม Log
                   </button>
@@ -498,17 +511,19 @@ export default function ManagerPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
                     <h2 className="font-semibold text-gray-700 text-sm">รายการลงเวลา</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">{summary.student?.name} — {dateFrom === dateTo ? format(new Date(dateFrom), 'd MMMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{summary.student?.name} — {summary.dateFrom ? (summary.dateFrom === summary.dateTo ? format(new Date(summary.dateFrom), 'd MMMM yyyy', { locale: th }) : `${format(new Date(summary.dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(summary.dateTo), 'd MMM yyyy', { locale: th })}`) : `ทั้งหมด ถึง ${format(new Date(summary.dateTo), 'd MMM yyyy', { locale: th })}`}</p>
                   </div>
 
                   {/* Mobile card view */}
                   <div className="sm:hidden divide-y divide-gray-100">
                     {summary.logs.length === 0 && <div className="text-center py-10 text-gray-400 text-sm">ไม่มีข้อมูล</div>}
-                    {summary.logs.map((log, idx) => (
+                    {paginatedLogs.map((log, idx) => {
+                      const globalIdx = (currentPage - 1) * LOGS_PER_PAGE + idx
+                      return (
                       <div key={log.id} className="px-4 py-3 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="text-xs text-gray-400">#{idx + 1} · {fmtDate(log.check_in)}</div>
+                            <div className="text-xs text-gray-400">#{globalIdx + 1} · {fmtDate(log.check_in)}</div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className="text-sm font-semibold text-green-600">{fmtTime(log.check_in)}</span>
                               <span className="text-gray-300 text-xs">→</span>
@@ -556,7 +571,8 @@ export default function ManagerPage() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Desktop table view */}
@@ -575,9 +591,11 @@ export default function ManagerPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {summary.logs.map((log, idx) => (
+                        {paginatedLogs.map((log, idx) => {
+                          const globalIdx = (currentPage - 1) * LOGS_PER_PAGE + idx
+                          return (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{idx + 1}</td>
+                            <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{globalIdx + 1}</td>
                             <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtDate(log.check_in)}</td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}</td>
@@ -616,11 +634,23 @@ export default function ManagerPage() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                     {summary.logs.length === 0 && <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูล</div>}
                   </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-400 mr-2">{summary.logs.length} รายการ</span>
+                      <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">‹</button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+                      ))}
+                      <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">›</button>
+                    </div>
+                  )}
                 </div>
               </>
             )}

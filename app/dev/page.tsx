@@ -82,12 +82,11 @@ export default function DevPage() {
   // Individual tab
   const [students, setStudents]                     = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId]   = useState('')
-  const [dateFrom, setDateFrom] = useState(() => {
-    const n = new Date(); return format(new Date(n.getFullYear(), n.getMonth(), 1), 'yyyy-MM-dd')
-  })
+  const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [summary, setSummary]                       = useState<Summary | null>(null)
   const [loading, setLoading]                       = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Overview tab
   const [overview, setOverview]             = useState<StudentOverview[]>([])
@@ -167,11 +166,13 @@ export default function DevPage() {
     if (!selectedStudentId) return
     setLoading(true)
     try {
-      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
-      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
+      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
+      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      let logsQ = supabase.from('time_logs').select('*').eq('student_id', selectedStudentId)
+      if (start) logsQ = logsQ.gte('check_in', start)
+      logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
       const [{ data: logs }, { data: student }] = await Promise.all([
-        supabase.from('time_logs').select('*').eq('student_id', selectedStudentId)
-          .gte('check_in', start).lte('check_in', end).order('check_in', { ascending: true }),
+        logsQ,
         supabase.from('students').select('*').eq('student_id', selectedStudentId).single(),
       ])
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
@@ -189,17 +190,21 @@ export default function DevPage() {
         taskCount: processed.length,
         logs: processed, student, dateFrom, dateTo,
       })
+      setCurrentPage(1)
     } finally { setLoading(false) }
   }, [selectedStudentId, dateFrom, dateTo])
 
   const fetchOverview = useCallback(async () => {
     setOverviewLoading(true)
     try {
-      const start = new Date(dateFrom + 'T00:00:00+07:00').toISOString()
-      const end   = new Date(dateTo   + 'T23:59:59+07:00').toISOString()
+      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
+      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      let logsQ = supabase.from('time_logs').select('*')
+      if (start) logsQ = logsQ.gte('check_in', start)
+      logsQ = logsQ.lte('check_in', end)
       const [{ data: allStudents }, { data: allLogs }] = await Promise.all([
         supabase.from('students').select('*').order('name'),
-        supabase.from('time_logs').select('*').gte('check_in', start).lte('check_in', end),
+        logsQ,
       ])
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
@@ -664,6 +669,11 @@ export default function DevPage() {
     setEditMgrSaving(false)
   }
 
+  // ── Pagination ────────────────────────────────────────────────────────────
+  const LOGS_PER_PAGE = 15
+  const totalPages = summary ? Math.ceil(summary.logs.length / LOGS_PER_PAGE) : 0
+  const paginatedLogs = summary ? summary.logs.slice((currentPage - 1) * LOGS_PER_PAGE, currentPage * LOGS_PER_PAGE) : []
+
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
@@ -840,9 +850,11 @@ export default function DevPage() {
                     <h2 className="font-semibold text-gray-700 text-sm">รายการลงเวลา</h2>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {summary.student?.name}
-                      {dateFrom === dateTo
-                        ? ` — ${format(new Date(dateFrom), 'd MMMM yyyy', { locale: th })}`
-                        : ` — ${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`}
+                      {summary.dateFrom
+                        ? (summary.dateFrom === summary.dateTo
+                            ? ` — ${format(new Date(summary.dateFrom), 'd MMMM yyyy', { locale: th })}`
+                            : ` — ${format(new Date(summary.dateFrom), 'd MMM yyyy', { locale: th })} ถึง ${format(new Date(summary.dateTo), 'd MMM yyyy', { locale: th })}`)
+                        : ` — ทั้งหมด ถึง ${format(new Date(summary.dateTo), 'd MMM yyyy', { locale: th })}`}
                     </p>
                   </div>
                   <div className="overflow-x-auto">
@@ -860,9 +872,11 @@ export default function DevPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {summary.logs.map((log, idx) => (
+                        {paginatedLogs.map((log, idx) => {
+                          const globalIdx = (currentPage - 1) * LOGS_PER_PAGE + idx
+                          return (
                           <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{idx + 1}</td>
+                            <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{globalIdx + 1}</td>
                             <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtDate(log.check_in)}</td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
@@ -920,13 +934,25 @@ export default function DevPage() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                     {summary.logs.length === 0 && (
                       <div className="text-center py-12 text-gray-400 text-sm">ไม่มีข้อมูล</div>
                     )}
                   </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-400 mr-2">{summary.logs.length} รายการ</span>
+                      <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">‹</button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+                      ))}
+                      <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">›</button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
