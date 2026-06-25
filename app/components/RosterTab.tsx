@@ -42,6 +42,7 @@ function formatBirthdate(iso: string | null) {
 }
 
 type EditForm = {
+  student_id: string
   name: string; department: string; faculty: string; major: string
   gen: string; phone: string; email: string; religion: string
   nationality: string; birthdate: string; gender: string; national_id: string
@@ -63,6 +64,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
   const [editing,    setEditing]    = useState(false)
   const [saving,     setSaving]     = useState(false)
   const [editForm,   setEditForm]   = useState<EditForm>({
+    student_id: '',
     name: '', department: '', faculty: '', major: '',
     gen: '', phone: '', email: '', religion: '',
     nationality: '', birthdate: '', gender: '', national_id: '',
@@ -76,6 +78,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
   const openEdit = (s: Student) => {
     const deptInList = DEPARTMENTS.includes(s.department)
     setEditForm({
+      student_id:  s.student_id,
       name:        s.name,
       department:  deptInList ? s.department : 'อื่นๆ',
       faculty:     s.faculty ?? FACULTIES[0],
@@ -100,7 +103,9 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
     const deptToSave = editForm.department === 'อื่นๆ' ? (customDept.trim() || 'อื่นๆ') : editForm.department
     setSaving(true)
     try {
+      const newId = editForm.student_id.trim()
       const { error } = await supabase.from('students').update({
+        student_id:  newId || detail.student_id,
         name:        editForm.name.trim() || detail.name,
         department:  deptToSave,
         faculty:     editForm.faculty || null,
@@ -267,6 +272,10 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
               </>
             ) : (
               <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต</label>
+                  <input className={inputCls + ' font-mono'} placeholder="รหัสนิสิต" value={editForm.student_id} onChange={set('student_id')} />
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label>
                   <input className={inputCls} value={editForm.name} onChange={set('name')} />
