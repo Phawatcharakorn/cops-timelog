@@ -82,12 +82,14 @@ export default function PrintPageClient() {
         const dur = log.check_out
           ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
           : 0
+        const thaiIn  = toThai(log.check_in)
+        const thaiOut = log.check_out ? toThai(log.check_out) : null
         return {
           ...log,
           durationMinutes: dur,
-          dateStr:     format(toThai(log.check_in), 'd MMM yy', { locale: th }),
-          checkInStr:  format(toThai(log.check_in), 'HH:mm'),
-          checkOutStr: log.check_out ? format(toThai(log.check_out), 'HH:mm') : '-',
+          dateStr:     format(new Date(thaiIn.toISOString().slice(0, 10) + 'T12:00:00'), 'd MMM yy', { locale: th }),
+          checkInStr:  thaiIn.toISOString().slice(11, 16),
+          checkOutStr: thaiOut ? thaiOut.toISOString().slice(11, 16) : '-',
           durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
         }
       })
