@@ -6,6 +6,7 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
+import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
@@ -280,13 +281,14 @@ export default function ManagerPage() {
 
   const handleEditSave = async () => {
     if (!editingLog) return
-    if (editForm.check_out) { if (new Date(editForm.check_out) <= new Date(editForm.check_in)) return alert('เวลาออกต้องมากกว่าเวลาเข้า') }
+    if (editForm.check_out) { if (new Date(editForm.check_out) <= new Date(editForm.check_in)) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return } }
     const prevLog = editingLog; setEditSaving(true)
     try {
       const { error } = await supabase.from('time_logs').update({ check_in: fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in, check_out: editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null, work_summary: editForm.work_summary || null }).eq('id', editingLog.id)
       if (error) throw error
+      showToast('บันทึกเรียบร้อยแล้ว', 'success')
       setUndoAction({ type: 'edit', log: prevLog }); setEditingLog(null); await fetchSummary()
-    } catch (e) { alert('บันทึกไม่สำเร็จ: ' + (e as Error).message) } finally { setEditSaving(false) }
+    } catch (e) { showToast('บันทึกไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setEditSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
@@ -299,40 +301,43 @@ export default function ManagerPage() {
 
   const handleAddStudent = async () => {
     const { student_id, name, department, faculty, major, pin } = addStudentForm
-    if (!student_id.trim() || !name.trim()) return alert('กรุณากรอกรหัสนิสิตและชื่อ')
-    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
+    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
       const { error } = await supabase.from('students').insert({ student_id: student_id.trim(), name: name.trim(), department: deptToSave, faculty, major: major.trim() || null, pin: pin || null })
       if (error) throw error
+      showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' }); setAddStudentCustomDept('')
       await loadStudents()
-    } catch (e) { alert('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message) } finally { setAddStudentSaving(false) }
+    } catch (e) { showToast('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddStudentSaving(false) }
   }
 
   const handleAddLog = async () => {
     const { date, check_in, check_out, work_summary } = addLogForm
-    if (!date || !check_in) return alert('กรุณากรอกวันที่และเวลาเข้า')
-    if (check_out && check_out <= check_in) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
+    if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
+    if (check_out && check_out <= check_in) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
     setAddLogSaving(true)
     try {
       const { data: newLog, error } = await supabase.from('time_logs').insert({ student_id: selectedStudentId, check_in: thaiToUTC(date, check_in), check_out: check_out ? thaiToUTC(date, check_out) : null, work_summary: work_summary || null }).select('id').single()
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
+      showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); await fetchSummary()
-    } catch (e) { alert('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message) } finally { setAddLogSaving(false) }
+    } catch (e) { showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddLogSaving(false) }
   }
 
   const handleSetPin = async () => {
     if (!pinModal) return
-    if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     setPinSaving(true)
     try {
       const { error } = await supabase.from('students').update({ pin: pinInput || null }).eq('student_id', pinModal.student_id)
       if (error) throw error
+      showToast('ตั้ง PIN เรียบร้อยแล้ว', 'success')
       setPinModal(null); setPinInput(''); await loadStudents()
-    } catch (e) { alert('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message) } finally { setPinSaving(false) }
+    } catch (e) { showToast('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setPinSaving(false) }
   }
 
   const handleUndo = async () => {
@@ -342,43 +347,48 @@ export default function ManagerPage() {
       else if (undoAction.type === 'edit') { await supabase.from('time_logs').update({ check_in: undoAction.log.check_in, check_out: undoAction.log.check_out, work_summary: undoAction.log.work_summary }).eq('id', undoAction.log.id) }
       else if (undoAction.type === 'add') { await supabase.from('time_logs').delete().eq('id', undoAction.id) }
       setUndoAction(null); await fetchSummary()
-    } catch (e) { alert('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message) }
+    } catch (e) { showToast('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message, 'error') }
   }
 
   const handleEditStudent = async () => {
     if (!editStudentModal) return
-    if (!editStudentForm.name.trim()) return alert('กรุณากรอกชื่อ')
+    if (!editStudentForm.name.trim()) { showToast('กรุณากรอกชื่อ', 'warning'); return }
     const deptToSave = editStudentForm.department === 'อื่นๆ' ? (editStudentCustomDept.trim() || 'อื่นๆ') : editStudentForm.department
     setEditStudentSaving(true)
     try {
       const newId = editStudentForm.student_id.trim()
       const { error } = await supabase.from('students').update({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }).eq('student_id', editStudentModal.student_id)
       if (error) throw error
+      showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
       setEditStudentModal(null); await loadStudents()
-    } catch (e) { alert('แก้ไขไม่สำเร็จ: ' + (e as Error).message) } finally { setEditStudentSaving(false) }
+    } catch (e) { showToast('แก้ไขไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setEditStudentSaving(false) }
   }
 
   const handleApprove = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: mgrName, approved_at: new Date().toISOString() }).eq('id', logId)
-    if (error) return alert('อนุมัติไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('อนุมัติเรียบร้อยแล้ว', 'success')
     await fetchSummary()
   }
 
   const handleUnapprove = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
-    if (error) return alert('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('ยกเลิกอนุมัติแล้ว', 'info')
     await fetchSummary()
   }
 
   const handlePay = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
-    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
     await fetchSummary()
   }
 
   const handleUnpay = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
-    if (error) return alert('ยกเลิกไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('ยกเลิกการจ่ายแล้ว', 'info')
     await fetchSummary()
   }
 
@@ -901,7 +911,7 @@ export default function ManagerPage() {
       {/* ── Edit Log Modal ──────────────────────────────────────────────────── */}
       {editingLog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-gray-800">แก้ไขรายการลงเวลา</h3>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาเข้า</label><input type="datetime-local" className={inputCls} value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาออก</label><TimeWheelPicker value={editForm.check_out ? editForm.check_out.slice(11, 16) : ''} onChange={t => { if (!t) { setEditForm(f => ({ ...f, check_out: '' })); return } const base = editForm.check_in?.slice(0, 10) ?? new Date().toISOString().slice(0, 10); setEditForm(f => ({ ...f, check_out: `${base}T${t}` })) }} /></div>
@@ -917,7 +927,7 @@ export default function ManagerPage() {
       {/* ── Add Log Modal ───────────────────────────────────────────────────── */}
       {addLogOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">เพิ่ม Log ย้อนหลัง</h3>
@@ -962,7 +972,7 @@ export default function ManagerPage() {
       {/* ── Add Student Modal ───────────────────────────────────────────────── */}
       {addStudentOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-gray-800">เพิ่มนิสิตใหม่</h3>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต *</label><input className={inputCls} placeholder="6630200000" value={addStudentForm.student_id} onChange={e => setAddStudentForm(f => ({ ...f, student_id: e.target.value }))} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล *</label><input className={inputCls} placeholder="นาย..." value={addStudentForm.name} onChange={e => setAddStudentForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -992,7 +1002,7 @@ export default function ManagerPage() {
       {/* ── Edit Student Modal ──────────────────────────────────────────────── */}
       {editStudentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต</label><input className={inputCls + ' font-mono'} value={editStudentForm.student_id} onChange={e => setEditStudentForm(f => ({ ...f, student_id: e.target.value }))} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label><input className={inputCls} value={editStudentForm.name} onChange={e => setEditStudentForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1021,7 +1031,7 @@ export default function ManagerPage() {
       {/* ── PIN Modal ───────────────────────────────────────────────────────── */}
       {pinModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4">
             <h3 className="font-bold text-gray-800">ตั้ง PIN — {pinModal.name}</h3>
             <input className={inputCls + ' text-center text-2xl tracking-widest font-mono'} placeholder="0000" maxLength={4} value={pinInput} onChange={e => setPinInput(e.target.value.replace(/\D/g, ''))} />
             <p className="text-xs text-gray-400 text-center">ปล่อยว่างเพื่อลบ PIN</p>
@@ -1094,7 +1104,7 @@ export default function ManagerPage() {
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-800">ตั้งค่าบัญชี</h3>
               <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -1203,7 +1213,7 @@ export default function ManagerPage() {
       {/* ── Feedback Modal ──────────────────────────────────────────────────── */}
       {feedbackModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="text-center">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

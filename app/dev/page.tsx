@@ -6,6 +6,7 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
+import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
@@ -308,7 +309,7 @@ export default function DevPage() {
     if (editForm.check_out) {
       const ci = new Date(editForm.check_in)
       const co = new Date(editForm.check_out)
-      if (co <= ci) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
+      if (co <= ci) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
     }
     const prevLog = editingLog
     setEditSaving(true)
@@ -319,11 +320,12 @@ export default function DevPage() {
         work_summary: editForm.work_summary || null,
       }).eq('id', editingLog.id)
       if (error) throw error
+      showToast('บันทึกเรียบร้อยแล้ว', 'success')
       setUndoAction({ type: 'edit', log: prevLog })
       setEditingLog(null)
       await fetchSummary()
     } catch (e) {
-      alert('บันทึกไม่สำเร็จ: ' + (e as Error).message)
+      showToast('บันทึกไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setEditSaving(false) }
   }
 
@@ -338,8 +340,8 @@ export default function DevPage() {
   // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
   const handleAddStudent = async () => {
     const { student_id, name, department, faculty, major, pin } = addStudentForm
-    if (!student_id.trim() || !name.trim()) return alert('กรุณากรอกรหัสนิสิตและชื่อ')
-    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
+    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
@@ -352,20 +354,21 @@ export default function DevPage() {
         pin:        pin || null,
       })
       if (error) throw error
+      showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false)
       setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
       setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) {
-      alert('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message)
+      showToast('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setAddStudentSaving(false) }
   }
 
   // ── NEW: เพิ่ม Log ย้อนหลัง ───────────────────────────────────────────────
   const handleAddLog = async () => {
     const { date, check_in, check_out, work_summary } = addLogForm
-    if (!date || !check_in) return alert('กรุณากรอกวันที่และเวลาเข้า')
-    if (check_out && check_out <= check_in) return alert('เวลาออกต้องมากกว่าเวลาเข้า')
+    if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
+    if (check_out && check_out <= check_in) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
     setAddLogSaving(true)
     try {
       const { data: newLog, error } = await supabase.from('time_logs').insert({
@@ -376,29 +379,30 @@ export default function DevPage() {
       }).select('id').single()
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
+      showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false)
       setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
       await fetchSummary()
     } catch (e) {
-      alert('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message)
+      showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setAddLogSaving(false) }
   }
 
   // ── NEW: ตั้ง PIN ──────────────────────────────────────────────────────────
   const handleSetPin = async () => {
     if (!pinModal) return
-    if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput)))
-      return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     setPinSaving(true)
     try {
       const { error } = await supabase.from('students')
         .update({ pin: pinInput || null })
         .eq('student_id', pinModal.student_id)
       if (error) throw error
+      showToast('ตั้ง PIN เรียบร้อยแล้ว', 'success')
       setPinModal(null); setPinInput('')
       await loadStudents()
     } catch (e) {
-      alert('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
+      showToast('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setPinSaving(false) }
   }
 
@@ -424,14 +428,14 @@ export default function DevPage() {
       setUndoAction(null)
       await fetchSummary()
     } catch (e) {
-      alert('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message)
+      showToast('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message, 'error')
     }
   }
 
   // ── NEW: แก้ไขข้อมูลนิสิต ────────────────────────────────────────────────
   const handleEditStudent = async () => {
     if (!editStudentModal) return
-    if (!editStudentForm.name.trim()) return alert('กรุณากรอกชื่อ')
+    if (!editStudentForm.name.trim()) { showToast('กรุณากรอกชื่อ', 'warning'); return }
     const deptToSave = editStudentForm.department === 'อื่นๆ' ? (editStudentCustomDept.trim() || 'อื่นๆ') : editStudentForm.department
     setEditStudentSaving(true)
     try {
@@ -445,10 +449,11 @@ export default function DevPage() {
         phone:      editStudentForm.phone.trim() || null,
       }).eq('student_id', editStudentModal.student_id)
       if (error) throw error
+      showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
       setEditStudentModal(null)
       await loadStudents()
     } catch (e) {
-      alert('แก้ไขไม่สำเร็จ: ' + (e as Error).message)
+      showToast('แก้ไขไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setEditStudentSaving(false) }
   }
 
@@ -458,25 +463,29 @@ export default function DevPage() {
       approved_by: adminUsername,
       approved_at: new Date().toISOString(),
     }).eq('id', logId)
-    if (error) return alert('อนุมัติไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('อนุมัติเรียบร้อยแล้ว', 'success')
     await fetchSummary()
   }
 
   const handleUnapprove = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
-    if (error) return alert('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('ยกเลิกอนุมัติแล้ว', 'info')
     await fetchSummary()
   }
 
   const handlePay = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
-    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
     await fetchSummary()
   }
 
   const handleUnpay = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
-    if (error) return alert('ยกเลิกไม่สำเร็จ: ' + error.message)
+    if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); return }
+    showToast('ยกเลิกการจ่ายแล้ว', 'info')
     await fetchSummary()
   }
 
@@ -1437,7 +1446,7 @@ export default function DevPage() {
       {/* ── Modal: Edit Manager ──────────────────────────────────────────────── */}
       {editMgrModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <h3 className="font-bold text-gray-800">แก้ไข Manager</h3>
             <p className="text-xs text-gray-400">@{editMgrModal.username}</p>
             {editMgrError && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{editMgrError}</p>}
@@ -1467,7 +1476,7 @@ export default function DevPage() {
       {/* ── Modal: Edit Log ──────────────────────────────────────────────────── */}
       {editingLog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-800">แก้ไขรายการ</h3>
               <button onClick={() => setEditingLog(null)} className="text-gray-400 hover:text-gray-600">
@@ -1516,7 +1525,7 @@ export default function DevPage() {
       {/* ── Modal: Add Student ───────────────────────────────────────────────── */}
       {addStudentOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-800">เพิ่มนิสิตใหม่</h3>
               <button onClick={() => setAddStudentOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -1584,7 +1593,7 @@ export default function DevPage() {
       {/* ── Modal: Add Log ───────────────────────────────────────────────────── */}
       {addLogOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">เพิ่ม Log ย้อนหลัง</h3>
@@ -1648,7 +1657,7 @@ export default function DevPage() {
       {/* ── Modal: Edit Student ─────────────────────────────────────────────── */}
       {editStudentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
@@ -1723,7 +1732,7 @@ export default function DevPage() {
       {/* ── Modal: Set PIN ───────────────────────────────────────────────────── */}
       {pinModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">ตั้ง PIN</h3>
@@ -1813,7 +1822,7 @@ export default function DevPage() {
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-800">ข้อมูลบัญชี</h3>
               <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
