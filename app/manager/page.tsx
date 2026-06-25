@@ -65,6 +65,7 @@ export default function ManagerPage() {
 
   const [overview, setOverview]               = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
+  const [overviewDept, setOverviewDept]       = useState('')
 
   const [rangeStart, setRangeStart]   = useState('')
   const [rangeEnd, setRangeEnd]       = useState('')
@@ -729,13 +730,21 @@ export default function ManagerPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-3">
               <div><label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label><input type="date" className={inputCls + ' w-auto'} value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
               <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label><input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)} /></div>
+              <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
+                <select className={inputCls + ' w-auto'} value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
+                  <option value="">ทุกฝ่าย</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
               <button onClick={fetchOverview} disabled={overviewLoading} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
             </div>
-            {overview.length > 0 && (
+            {overview.length > 0 && (() => {
+              const filteredOverview = overviewDept ? overview.filter(o => o.student.department === overviewDept) : overview
+              return (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลา</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{dateFrom && dateTo && (dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`)} — {overview.length} คน{mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{dateFrom && dateTo && (dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`)} — {filteredOverview.length} คน{overviewDept ? ` (ฝ่าย ${overviewDept})` : mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-sm">
@@ -751,7 +760,7 @@ export default function ManagerPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {overview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
+                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800">{student.name}</td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
@@ -768,7 +777,7 @@ export default function ManagerPage() {
                   </table>
                 </div>
               </div>
-            )}
+            )})()}
           </div>
         )}
 
