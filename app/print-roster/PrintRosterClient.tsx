@@ -13,9 +13,9 @@ const tdS: React.CSSProperties = { border: '1px solid #d1d5db', padding: '5px 8p
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', borderBottom: '1px solid #e5e7eb', padding: '8px 14px', alignItems: 'start' }}>
-      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>{value || '-'}</span>
+    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', borderBottom: '1px solid #e5e7eb', padding: '6px 14px', alignItems: 'start' }}>
+      <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 12, color: '#111827', fontWeight: 600 }}>{value || '-'}</span>
     </div>
   )
 }
@@ -60,11 +60,11 @@ export default function PrintRosterClient() {
           @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
           * { box-sizing: border-box; }
           body { margin: 0; background: #f3f4f6; }
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 14mm 16mm; }
           @media print {
             .no-print { display: none !important; }
             body { background: white; }
-            .page-body { padding: 1.8cm 2cm !important; box-shadow: none !important; margin: 0 !important; min-height: 100vh; }
+            .page-body { padding: 0 !important; box-shadow: none !important; margin: 0 !important; max-width: none !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           }
         `}</style>
@@ -77,83 +77,70 @@ export default function PrintRosterClient() {
           </button>
         </div>
 
-        <div className="page-body" style={{ maxWidth: 740, margin: '24px auto', background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,.12)', padding: '2cm 2.4cm', minHeight: '29.7cm' }}>
+        <div className="page-body" style={{ maxWidth: 680, margin: '20px auto', background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,.12)', padding: '32px 40px' }}>
 
           {/* Letterhead */}
-          <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 12, marginBottom: 20 }}>
-            <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: '0 0 8px' }}>{printedAt}</p>
+          <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 16 }}>
+            <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: '0 0 6px' }}>{printedAt}</p>
             <div style={{ textAlign: 'center' }}>
-              <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 8 }} />
-              <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
-              <p style={{ fontSize: 13, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
+              <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 6 }} />
+              <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
+              <p style={{ fontSize: 12, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
             </div>
           </div>
 
           {/* Title */}
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <p style={{ fontSize: 17, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>รายละเอียดสมาชิก CoPs</p>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>รายละเอียดสมาชิก CoPs</p>
           </div>
 
-          {/* Info card */}
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
-              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัว</p>
+          {/* All info in one table-style card */}
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัว</p>
             </div>
-            <InfoRow label="ชื่อ-นามสกุล"        value={s.name} />
-            <InfoRow label="รหัสนิสิต"             value={s.student_id} />
-            <InfoRow label="ฝ่าย / กลุ่มงาน"      value={s.department} />
-            <InfoRow label="รุ่นที่ (Gen)"          value={s.gen != null ? `รุ่นที่ ${s.gen}` : null} />
-            <InfoRow label="สถานะ"                  value={s.status} />
+            <InfoRow label="ชื่อ-นามสกุล"   value={s.name} />
+            <InfoRow label="รหัสนิสิต"        value={s.student_id} />
+            <InfoRow label="ฝ่าย / กลุ่มงาน" value={s.department} />
+            <InfoRow label="รุ่นที่ (Gen)"     value={s.gen != null ? `รุ่นที่ ${s.gen}` : null} />
+            <InfoRow label="สถานะ"             value={s.status} />
           </div>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
-              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลการศึกษา</p>
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลการศึกษา</p>
             </div>
-            <InfoRow label="คณะ"        value={s.faculty} />
-            <InfoRow label="สาขาวิชา"   value={s.major} />
+            <InfoRow label="คณะ"      value={s.faculty} />
+            <InfoRow label="สาขาวิชา" value={s.major} />
           </div>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
-              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัวเพิ่มเติม</p>
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัวเพิ่มเติม</p>
             </div>
-            <InfoRow label="เพศ"               value={s.gender} />
-            <InfoRow label="วันเกิด"            value={s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : null} />
-            <InfoRow label="ศาสนา"              value={s.religion} />
-            <InfoRow label="สัญชาติ"            value={s.nationality} />
+            <InfoRow label="เพศ"      value={s.gender} />
+            <InfoRow label="วันเกิด"  value={s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : null} />
+            <InfoRow label="ศาสนา"    value={s.religion} />
+            <InfoRow label="สัญชาติ"  value={s.nationality} />
           </div>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
-              <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>ข้อมูลการติดต่อ</p>
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลการติดต่อ</p>
             </div>
-            <InfoRow label="เบอร์โทรศัพท์"      value={s.phone} />
-            <InfoRow label="E-mail"               value={s.email} />
-            <InfoRow label="เลขบัตรประจำตัว"    value={s.national_id} />
+            <InfoRow label="เบอร์โทรศัพท์"   value={s.phone} />
+            <InfoRow label="E-mail"            value={s.email} />
+            <InfoRow label="เลขบัตรประจำตัว" value={s.national_id} />
           </div>
 
           {s.note && (
-            <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-              <div style={{ background: '#1a3a5c', padding: '8px 14px' }}>
-                <p style={{ color: 'white', fontSize: 13, fontWeight: 700, margin: 0 }}>หมายเหตุ</p>
+            <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
+                <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>หมายเหตุ</p>
               </div>
-              <div style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{s.note}</div>
+              <div style={{ padding: '8px 14px', fontSize: 13, color: '#374151' }}>{s.note}</div>
             </div>
           )}
-
-          {/* Footer */}
-          <div style={{ marginTop: 'auto', paddingTop: 32, borderTop: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
-            <div>
-              <div style={{ height: 40 }} />
-              <div style={{ borderTop: '1px solid #374151', paddingTop: 4 }}>ลายมือชื่อสมาชิก ({s.name})</div>
-            </div>
-            <div>
-              <div style={{ height: 40 }} />
-              <div style={{ borderTop: '1px solid #374151', paddingTop: 4 }}>ลายมือชื่อผู้รับรอง (........................)</div>
-            </div>
-          </div>
-          <p style={{ textAlign: 'center', fontSize: 10, color: '#9ca3af', marginTop: 16 }}>สร้างโดยระบบลงเวลา CoPs — {printedAt}</p>
         </div>
       </div>
     )
