@@ -272,11 +272,13 @@ export default function DevPage() {
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleExportCSV = (useRange = false) => {
-    const url = useRange && rangeStart && rangeEnd
+    const token = localStorage.getItem('dev_token') || ''
+    const base  = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
       : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
+    const url = `${base}&token=${encodeURIComponent(token)}`
     const a = document.createElement('a')
-    a.href = url; a.download = `timelog_${selectedStudentId}.csv`; a.click()
+    a.href = url; a.download = `timelog_${selectedStudentId}.xlsx`; a.click()
   }
 
   const handleExportPDF = () => {
@@ -644,7 +646,8 @@ export default function DevPage() {
   // ── Manager helpers ────────────────────────────────────────────────────────
   const loadManagers = async () => {
     setManagersLoading(true)
-    const res = await fetch('/api/managers')
+    const token = localStorage.getItem('dev_token') || ''
+    const res = await fetch('/api/managers', { headers: { 'x-token': token } })
     setManagers(await res.json())
     setManagersLoading(false)
   }

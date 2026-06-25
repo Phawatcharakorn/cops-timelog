@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { verifyPassword } from '@/lib/crypto'
+import { verifyPassword, makeMgrToken } from '@/lib/crypto'
 
 export async function POST(req: NextRequest) {
   const { username, password } = await req.json()
@@ -22,5 +22,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     name: manager.name,
     department: manager.department,
+    mgrToken: makeMgrToken(process.env.ADMIN_PASSWORD!),
   })
 }

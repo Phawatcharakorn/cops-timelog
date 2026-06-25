@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import * as XLSX from 'xlsx'
+import { checkAuth, unauthorized } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,8 @@ function toThai(iso: string) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return unauthorized()
+
   const { searchParams } = new URL(req.url)
   const studentId  = searchParams.get('studentId')
   const from       = searchParams.get('from')

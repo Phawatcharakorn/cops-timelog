@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { checkAuth, unauthorized } from '@/lib/apiAuth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return unauthorized()
+
   const { data, error } = await supabaseAdmin()
     .from('students')
     .select('*')

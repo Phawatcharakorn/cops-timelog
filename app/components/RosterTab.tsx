@@ -178,11 +178,23 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
               })}
             </div>
             <div className="flex gap-2">
-              <a href={`/api/export-members?${exportParams}`} download onClick={() => showToast('กำลังดาวน์โหลด...', 'info')}
+              <button onClick={async () => {
+                const token = localStorage.getItem('mgr_token') || localStorage.getItem('dev_token') || ''
+                showToast('กำลังดาวน์โหลด...', 'info')
+                try {
+                  const res = await fetch(`/api/export-members?${exportParams}`, { headers: { 'x-token': token } })
+                  if (!res.ok) throw new Error()
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a'); a.href = url; a.download = 'members.xlsx'
+                  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+                  URL.revokeObjectURL(url)
+                } catch { showToast('ดาวน์โหลดไม่สำเร็จ', 'error') }
+              }}
                 className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-2 min-h-[36px] rounded-lg font-medium flex items-center gap-1 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Excel
-              </a>
+              </button>
               <button onClick={() => window.open(`/print-roster?${exportParams}`, '_blank')}
                 className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 min-h-[36px] rounded-lg font-medium flex items-center gap-1 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>

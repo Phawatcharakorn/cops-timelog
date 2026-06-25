@@ -259,8 +259,12 @@ export default function ManagerPage() {
   }, [mgrDept])
 
   const handleExportCSV = (useRange = false) => {
-    const url = useRange && rangeStart && rangeEnd ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}` : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
-    const a = document.createElement('a'); a.href = url; a.download = `timelog_${selectedStudentId}.csv`; a.click()
+    const token = localStorage.getItem('mgr_token') || ''
+    const base  = useRange && rangeStart && rangeEnd
+      ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
+      : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
+    const url = `${base}&token=${encodeURIComponent(token)}`
+    const a = document.createElement('a'); a.href = url; a.download = `timelog_${selectedStudentId}.xlsx`; a.click()
   }
   const handleExportPDF = () => {
     if (!summary) return
@@ -396,9 +400,10 @@ export default function ManagerPage() {
     setPwError(false)
     const res = await fetch('/api/manager/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: userInput, password: pwInput }) })
     if (res.ok) {
-      const { name, department } = await res.json()
+      const { name, department, mgrToken } = await res.json()
       localStorage.setItem('mgr_authed', '1'); localStorage.setItem('mgr_name', name)
       localStorage.setItem('mgr_username', userInput); localStorage.setItem('mgr_dept', department || '')
+      if (mgrToken) localStorage.setItem('mgr_token', mgrToken)
       setMgrName(name); setMgrDept(department || null); setAuthed(true)
     } else { setPwError(true) }
   }
@@ -454,7 +459,7 @@ export default function ManagerPage() {
         </div>
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
           <a href="/student" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึก</a>
-          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
+          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept','mgr_token'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
         </div>
       </header>
 

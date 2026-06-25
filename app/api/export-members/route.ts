@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
+import { checkAuth, unauthorized } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return unauthorized()
+
   const { searchParams } = new URL(req.url)
   const dept      = searchParams.get('dept')      || ''
   const gen       = searchParams.get('gen')       || ''

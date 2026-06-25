@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, validateDevToken } from '@/lib/crypto'
+import { checkAuth } from '@/lib/apiAuth'
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
 
-// GET: list all managers (dev only — caller must verify dev session client-side)
-export async function GET() {
+// GET: list all managers (dev only)
+export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return unauthorized()
+
   const { data, error } = await supabaseAdmin()
     .from('managers')
     .select('id, username, name, department, created_at')

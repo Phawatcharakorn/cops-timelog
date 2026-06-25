@@ -33,3 +33,25 @@ export function validateDevToken(token: string | null): boolean {
     return crypto.timingSafeEqual(expected, received)
   } catch { return false }
 }
+
+/** Generate a static HMAC token for manager API calls. */
+export function makeMgrToken(secret: string): string {
+  return crypto.createHmac('sha256', secret).update('cops-timelog-mgr').digest('hex')
+}
+
+/** Validate manager session token (x-token header or ?token= query param). */
+export function validateMgrToken(token: string | null): boolean {
+  const secret = process.env.ADMIN_PASSWORD
+  if (!secret || !token) return false
+  try {
+    const expected = Buffer.from(makeMgrToken(secret), 'hex')
+    const received = Buffer.from(token, 'hex')
+    if (expected.length !== received.length) return false
+    return crypto.timingSafeEqual(expected, received)
+  } catch { return false }
+}
+
+/** Accept either a dev token or a manager token. */
+export function validateAnyToken(token: string | null): boolean {
+  return validateDevToken(token) || validateMgrToken(token)
+}
