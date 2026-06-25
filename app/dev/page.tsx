@@ -141,7 +141,7 @@ export default function DevPage() {
 
   // Edit Student modal
   const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
+  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -426,6 +426,8 @@ export default function DevPage() {
         department: deptToSave,
         faculty:    editStudentForm.faculty,
         major:      editStudentForm.major.trim() || null,
+        gen:        editStudentForm.gen ? Number(editStudentForm.gen) : null,
+        phone:      editStudentForm.phone.trim() || null,
       }).eq('student_id', editStudentModal.student_id)
       if (error) throw error
       setEditStudentModal(null)
@@ -1203,7 +1205,7 @@ export default function DevPage() {
                             <button onClick={() => {
                               const deptInList = DEPARTMENTS.includes(s.department)
                               setEditStudentModal(s)
-                              setEditStudentForm({ name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' })
+                              setEditStudentForm({ name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
                               setEditStudentCustomDept(deptInList ? '' : s.department)
                             }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
@@ -1648,6 +1650,20 @@ export default function DevPage() {
               <input type="text" className={inputCls} placeholder="กรอกชื่อสาขาวิชาเต็ม"
                 value={editStudentForm.major}
                 onChange={e => setEditStudentForm(f => ({ ...f, major: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">รุ่น (Gen)</label>
+                <input type="number" min="1" className={inputCls} placeholder="เช่น 1, 2, 3"
+                  value={editStudentForm.gen}
+                  onChange={e => setEditStudentForm(f => ({ ...f, gen: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทร</label>
+                <input type="tel" className={inputCls} placeholder="0XX-XXX-XXXX"
+                  value={editStudentForm.phone}
+                  onChange={e => setEditStudentForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => { setEditStudentModal(null); setEditStudentCustomDept('') }}

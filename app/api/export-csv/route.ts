@@ -64,17 +64,18 @@ export async function GET(req: NextRequest) {
       'รหัสนิสิต':   student.student_id,
       'ฝ่าย':        student.department,
       'วันที่':       format(ci, 'd MMM yyyy', { locale: th }),
-      'เวลาเข้า':    format(ci, 'HH:mm'),
-      'เวลาออก':     co ? format(co, 'HH:mm') : '-',
+      'เวลาเข้า':    ci.toISOString().slice(11, 16),
+      'เวลาออก':     co ? co.toISOString().slice(11, 16) : '-',
       'ชั่วโมง':      Math.floor(dur / 60),
       'นาที':         dur % 60,
       'สรุปงาน':     log.work_summary || '',
+      'สถานะ':       log.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ',
+      'หมายเหตุ':    '',
     }
   })
 
   const ws = XLSX.utils.json_to_sheet(rows)
 
-  // Auto-fit column widths based on content
   const cols = [
     { wch: 20 }, // ชื่อ
     { wch: 14 }, // รหัสนิสิต
@@ -85,6 +86,8 @@ export async function GET(req: NextRequest) {
     { wch: 10 }, // ชั่วโมง
     { wch: 8  }, // นาที
     { wch: 40 }, // สรุปงาน
+    { wch: 14 }, // สถานะ
+    { wch: 20 }, // หมายเหตุ
   ]
   ws['!cols'] = cols
 

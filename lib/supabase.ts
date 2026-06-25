@@ -8,6 +8,8 @@ export type Student = {
   faculty: string | null
   major: string | null
   pin: string | null
+  gen: number | null
+  phone: string | null
   created_at: string
 }
 
