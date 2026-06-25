@@ -5,6 +5,7 @@ import { supabase, type Student, type TimeLog, type Announcement } from '@/lib/s
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
+import RosterTab from '@/app/components/RosterTab'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
@@ -53,9 +54,6 @@ export default function ManagerPage() {
   // ── Roster ────────────────────────────────────────────────────────────────
   const [rosterStudents, setRosterStudents]   = useState<Student[]>([])
   const [rosterLoading, setRosterLoading]     = useState(false)
-  const [rosterGenFilter, setRosterGenFilter] = useState<number | null>(null)
-  const [rosterDeptFilter, setRosterDeptFilter] = useState('')
-  const [rosterDetail, setRosterDetail]       = useState<Student | null>(null)
 
   const [students, setStudents]                   = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
@@ -446,7 +444,7 @@ export default function ManagerPage() {
           {(['individual', 'overview', 'manage', 'announce', 'roster'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements(); if (t === 'roster') fetchRoster() }}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
-              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'ทำเนียบ'}
+              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
           ))}
         </div>
@@ -1030,158 +1028,14 @@ export default function ManagerPage() {
       )}
 
       {/* ── Roster Tab ──────────────────────────────────────────────────────── */}
-      {tab === 'roster' && (() => {
-        const GEN_COLORS: Record<number, { chip: string; active: string }> = {
-          1: { chip: 'bg-purple-100 text-purple-700 border border-purple-300', active: 'bg-purple-600 text-white' },
-          2: { chip: 'bg-blue-100 text-blue-700 border border-blue-300',   active: 'bg-blue-600 text-white' },
-          3: { chip: 'bg-green-100 text-green-700 border border-green-300', active: 'bg-green-600 text-white' },
-          4: { chip: 'bg-orange-100 text-orange-700 border border-orange-300', active: 'bg-orange-600 text-white' },
-          5: { chip: 'bg-rose-100 text-rose-700 border border-rose-300',   active: 'bg-rose-600 text-white' },
-        }
-        const genBadge = (gen: number | null) => {
-          if (!gen) return <span className="text-xs text-gray-400">-</span>
-          const c = GEN_COLORS[gen] ?? { chip: 'bg-gray-100 text-gray-600 border border-gray-300', active: 'bg-gray-600 text-white' }
-          return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${c.chip}`}>Gen {gen}</span>
-        }
-        const gens = [...new Set(rosterStudents.filter(s => s.gen).map(s => s.gen as number))].sort()
-        const depts = [...new Set(rosterStudents.map(s => s.department))].sort()
-        const filtered = rosterStudents.filter(s =>
-          (rosterGenFilter === null || s.gen === rosterGenFilter) &&
-          (!rosterDeptFilter || s.department === rosterDeptFilter)
-        )
-        const exportParams = new URLSearchParams()
-        if (rosterDeptFilter) exportParams.set('dept', rosterDeptFilter)
-        if (rosterGenFilter) exportParams.set('gen', String(rosterGenFilter))
-        return (
-          <div className="space-y-4">
-            {/* Filter + export */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={() => setRosterGenFilter(null)}
-                    className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${rosterGenFilter === null ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                    ทุกรุ่น
-                  </button>
-                  {gens.map(g => {
-                    const c = GEN_COLORS[g] ?? { chip: 'bg-gray-100 text-gray-600 border border-gray-300', active: 'bg-gray-600 text-white' }
-                    return (
-                      <button key={g} onClick={() => setRosterGenFilter(rosterGenFilter === g ? null : g)}
-                        className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${rosterGenFilter === g ? c.active + ' border-transparent' : c.chip}`}>
-                        Gen {g}
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className="flex gap-2">
-                  <a href={`/api/export-members?${exportParams}`} download
-                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Excel
-                  </a>
-                  <button onClick={() => window.open(`/print-roster?${exportParams}`, '_blank')}
-                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                    PDF
-                  </button>
-                </div>
-              </div>
-              {depts.length > 1 && (
-                <select value={rosterDeptFilter} onChange={e => setRosterDeptFilter(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-300">
-                  <option value="">ทุกฝ่าย</option>
-                  {depts.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              )}
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-700 text-sm">สมาชิก</h2>
-                <span className="text-xs text-gray-400">{filtered.length} คน</span>
-              </div>
-              {rosterLoading ? (
-                <div className="py-12 text-center text-gray-400 text-sm">กำลังโหลด...</div>
-              ) : filtered.length === 0 ? (
-                <div className="py-12 text-center text-gray-400 text-sm">ไม่มีข้อมูล</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-500 text-xs">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium">รุ่น</th>
-                        <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                        <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
-                        <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
-                        <th className="px-4 py-3 text-left font-medium">คณะ / สาขา</th>
-                        <th className="px-4 py-3 text-left font-medium">เบอร์โทร</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filtered.map(s => (
-                        <tr key={s.student_id} onClick={() => setRosterDetail(s)}
-                          className="hover:bg-purple-50 cursor-pointer transition-colors">
-                          <td className="px-4 py-3">{genBadge(s.gen)}</td>
-                          <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs font-mono">{s.student_id}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">{s.department}</td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">{s.phone || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* ── Roster Detail Modal ──────────────────────────────────────────────── */}
-      {rosterDetail && (() => {
-        const GEN_COLORS: Record<number, string> = {
-          1: 'bg-purple-100 text-purple-700 border-purple-300',
-          2: 'bg-blue-100 text-blue-700 border-blue-300',
-          3: 'bg-green-100 text-green-700 border-green-300',
-          4: 'bg-orange-100 text-orange-700 border-orange-300',
-          5: 'bg-rose-100 text-rose-700 border-rose-300',
-        }
-        const s = rosterDetail
-        return (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setRosterDetail(null)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-gray-800 text-lg">{s.name}</h3>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{s.student_id}</p>
-                </div>
-                <button onClick={() => setRosterDetail(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              {s.gen && (
-                <span className={`inline-block text-xs px-3 py-1 rounded-full font-semibold border ${GEN_COLORS[s.gen] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
-                  รุ่นที่ {s.gen}
-                </span>
-              )}
-              <div className="space-y-2">
-                {[
-                  { label: 'ฝ่าย', value: s.department },
-                  { label: 'คณะ', value: s.faculty },
-                  { label: 'สาขาวิชา', value: s.major },
-                  { label: 'เบอร์โทร', value: s.phone },
-                ].filter(r => r.value).map(r => (
-                  <div key={r.label} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
-                    <span className="text-xs text-gray-400 w-16 flex-shrink-0">{r.label}</span>
-                    <span className="text-sm text-gray-800 font-medium">{r.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      {tab === 'roster' && (
+        <RosterTab
+          students={rosterStudents}
+          loading={rosterLoading}
+          onRefresh={fetchRoster}
+          lockedDept={mgrDept || undefined}
+        />
+      )}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}
       {settingsOpen && (

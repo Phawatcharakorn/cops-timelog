@@ -5,6 +5,7 @@ import { supabase, type Student, type TimeLog, type Manager, type FeedbackCampai
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
+import RosterTab from '@/app/components/RosterTab'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
@@ -49,7 +50,9 @@ export default function DevPage() {
   const [userInput, setUserInput]     = useState('')
   const [pwInput, setPwInput]         = useState('')
   const [pwError, setPwError]         = useState(false)
-  const [tab, setTab]                 = useState<'individual' | 'overview' | 'manage' | 'feedback' | 'managers' | 'announce'>('individual')
+  const [tab, setTab]                 = useState<'individual' | 'overview' | 'manage' | 'feedback' | 'managers' | 'announce' | 'roster'>('individual')
+  const [rosterStudents, setRosterStudents] = useState<Student[]>([])
+  const [rosterLoading, setRosterLoading]   = useState(false)
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [annLoading, setAnnLoading]       = useState(false)
@@ -545,6 +548,15 @@ export default function DevPage() {
     return { 'Content-Type': 'application/json', 'x-dev-token': token, ...extra }
   }
 
+  const fetchRoster = useCallback(async () => {
+    setRosterLoading(true)
+    try {
+      const { data } = await supabase.from('students').select('*')
+        .order('gen', { ascending: true, nullsFirst: false }).order('name')
+      setRosterStudents(data ?? [])
+    } finally { setRosterLoading(false) }
+  }, [])
+
   // ── Announcement helpers ───────────────────────────────────────────────────
   const fetchAnnouncements = async () => {
     setAnnLoading(true)
@@ -709,17 +721,18 @@ export default function DevPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto">
-          {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce'] as const).map(t => (
+          {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce', 'roster'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t)
               if (t === 'feedback') loadFeedback()
               if (t === 'managers') loadManagers()
               if (t === 'announce') fetchAnnouncements()
+              if (t === 'roster') fetchRoster()
             }}
               className={`flex-shrink-0 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                 tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
               }`}>
-              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : 'ประกาศ'}
+              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
           ))}
         </div>
@@ -1753,6 +1766,15 @@ export default function DevPage() {
             )}
           </div>
         </div>
+      )}
+
+      {tab === 'roster' && (
+        <RosterTab
+          students={rosterStudents}
+          loading={rosterLoading}
+          onRefresh={fetchRoster}
+          accentColor="indigo"
+        />
       )}
 
       {/* ── Settings Modal ─────────────────────────────────────────────────── */}

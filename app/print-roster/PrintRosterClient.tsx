@@ -34,7 +34,7 @@ export default function PrintRosterClient() {
 
   if (loading) return <div style={{ padding: 40, color: '#999' }}>กำลังโหลด...</div>
 
-  const gens = [...new Set(students.filter(s => s.gen).map(s => s.gen as number))].sort()
+  const gens = Array.from(new Set(students.filter(s => s.gen).map(s => s.gen as number))).sort()
   const title = [dept, genParam ? `Gen ${genParam}` : ''].filter(Boolean).join(' · ') || 'ทำเนียบสมาชิก CoPs'
 
   return (
