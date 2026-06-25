@@ -50,9 +50,11 @@ export default function PrintPageClient() {
     if (from && to) {
       start = new Date(from + 'T00:00:00+07:00').toISOString()
       end   = new Date(to   + 'T23:59:59+07:00').toISOString()
-      periodLabel = from === to
-        ? format(new Date(from + 'T12:00:00'), 'd MMMM yyyy', { locale: th })
-        : `${format(new Date(from + 'T12:00:00'), 'd MMM yyyy', { locale: th })} – ${format(new Date(to + 'T12:00:00'), 'd MMM yyyy', { locale: th })}`
+      const fd = new Date(from + 'T12:00:00'), td = new Date(to + 'T12:00:00')
+      const sameMonth = fd.getFullYear() === td.getFullYear() && fd.getMonth() === td.getMonth()
+      periodLabel = sameMonth
+        ? format(fd, 'MMMM yyyy', { locale: th })
+        : `${format(fd, 'MMM yyyy', { locale: th })} – ${format(td, 'MMM yyyy', { locale: th })}`
     } else if (date) {
       const d = new Date(date + 'T00:00:00+07:00')
       start = new Date(d.getTime() - TZ).toISOString()
@@ -215,7 +217,7 @@ export default function PrintPageClient() {
             รายงานการลงเวลาปฏิบัติงาน
           </p>
           <p style={{ fontSize: 14, color: '#374151', margin: 0, lineHeight: 1.6 }}>
-            {(date || (from && from !== to)) ? 'ช่วงวันที่' : 'ประจำเดือน'} {monthLabel}
+            {date ? 'วันที่' : 'ประจำเดือน'} {monthLabel}
           </p>
         </div>
 
