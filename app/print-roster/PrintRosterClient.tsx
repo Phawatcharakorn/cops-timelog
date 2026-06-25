@@ -22,9 +22,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', borderBottom: '1px solid #e5e7eb', padding: '6px 14px', alignItems: 'start' }}>
-      <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{label}</span>
-      <span style={{ fontSize: 12, color: '#111827', fontWeight: 600 }}>{value || '-'}</span>
+    <div style={{ display: 'flex', gap: 12, borderBottom: '1px solid #e5e7eb', padding: '6px 14px', alignItems: 'start' }}>
+      <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, flexShrink: 0, minWidth: 110 }}>{label}</span>
+      <span style={{ fontSize: 12, color: '#111827', fontWeight: 600, wordBreak: 'break-word' }}>{value || '-'}</span>
     </div>
   )
 }
@@ -80,10 +80,18 @@ export default function PrintRosterClient() {
 
         <div className="no-print" style={{ background: '#1a3a5c', color: 'white', padding: '8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>รายละเอียดสมาชิก — {s.name}</span>
-          <button onClick={() => window.print()}
-            style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: 6, padding: '6px 18px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-            พิมพ์ / บันทึก PDF
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href={`/api/export-members?studentId=${s.student_id}`} download
+              style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Excel
+            </a>
+            <button onClick={() => window.print()}
+              style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              PDF
+            </button>
+          </div>
         </div>
 
         <div className="page-body" style={{ maxWidth: 680, margin: '20px auto', background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,.12)', padding: '32px 40px' }}>
@@ -91,7 +99,7 @@ export default function PrintRosterClient() {
           {/* Letterhead — logo centered */}
           <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 16, textAlign: 'center' }}>
             <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: '0 0 6px' }}>{printedAt}</p>
-            <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 70, height: 70, objectFit: 'contain', marginBottom: 6 }} />
+            <img src="/kus-logo.svg" alt="KUS Logo" style={{ display: 'block', width: 70, height: 70, objectFit: 'contain', margin: '0 auto 6px' }} />
             <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
             <p style={{ fontSize: 12, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
           </div>

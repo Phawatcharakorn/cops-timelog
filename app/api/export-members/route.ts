@@ -6,13 +6,17 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const dept = searchParams.get('dept') || ''
-  const gen  = searchParams.get('gen')  || ''
+  const dept      = searchParams.get('dept')      || ''
+  const gen       = searchParams.get('gen')       || ''
+  const studentId = searchParams.get('studentId') || ''
 
   const db = supabaseAdmin()
   let q = db.from('students').select('*').order('gen', { ascending: true, nullsFirst: false }).order('name')
-  if (dept) q = q.eq('department', dept)
-  if (gen)  q = q.eq('gen', Number(gen))
+  if (studentId) q = q.eq('student_id', studentId)
+  else {
+    if (dept) q = q.eq('department', dept)
+    if (gen)  q = q.eq('gen', Number(gen))
+  }
 
   const { data: students } = await q
   if (!students) return NextResponse.json({ error: 'No data' }, { status: 500 })
