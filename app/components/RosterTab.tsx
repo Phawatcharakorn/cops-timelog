@@ -198,7 +198,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                     <th className="px-3 py-2.5 text-left font-medium">ชื่อ-นามสกุล</th>
                     <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">รหัสนิสิต</th>
                     <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">ฝ่าย</th>
-                    <th className="px-3 py-2.5 text-left font-medium">คณะ / สาขา</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">คณะ / สาขา</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -210,7 +210,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                       <td className="px-3 py-2.5 font-medium text-gray-800 text-sm whitespace-nowrap">{s.name}</td>
                       <td className="px-3 py-2.5 text-gray-500 text-xs font-mono whitespace-nowrap">{s.student_id}</td>
                       <td className="px-3 py-2.5 text-gray-600 text-xs whitespace-nowrap">{s.department}</td>
-                      <td className="px-3 py-2.5 text-gray-500 text-xs">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
+                      <td className="px-3 py-2.5 text-gray-500 text-xs whitespace-nowrap">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
                     </tr>
                   ))}
                 </tbody>
