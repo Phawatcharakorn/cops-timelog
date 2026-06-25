@@ -100,7 +100,7 @@ export default function ManagerPage() {
     setRevealedPins(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
   const [editStudentModal, setEditStudentModal]   = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]     = useState({ name: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
+  const [editStudentForm, setEditStudentForm]     = useState({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
   const [editStudentSaving, setEditStudentSaving] = useState(false)
   const [editStudentCustomDept, setEditStudentCustomDept] = useState('')
 
@@ -351,7 +351,8 @@ export default function ManagerPage() {
     const deptToSave = editStudentForm.department === 'อื่นๆ' ? (editStudentCustomDept.trim() || 'อื่นๆ') : editStudentForm.department
     setEditStudentSaving(true)
     try {
-      const { error } = await supabase.from('students').update({ name: editStudentForm.name.trim(), department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }).eq('student_id', editStudentModal.student_id)
+      const newId = editStudentForm.student_id.trim()
+      const { error } = await supabase.from('students').update({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }).eq('student_id', editStudentModal.student_id)
       if (error) throw error
       setEditStudentModal(null); await loadStudents()
     } catch (e) { alert('แก้ไขไม่สำเร็จ: ' + (e as Error).message) } finally { setEditStudentSaving(false) }
@@ -878,7 +879,7 @@ export default function ManagerPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-3">
-                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
+                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
                               <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }} className="text-xs text-purple-600 hover:text-purple-800 font-medium">{s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}</button>
                               <button onClick={() => handleDeleteStudent(s)} className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
                             </div>
@@ -990,7 +991,7 @@ export default function ManagerPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
-            <p className="text-xs text-gray-400">{editStudentModal.student_id}</p>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต</label><input className={inputCls + ' font-mono'} value={editStudentForm.student_id} onChange={e => setEditStudentForm(f => ({ ...f, student_id: e.target.value }))} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label><input className={inputCls} value={editStudentForm.name} onChange={e => setEditStudentForm(f => ({ ...f, name: e.target.value }))} /></div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">ฝ่าย</label>

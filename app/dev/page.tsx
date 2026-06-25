@@ -144,7 +144,7 @@ export default function DevPage() {
 
   // Edit Student modal
   const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]       = useState({ name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
+  const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -436,6 +436,7 @@ export default function DevPage() {
     setEditStudentSaving(true)
     try {
       const { error } = await supabase.from('students').update({
+        student_id: editStudentForm.student_id.trim() || editStudentModal.student_id,
         name:       editStudentForm.name.trim(),
         department: deptToSave,
         faculty:    editStudentForm.faculty,
@@ -1240,7 +1241,7 @@ export default function DevPage() {
                             <button onClick={() => {
                               const deptInList = DEPARTMENTS.includes(s.department)
                               setEditStudentModal(s)
-                              setEditStudentForm({ name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
+                              setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
                               setEditStudentCustomDept(deptInList ? '' : s.department)
                             }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
@@ -1648,13 +1649,17 @@ export default function DevPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">แก้ไขข้อมูลนิสิต</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{editStudentModal.student_id}</p>
               </div>
               <button onClick={() => { setEditStudentModal(null); setEditStudentCustomDept('') }} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+              <input type="text" className={inputCls + ' font-mono'} value={editStudentForm.student_id}
+                onChange={e => setEditStudentForm(f => ({ ...f, student_id: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
