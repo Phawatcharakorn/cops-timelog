@@ -574,25 +574,41 @@ export default function ManagerPage() {
                         )}
                         <div>
                           {log.status === 'approved' ? (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
-                                <span className="text-xs text-gray-400">โดย {log.approved_by}{log.approved_at ? ` · ${fmtDate(log.approved_at)}` : ''}</span>
-                                {!log.paid && <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>}
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full border border-green-200 font-medium">
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                  อนุมัติแล้ว
+                                </span>
+                                {log.paid && (
+                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2.5 py-1 rounded-full border border-teal-200 font-medium">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a4 4 0 00-8 0v2M5 9h14l1 11H4L5 9z"/></svg>
+                                    จ่ายแล้ว
+                                  </span>
+                                )}
                               </div>
-                              {log.paid ? (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">จ่ายแล้ว</span>
-                                  <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
-                                </div>
-                              ) : (
-                                <button onClick={() => handlePay(log.id)} className="self-start text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-lg font-medium transition-colors">จ่ายแล้ว</button>
-                              )}
+                              <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {!log.paid && (
+                                  <button onClick={() => handlePay(log.id)}
+                                    className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                    บันทึกการจ่าย
+                                  </button>
+                                )}
+                                {log.paid ? (
+                                  <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
+                                ) : (
+                                  <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
+                                )}
+                              </div>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200">รออนุมัติ</span>
-                              <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors">อนุมัติ</button>
+                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                รออนุมัติ
+                              </span>
+                              <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors">อนุมัติ</button>
                             </div>
                           )}
                         </div>
@@ -629,30 +645,43 @@ export default function ManagerPage() {
                               {log.durationMinutes < 0 ? <span className="text-red-500 text-xs font-medium">⚠ ข้อมูลผิด</span> : log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
                             <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}><div className="truncate">{log.work_summary || '-'}</div></td>
-                            <td style={{ padding: '12px 16px', lineHeight: 1.8, minWidth: '160px' }}>
+                            <td style={{ padding: '10px 16px', minWidth: '180px' }}>
                               {log.status === 'approved' ? (
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
-                                    {!log.paid && <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>}
+                                <div className="space-y-2">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full border border-green-200 font-medium">
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                      อนุมัติแล้ว
+                                    </span>
+                                    {log.paid && (
+                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2.5 py-1 rounded-full border border-teal-200 font-medium">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a4 4 0 00-8 0v2M5 9h14l1 11H4L5 9z"/></svg>
+                                        จ่ายแล้ว
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="text-xs text-gray-400 space-y-0.5 mt-1">
-                                    <div>โดย: <span className="text-gray-600 font-medium">{log.approved_by}</span></div>
-                                    <div>{log.approved_at ? `${fmtDate(log.approved_at)} ${fmtTime(log.approved_at)}` : ''}</div>
+                                  <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
+                                  <div className="flex flex-wrap gap-2 items-center">
+                                    {!log.paid && (
+                                      <button onClick={() => handlePay(log.id)}
+                                        className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                        บันทึกการจ่าย
+                                      </button>
+                                    )}
+                                    {log.paid ? (
+                                      <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
+                                    ) : (
+                                      <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
+                                    )}
                                   </div>
-                                  {log.paid ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">จ่ายแล้ว</span>
-                                      <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
-                                    </div>
-                                  ) : (
-                                    <button onClick={() => handlePay(log.id)} className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap">จ่ายแล้ว</button>
-                                  )}
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">รออนุมัติ</span>
-                                  <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap">อนุมัติ</button>
+                                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    รออนุมัติ
+                                  </span>
+                                  <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">อนุมัติ</button>
                                 </div>
                               )}
                             </td>
