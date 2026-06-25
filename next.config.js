@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack: (config) => {
+    config.resolve.fallback = { ...config.resolve.fallback, '@opentelemetry/api': false }
+    return config
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
