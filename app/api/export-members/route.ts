@@ -31,6 +31,8 @@ export async function GET(req: NextRequest) {
     'เบอร์โทร':                 s.phone ?? '',
     'E-mail':                   s.email ?? '',
     'เลขบัตรประจำตัวประชาชน':   s.national_id ?? '',
+    'หมายเหตุ':                 s.note ?? '',
+    'สถานะ':                    s.status ?? '',
   }))
 
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -48,6 +50,8 @@ export async function GET(req: NextRequest) {
     { wch: 14 }, // เบอร์
     { wch: 28 }, // email
     { wch: 20 }, // เลขบัตร
+    { wch: 24 }, // หมายเหตุ
+    { wch: 14 }, // สถานะ
   ]
 
   const wb = XLSX.utils.book_new()

@@ -717,10 +717,10 @@ export default function DevPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6 space-y-6">
+      <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
           {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce', 'roster'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t)
@@ -729,10 +729,10 @@ export default function DevPage() {
               if (t === 'announce') fetchAnnouncements()
               if (t === 'roster') fetchRoster()
             }}
-              className={`flex-shrink-0 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                 tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
               }`}>
-              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
+              {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการ' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
           ))}
         </div>

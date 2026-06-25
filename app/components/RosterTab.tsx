@@ -5,6 +5,7 @@ import { supabase, type Student } from '@/lib/supabase'
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES   = ['คณะพาณิชยนาวีนานาชาติ','คณะเศรษฐศาสตร์ ศรีราชา','คณะวิทยาศาสตร์ ศรีราชา','คณะวิศวกรรมศาสตร์ ศรีราชา','คณะวิทยาการจัดการ']
 const GENDERS     = ['ชาย', 'หญิง', 'ไม่ระบุ']
+const STATUSES    = ['นิสิต', 'จบแล้ว', 'พักการศึกษา', 'อื่นๆ']
 
 const GEN_COLORS: Record<number, { chip: string; active: string; hex: string }> = {
   1: { chip: 'bg-purple-100 text-purple-700 border border-purple-300', active: 'bg-purple-600 text-white border-transparent', hex: '#7c3aed' },
@@ -22,6 +23,18 @@ function GenBadge({ gen }: { gen: number | null }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${c.chip}`}>Gen {gen}</span>
 }
 
+const STATUS_STYLES: Record<string, string> = {
+  'นิสิต':          'bg-blue-50 text-blue-700 border-blue-200',
+  'จบแล้ว':         'bg-green-50 text-green-700 border-green-200',
+  'พักการศึกษา':    'bg-yellow-50 text-yellow-700 border-yellow-200',
+  'อื่นๆ':          'bg-gray-100 text-gray-600 border-gray-200',
+}
+function StatusBadge({ status }: { status: string | null }) {
+  if (!status) return <span className="text-xs text-gray-400">-</span>
+  const cls = STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600 border-gray-200'
+  return <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${cls}`}>{status}</span>
+}
+
 function formatBirthdate(iso: string | null) {
   if (!iso) return null
   const d = new Date(iso)
@@ -32,6 +45,7 @@ type EditForm = {
   name: string; department: string; faculty: string; major: string
   gen: string; phone: string; email: string; religion: string
   nationality: string; birthdate: string; gender: string; national_id: string
+  note: string; status: string
 }
 
 interface Props {
@@ -52,6 +66,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
     name: '', department: '', faculty: '', major: '',
     gen: '', phone: '', email: '', religion: '',
     nationality: '', birthdate: '', gender: '', national_id: '',
+    note: '', status: '',
   })
   const [customDept, setCustomDept] = useState('')
 
@@ -73,6 +88,8 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
       birthdate:   s.birthdate ? s.birthdate.slice(0, 10) : '',
       gender:      s.gender ?? '',
       national_id: s.national_id ?? '',
+      note:        s.note ?? '',
+      status:      s.status ?? '',
     })
     setCustomDept(deptInList ? '' : s.department)
     setEditing(true)
@@ -96,6 +113,8 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
         birthdate:   editForm.birthdate || null,
         gender:      editForm.gender || null,
         national_id: editForm.national_id.trim() || null,
+        note:        editForm.note.trim() || null,
+        status:      editForm.status || null,
       }).eq('student_id', detail.student_id)
       if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return }
       onRefresh()
@@ -175,6 +194,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                 <thead className="bg-gray-50 text-gray-500 text-xs">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium">รุ่น</th>
+                    <th className="px-4 py-3 text-left font-medium">สถานะ</th>
                     <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
                     <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
                     <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
@@ -187,6 +207,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                     <tr key={s.student_id} onClick={() => { setDetail(s); setEditing(false) }}
                       className="hover:bg-purple-50 cursor-pointer transition-colors">
                       <td className="px-4 py-3"><GenBadge gen={s.gen} /></td>
+                      <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                       <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs font-mono">{s.student_id}</td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{s.department}</td>
@@ -217,7 +238,10 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
 
             {!editing ? (
               <>
-                {detail.gen && <GenBadge gen={detail.gen} />}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {detail.gen && <GenBadge gen={detail.gen} />}
+                  <StatusBadge status={detail.status} />
+                </div>
                 <div className="space-y-1.5">
                   {[
                     { label: 'ฝ่าย',          value: detail.department },
@@ -230,6 +254,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                     { label: 'เบอร์โทร',       value: detail.phone },
                     { label: 'E-mail',          value: detail.email },
                     { label: 'เลขบัตรประชาชน', value: detail.national_id },
+                    { label: 'หมายเหตุ',       value: detail.note },
                   ].map(r => (
                     <div key={r.label} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
                       <span className="text-xs text-gray-400 w-24 flex-shrink-0 pt-0.5">{r.label}</span>
@@ -308,6 +333,19 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept }: 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">เลขบัตรประจำตัวประชาชน</label>
                   <input className={inputCls} placeholder="1-XXXX-XXXXX-XX-X" maxLength={13} value={editForm.national_id} onChange={set('national_id')} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">สถานะ</label>
+                  <select className={inputCls} value={editForm.status} onChange={set('status')}>
+                    <option value="">-</option>
+                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">หมายเหตุ</label>
+                  <textarea className={inputCls + ' resize-none'} rows={2} placeholder="หมายเหตุเพิ่มเติม..."
+                    value={editForm.note}
+                    onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button onClick={() => setEditing(false)} className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>

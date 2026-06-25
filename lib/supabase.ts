@@ -16,6 +16,8 @@ export type Student = {
   birthdate: string | null
   gender: string | null
   national_id: string | null
+  note: string | null
+  status: string | null
   created_at: string
 }
 
