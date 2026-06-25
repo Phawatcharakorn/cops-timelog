@@ -467,7 +467,7 @@ export default function ManagerPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          {(['individual', 'overview', 'manage', 'announce', 'roster'] as const).map(t => (
+          {(['individual', 'overview', 'manage', 'roster', 'announce'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements(); if (t === 'roster') fetchRoster() }}
               className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[64px] ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
