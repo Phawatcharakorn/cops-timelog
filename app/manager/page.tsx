@@ -330,6 +330,18 @@ export default function ManagerPage() {
     await fetchSummary()
   }
 
+  const handlePay = async (logId: string) => {
+    const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
+    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
+  const handleUnpay = async (logId: string) => {
+    const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
+    if (error) return alert('ยกเลิกไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
   const handleLogin = async () => {
     setPwError(false)
     const res = await fetch('/api/manager/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: userInput, password: pwInput }) })
@@ -522,9 +534,19 @@ export default function ManagerPage() {
                         )}
                         <div>
                           {log.status === 'approved' ? (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
-                              <span className="text-xs text-gray-400">โดย {log.approved_by}{log.approved_at ? ` · ${fmtDate(log.approved_at)}` : ''}</span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
+                                <span className="text-xs text-gray-400">โดย {log.approved_by}{log.approved_at ? ` · ${fmtDate(log.approved_at)}` : ''}</span>
+                              </div>
+                              {log.paid ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">💰 จ่ายแล้ว</span>
+                                  <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => handlePay(log.id)} className="self-start text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-lg font-medium transition-colors">จ่ายแล้ว</button>
+                              )}
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">

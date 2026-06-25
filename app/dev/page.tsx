@@ -440,6 +440,18 @@ export default function DevPage() {
     await fetchSummary()
   }
 
+  const handlePay = async (logId: string) => {
+    const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
+    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
+  const handleUnpay = async (logId: string) => {
+    const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
+    if (error) return alert('ยกเลิกไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
   const handleLogin = async () => {
     try {
       const res = await fetch('/api/dev/login', {
@@ -876,6 +888,14 @@ export default function DevPage() {
                                     <div>โดย: <span className="text-gray-600 font-medium">{log.approved_by}</span></div>
                                     <div>{log.approved_at ? `${fmtDate(log.approved_at)} ${fmtTime(log.approved_at)}` : ''}</div>
                                   </div>
+                                  {log.paid ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full border border-teal-200">💰 จ่ายแล้ว</span>
+                                      <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => handlePay(log.id)} className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-lg font-medium transition-colors whitespace-nowrap">จ่ายแล้ว</button>
+                                  )}
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2">

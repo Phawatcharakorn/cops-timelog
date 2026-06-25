@@ -77,7 +77,7 @@ export default function PrintPageClient() {
       if (sErr || !student) { setError('ไม่พบข้อมูลนิสิต'); return }
       if (lErr)              { setError('โหลดข้อมูลไม่สำเร็จ'); return }
 
-      const approvedLogs = (logs ?? []).filter(l => l.status === 'approved')
+      const approvedLogs = (logs ?? []).filter(l => l.status === 'approved' && !l.paid)
       const processed: ProcessedLog[] = approvedLogs.map(log => {
         const dur = log.check_out
           ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))

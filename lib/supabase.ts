@@ -22,6 +22,8 @@ export type TimeLog = {
   status: 'pending' | 'approved'
   approved_by: string | null
   approved_at: string | null
+  paid: boolean
+  paid_at: string | null
 }
 
 export type Manager = {
