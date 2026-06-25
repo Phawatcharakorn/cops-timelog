@@ -232,7 +232,19 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-bold text-gray-800 text-base">{detail.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-gray-800 text-base">{detail.name}</h3>
+                  <button
+                    onClick={() => {
+                      const today = new Date().toISOString().slice(0, 10)
+                      window.open(`/print?studentId=${detail.student_id}&to=${today}`, '_blank')
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:bg-indigo-50 px-2 py-0.5 rounded-full transition-colors"
+                    title="โหลดรายละเอียดการลงเวลา">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    โหลดรายละเอียด
+                  </button>
+                </div>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{detail.student_id}</p>
               </div>
               <button onClick={() => { setDetail(null); setEditing(false) }} className="text-gray-400 hover:text-gray-600">
