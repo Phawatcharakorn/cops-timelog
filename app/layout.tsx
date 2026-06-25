@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   themeColor: '#4f46e5',
   appleWebApp: { statusBarStyle: 'default', title: 'SDEC' },
-  viewport: { width: 'device-width', initialScale: 1, maximumScale: 1 },
+  viewport: { width: 'device-width', initialScale: 1, maximumScale: 1, viewportFit: 'cover' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

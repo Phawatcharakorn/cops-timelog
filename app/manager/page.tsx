@@ -451,10 +451,10 @@ export default function ManagerPage() {
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           {(['individual', 'overview', 'manage', 'announce', 'roster'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements(); if (t === 'roster') fetchRoster() }}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+              className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[64px] ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
           ))}

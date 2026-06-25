@@ -149,14 +149,14 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setGenFilter(null)}
-                className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${genFilter === null ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                className={`text-xs px-3 py-2 min-h-[36px] rounded-full border font-medium transition-colors ${genFilter === null ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
                 ทุกรุ่น
               </button>
               {gens.map(g => {
                 const c = GEN_COLORS[g] ?? { chip: 'bg-gray-100 text-gray-600 border border-gray-300', active: 'bg-gray-600 text-white border-transparent', hex: '' }
                 return (
                   <button key={g} onClick={() => setGenFilter(genFilter === g ? null : g)}
-                    className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${genFilter === g ? c.active : c.chip}`}>
+                    className={`text-xs px-3 py-2 min-h-[36px] rounded-full border font-medium transition-colors ${genFilter === g ? c.active : c.chip}`}>
                     Gen {g}
                   </button>
                 )
@@ -164,12 +164,12 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
             </div>
             <div className="flex gap-2">
               <a href={`/api/export-members?${exportParams}`} download
-                className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors">
+                className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-2 min-h-[36px] rounded-lg font-medium flex items-center gap-1 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Excel
               </a>
               <button onClick={() => window.open(`/print-roster?${exportParams}`, '_blank')}
-                className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors">
+                className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-2 min-h-[36px] rounded-lg font-medium flex items-center gap-1 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                 PDF
               </button>
@@ -177,7 +177,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
           </div>
           {!lockedDept && depts.length > 1 && (
             <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-300">
+              className="w-full sm:w-auto text-sm border border-gray-200 rounded-lg px-3 py-2 min-h-[40px] text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-300">
               <option value="">ทุกฝ่าย</option>
               {depts.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -195,8 +195,8 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-gray-400 text-sm">ไม่มีข้อมูล</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full text-sm" style={{ minWidth: 600 }}>
                 <thead className="bg-gray-50 text-gray-500 text-xs">
                   <tr>
                     <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">รุ่น</th>
@@ -210,7 +210,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(s => (
                     <tr key={s.student_id} onClick={() => { setDetail(s); setEditing(false) }}
-                      className="hover:bg-purple-50 cursor-pointer transition-colors">
+                      className="hover:bg-purple-50 cursor-pointer transition-colors" style={{ minHeight: 44 }}>
                       <td className="px-3 py-2.5 whitespace-nowrap"><GenBadge gen={s.gen} /></td>
                       <td className="px-3 py-2.5 whitespace-nowrap"><StatusBadge status={s.status} /></td>
                       <td className="px-3 py-2.5 font-medium text-gray-800 text-sm whitespace-nowrap">{s.name}</td>

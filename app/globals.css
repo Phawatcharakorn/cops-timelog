@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── iOS / Mobile global fixes ───────────────────────────────────────────── */
+
+/* 1. Prevent iOS font inflation when rotating */
+* {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 2. Remove iOS blue tap flash on buttons/links */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3. Root height: use dvh (dynamic viewport) so Safari bottom bar doesn't
+      hide content; falls back to -webkit-fill-available then 100vh */
+html {
+  height: -webkit-fill-available;
+}
+body {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* 4. Prevent horizontal page overflow on iOS */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 5. Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* 6. Momentum scrolling inside scrollable containers */
+.overflow-x-auto,
+.overflow-y-auto,
+[class*="overflow-x-auto"],
+[class*="overflow-y-auto"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 7. Safe area insets for notch / home indicator */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top    { padding-top:    env(safe-area-inset-top); }
+
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
