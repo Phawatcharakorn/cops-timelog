@@ -11,6 +11,15 @@ const GEN_COLORS: Record<number, string> = {
 
 const tdS: React.CSSProperties = { border: '1px solid #d1d5db', padding: '5px 8px', color: '#374151', verticalAlign: 'top' }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: '#1a3a5c', margin: '0 0 4px', paddingBottom: 4, borderBottom: '1px solid #d1d5db' }}>{title}</p>
+      {children}
+    </div>
+  )
+}
+
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', borderBottom: '1px solid #e5e7eb', padding: '6px 14px', alignItems: 'start' }}>
@@ -79,23 +88,21 @@ export default function PrintRosterClient() {
 
         <div className="page-body" style={{ maxWidth: 680, margin: '20px auto', background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,.12)', padding: '32px 40px' }}>
 
-          {/* Letterhead */}
-          <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 16 }}>
+          {/* Letterhead — logo centered */}
+          <div style={{ borderBottom: '2px solid #1a3a5c', paddingBottom: 10, marginBottom: 16, textAlign: 'center' }}>
             <p style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', margin: '0 0 6px' }}>{printedAt}</p>
-            <div style={{ textAlign: 'center' }}>
-              <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 6 }} />
-              <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
-              <p style={{ fontSize: 12, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
-            </div>
+            <img src="/kus-logo.svg" alt="KUS Logo" style={{ width: 70, height: 70, objectFit: 'contain', marginBottom: 6 }} />
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา</p>
+            <p style={{ fontSize: 12, color: '#374151', margin: 0 }}>Kasetsart University Sriracha Campus</p>
           </div>
 
           {/* Title */}
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', marginBottom: 18 }}>
             <p style={{ fontSize: 16, fontWeight: 700, color: '#1a3a5c', margin: 0 }}>รายละเอียดสมาชิก CoPs</p>
           </div>
 
-          {/* All info in one table-style card */}
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+          {/* ข้อมูลส่วนตัว — กรอบเดียว */}
+          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
               <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัว</p>
             </div>
@@ -106,40 +113,29 @@ export default function PrintRosterClient() {
             <InfoRow label="สถานะ"             value={s.status} />
           </div>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
-              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลการศึกษา</p>
-            </div>
+          {/* ส่วนอื่น — ไม่มีกรอบ แค่หัวข้อ + rows */}
+          <Section title="ข้อมูลการศึกษา">
             <InfoRow label="คณะ"      value={s.faculty} />
             <InfoRow label="สาขาวิชา" value={s.major} />
-          </div>
+          </Section>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
-              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลส่วนตัวเพิ่มเติม</p>
-            </div>
+          <Section title="ข้อมูลส่วนตัวเพิ่มเติม">
             <InfoRow label="เพศ"      value={s.gender} />
             <InfoRow label="วันเกิด"  value={s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : null} />
             <InfoRow label="ศาสนา"    value={s.religion} />
             <InfoRow label="สัญชาติ"  value={s.nationality} />
-          </div>
+          </Section>
 
-          <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-            <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
-              <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>ข้อมูลการติดต่อ</p>
-            </div>
+          <Section title="ข้อมูลการติดต่อ">
             <InfoRow label="เบอร์โทรศัพท์"   value={s.phone} />
             <InfoRow label="E-mail"            value={s.email} />
             <InfoRow label="เลขบัตรประจำตัว" value={s.national_id} />
-          </div>
+          </Section>
 
           {s.note && (
-            <div style={{ border: '1.5px solid #1a3a5c', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ background: '#1a3a5c', padding: '6px 14px' }}>
-                <p style={{ color: 'white', fontSize: 12, fontWeight: 700, margin: 0 }}>หมายเหตุ</p>
-              </div>
-              <div style={{ padding: '8px 14px', fontSize: 13, color: '#374151' }}>{s.note}</div>
-            </div>
+            <Section title="หมายเหตุ">
+              <div style={{ padding: '6px 14px', fontSize: 12, color: '#374151' }}>{s.note}</div>
+            </Section>
           )}
         </div>
       </div>
