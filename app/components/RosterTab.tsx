@@ -4,6 +4,7 @@ import { supabase, type Student } from '@/lib/supabase'
 
 const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES   = ['คณะพาณิชยนาวีนานาชาติ','คณะเศรษฐศาสตร์ ศรีราชา','คณะวิทยาศาสตร์ ศรีราชา','คณะวิศวกรรมศาสตร์ ศรีราชา','คณะวิทยาการจัดการ']
+const GENDERS     = ['ชาย', 'หญิง', 'ไม่ระบุ']
 
 const GEN_COLORS: Record<number, { chip: string; active: string; hex: string }> = {
   1: { chip: 'bg-purple-100 text-purple-700 border border-purple-300', active: 'bg-purple-600 text-white border-transparent', hex: '#7c3aed' },
@@ -21,6 +22,18 @@ function GenBadge({ gen }: { gen: number | null }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${c.chip}`}>Gen {gen}</span>
 }
 
+function formatBirthdate(iso: string | null) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+type EditForm = {
+  name: string; department: string; faculty: string; major: string
+  gen: string; phone: string; email: string; religion: string
+  nationality: string; birthdate: string; gender: string; national_id: string
+}
+
 interface Props {
   students: Student[]
   loading: boolean
@@ -29,24 +42,37 @@ interface Props {
   accentColor?: string
 }
 
-export default function RosterTab({ students, loading, onRefresh, lockedDept, accentColor = 'purple' }: Props) {
+export default function RosterTab({ students, loading, onRefresh, lockedDept }: Props) {
   const [genFilter,  setGenFilter]  = useState<number | null>(null)
   const [deptFilter, setDeptFilter] = useState('')
   const [detail,     setDetail]     = useState<Student | null>(null)
   const [editing,    setEditing]    = useState(false)
   const [saving,     setSaving]     = useState(false)
-  const [editForm,   setEditForm]   = useState({ name: '', department: '', faculty: '', major: '', gen: '', phone: '' })
+  const [editForm,   setEditForm]   = useState<EditForm>({
+    name: '', department: '', faculty: '', major: '',
+    gen: '', phone: '', email: '', religion: '',
+    nationality: '', birthdate: '', gender: '', national_id: '',
+  })
   const [customDept, setCustomDept] = useState('')
+
+  const set = (key: keyof EditForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setEditForm(f => ({ ...f, [key]: e.target.value }))
 
   const openEdit = (s: Student) => {
     const deptInList = DEPARTMENTS.includes(s.department)
     setEditForm({
-      name:       s.name,
-      department: deptInList ? s.department : 'อื่นๆ',
-      faculty:    s.faculty ?? FACULTIES[0],
-      major:      s.major ?? '',
-      gen:        s.gen != null ? String(s.gen) : '',
-      phone:      s.phone ?? '',
+      name:        s.name,
+      department:  deptInList ? s.department : 'อื่นๆ',
+      faculty:     s.faculty ?? FACULTIES[0],
+      major:       s.major ?? '',
+      gen:         s.gen != null ? String(s.gen) : '',
+      phone:       s.phone ?? '',
+      email:       s.email ?? '',
+      religion:    s.religion ?? '',
+      nationality: s.nationality ?? '',
+      birthdate:   s.birthdate ? s.birthdate.slice(0, 10) : '',
+      gender:      s.gender ?? '',
+      national_id: s.national_id ?? '',
     })
     setCustomDept(deptInList ? '' : s.department)
     setEditing(true)
@@ -58,12 +84,18 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
     setSaving(true)
     try {
       const { error } = await supabase.from('students').update({
-        name:       editForm.name.trim() || detail.name,
-        department: deptToSave,
-        faculty:    editForm.faculty || null,
-        major:      editForm.major.trim() || null,
-        gen:        editForm.gen ? Number(editForm.gen) : null,
-        phone:      editForm.phone.trim() || null,
+        name:        editForm.name.trim() || detail.name,
+        department:  deptToSave,
+        faculty:     editForm.faculty || null,
+        major:       editForm.major.trim() || null,
+        gen:         editForm.gen ? Number(editForm.gen) : null,
+        phone:       editForm.phone.trim() || null,
+        email:       editForm.email.trim() || null,
+        religion:    editForm.religion.trim() || null,
+        nationality: editForm.nationality.trim() || null,
+        birthdate:   editForm.birthdate || null,
+        gender:      editForm.gender || null,
+        national_id: editForm.national_id.trim() || null,
       }).eq('student_id', detail.student_id)
       if (error) { alert('บันทึกไม่สำเร็จ: ' + error.message); return }
       onRefresh()
@@ -84,8 +116,6 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
   if (lockedDept || deptFilter) exportParams.set('dept', lockedDept || deptFilter)
   if (genFilter) exportParams.set('gen', String(genFilter))
 
-  const activeBtnCls = `bg-${accentColor}-600 text-white border-transparent`
-
   return (
     <>
       <div className="space-y-4">
@@ -94,7 +124,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setGenFilter(null)}
-                className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${genFilter === null ? `bg-gray-800 text-white border-gray-800` : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${genFilter === null ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
                 ทุกรุ่น
               </button>
               {gens.map(g => {
@@ -188,16 +218,22 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
             {!editing ? (
               <>
                 {detail.gen && <GenBadge gen={detail.gen} />}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {[
-                    { label: 'ฝ่าย',     value: detail.department },
-                    { label: 'คณะ',      value: detail.faculty },
-                    { label: 'สาขาวิชา', value: detail.major },
-                    { label: 'เบอร์โทร', value: detail.phone },
+                    { label: 'ฝ่าย',          value: detail.department },
+                    { label: 'คณะ',            value: detail.faculty },
+                    { label: 'สาขาวิชา',       value: detail.major },
+                    { label: 'เพศ',            value: detail.gender },
+                    { label: 'วันเกิด',        value: formatBirthdate(detail.birthdate) },
+                    { label: 'ศาสนา',          value: detail.religion },
+                    { label: 'สัญชาติ',        value: detail.nationality },
+                    { label: 'เบอร์โทร',       value: detail.phone },
+                    { label: 'E-mail',          value: detail.email },
+                    { label: 'เลขบัตรประชาชน', value: detail.national_id },
                   ].map(r => (
                     <div key={r.label} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
-                      <span className="text-xs text-gray-400 w-16 flex-shrink-0 pt-0.5">{r.label}</span>
-                      <span className="text-sm text-gray-800 font-medium">{r.value || <span className="text-gray-400 font-normal">-</span>}</span>
+                      <span className="text-xs text-gray-400 w-24 flex-shrink-0 pt-0.5">{r.label}</span>
+                      <span className="text-sm text-gray-800 font-medium break-all">{r.value || <span className="text-gray-400 font-normal">-</span>}</span>
                     </div>
                   ))}
                 </div>
@@ -210,7 +246,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label>
-                  <input className={inputCls} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                  <input className={inputCls} value={editForm.name} onChange={set('name')} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ฝ่าย</label>
@@ -224,23 +260,54 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ac
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">คณะ</label>
-                  <select className={inputCls} value={editForm.faculty} onChange={e => setEditForm(f => ({ ...f, faculty: e.target.value }))}>
+                  <select className={inputCls} value={editForm.faculty} onChange={set('faculty')}>
                     {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">สาขาวิชา</label>
-                  <input className={inputCls} placeholder="สาขาวิชา" value={editForm.major} onChange={e => setEditForm(f => ({ ...f, major: e.target.value }))} />
+                  <input className={inputCls} placeholder="สาขาวิชา" value={editForm.major} onChange={set('major')} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">เพศ</label>
+                    <select className={inputCls} value={editForm.gender} onChange={set('gender')}>
+                      <option value="">-</option>
+                      {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">วันเกิด</label>
+                    <input type="date" className={inputCls} value={editForm.birthdate} onChange={set('birthdate')} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">ศาสนา</label>
+                    <input className={inputCls} placeholder="พุทธ, คริสต์, ..." value={editForm.religion} onChange={set('religion')} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">สัญชาติ</label>
+                    <input className={inputCls} placeholder="ไทย" value={editForm.nationality} onChange={set('nationality')} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">รุ่น (Gen)</label>
-                    <input type="number" min="1" className={inputCls} placeholder="1, 2, ..." value={editForm.gen} onChange={e => setEditForm(f => ({ ...f, gen: e.target.value }))} />
+                    <input type="number" min="1" className={inputCls} placeholder="1, 2, ..." value={editForm.gen} onChange={set('gen')} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">เบอร์โทร</label>
-                    <input type="tel" className={inputCls} placeholder="0XX-XXX-XXXX" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                    <input type="tel" className={inputCls} placeholder="0XX-XXX-XXXX" value={editForm.phone} onChange={set('phone')} />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
+                  <input type="email" className={inputCls} placeholder="example@email.com" value={editForm.email} onChange={set('email')} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">เลขบัตรประจำตัวประชาชน</label>
+                  <input className={inputCls} placeholder="1-XXXX-XXXXX-XX-X" maxLength={13} value={editForm.national_id} onChange={set('national_id')} />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button onClick={() => setEditing(false)} className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>

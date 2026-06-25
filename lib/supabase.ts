@@ -10,6 +10,12 @@ export type Student = {
   pin: string | null
   gen: number | null
   phone: string | null
+  email: string | null
+  religion: string | null
+  nationality: string | null
+  birthdate: string | null
+  gender: string | null
+  national_id: string | null
   created_at: string
 }
 

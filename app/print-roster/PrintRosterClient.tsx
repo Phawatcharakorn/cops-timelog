@@ -70,13 +70,18 @@ export default function PrintRosterClient() {
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 30 }}>#</th>
+                  <th style={{ width: 24 }}>#</th>
                   <th>ชื่อ-นามสกุล</th>
                   <th>รหัสนิสิต</th>
                   <th>ฝ่าย</th>
-                  <th>คณะ</th>
-                  <th>สาขาวิชา</th>
+                  <th>คณะ / สาขาวิชา</th>
+                  <th>เพศ</th>
+                  <th>วันเกิด</th>
+                  <th>ศาสนา</th>
+                  <th>สัญชาติ</th>
                   <th>เบอร์โทร</th>
+                  <th>E-mail</th>
+                  <th>เลขบัตรประชาชน</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,11 +89,16 @@ export default function PrintRosterClient() {
                   <tr key={s.student_id}>
                     <td style={{ color: '#9ca3af', textAlign: 'center' }}>{i + 1}</td>
                     <td style={{ fontWeight: 600 }}>{s.name}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{s.student_id}</td>
-                    <td>{s.department}</td>
-                    <td style={{ fontSize: 11 }}>{s.faculty ?? '-'}</td>
-                    <td style={{ fontSize: 11 }}>{s.major ?? '-'}</td>
-                    <td>{s.phone ?? '-'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 10 }}>{s.student_id}</td>
+                    <td style={{ fontSize: 10 }}>{s.department}</td>
+                    <td style={{ fontSize: 10 }}>{[s.faculty, s.major].filter(Boolean).join(' · ') || '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.gender ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH') : '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.religion ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.nationality ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.phone ?? '-'}</td>
+                    <td style={{ fontSize: 10 }}>{s.email ?? '-'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 10 }}>{s.national_id ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>

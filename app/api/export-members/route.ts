@@ -18,13 +18,19 @@ export async function GET(req: NextRequest) {
   if (!students) return NextResponse.json({ error: 'No data' }, { status: 500 })
 
   const rows = students.map(s => ({
-    'รุ่น':       s.gen ?? '-',
-    'ชื่อ-นามสกุล': s.name,
-    'รหัสนิสิต':  s.student_id,
-    'ฝ่าย':       s.department,
-    'คณะ':        s.faculty ?? '',
-    'สาขาวิชา':   s.major ?? '',
-    'เบอร์โทร':   s.phone ?? '',
+    'รุ่น':                     s.gen ?? '-',
+    'ชื่อ-นามสกุล':             s.name,
+    'รหัสนิสิต':                s.student_id,
+    'ฝ่าย':                     s.department,
+    'คณะ':                      s.faculty ?? '',
+    'สาขาวิชา':                 s.major ?? '',
+    'เพศ':                      s.gender ?? '',
+    'วันเกิด':                  s.birthdate ?? '',
+    'ศาสนา':                    s.religion ?? '',
+    'สัญชาติ':                  s.nationality ?? '',
+    'เบอร์โทร':                 s.phone ?? '',
+    'E-mail':                   s.email ?? '',
+    'เลขบัตรประจำตัวประชาชน':   s.national_id ?? '',
   }))
 
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -35,7 +41,13 @@ export async function GET(req: NextRequest) {
     { wch: 14 }, // ฝ่าย
     { wch: 22 }, // คณะ
     { wch: 22 }, // สาขา
+    { wch: 8  }, // เพศ
+    { wch: 14 }, // วันเกิด
+    { wch: 12 }, // ศาสนา
+    { wch: 12 }, // สัญชาติ
     { wch: 14 }, // เบอร์
+    { wch: 28 }, // email
+    { wch: 20 }, // เลขบัตร
   ]
 
   const wb = XLSX.utils.book_new()
