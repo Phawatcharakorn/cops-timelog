@@ -598,9 +598,6 @@ export default function StudentPage() {
           </span>
         )}
         <div className={`relative ${playing ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'drop-shadow-lg'}`}>
-          {playing && (
-            <span className="absolute inset-0 rounded-full animate-ping bg-indigo-400 opacity-30" />
-          )}
           <img
             src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
             alt="toothless"
