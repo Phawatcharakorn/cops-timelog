@@ -163,6 +163,15 @@ export default function DevPage() {
 
   useEffect(() => { if (authed) loadStudents() }, [authed, loadStudents])
 
+  const fetchRoster = useCallback(async () => {
+    setRosterLoading(true)
+    try {
+      const { data } = await supabase.from('students').select('*')
+        .order('gen', { ascending: true, nullsFirst: false }).order('name')
+      setRosterStudents(data ?? [])
+    } finally { setRosterLoading(false) }
+  }, [])
+
   // ── Data fetchers ──────────────────────────────────────────────────────────
 
   const fetchSummary = useCallback(async () => {
@@ -547,15 +556,6 @@ export default function DevPage() {
     const token = localStorage.getItem('dev_token') || ''
     return { 'Content-Type': 'application/json', 'x-dev-token': token, ...extra }
   }
-
-  const fetchRoster = useCallback(async () => {
-    setRosterLoading(true)
-    try {
-      const { data } = await supabase.from('students').select('*')
-        .order('gen', { ascending: true, nullsFirst: false }).order('name')
-      setRosterStudents(data ?? [])
-    } finally { setRosterLoading(false) }
-  }, [])
 
   // ── Announcement helpers ───────────────────────────────────────────────────
   const fetchAnnouncements = async () => {
