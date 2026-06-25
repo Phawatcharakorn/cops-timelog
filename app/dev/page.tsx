@@ -445,6 +445,12 @@ export default function DevPage() {
     await fetchSummary()
   }
 
+  const handleUnapprove = async (logId: string) => {
+    const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
+    if (error) return alert('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message)
+    await fetchSummary()
+  }
+
   const handlePay = async (logId: string) => {
     const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
     if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message)
@@ -894,9 +900,10 @@ export default function DevPage() {
                             <td style={{ padding: '12px 16px', lineHeight: 1.8, minWidth: '160px' }}>
                               {log.status === 'approved' ? (
                                 <div className="space-y-1">
-                                  <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">
-                                    ✓ อนุมัติแล้ว
-                                  </span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200">✓ อนุมัติแล้ว</span>
+                                    {!log.paid && <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 underline">ยกเลิก</button>}
+                                  </div>
                                   <div className="text-xs text-gray-400 space-y-0.5 mt-1">
                                     <div>โดย: <span className="text-gray-600 font-medium">{log.approved_by}</span></div>
                                     <div>{log.approved_at ? `${fmtDate(log.approved_at)} ${fmtTime(log.approved_at)}` : ''}</div>
