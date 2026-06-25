@@ -470,13 +470,12 @@ export default function ManagerPage() {
                   className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</> : 'ดึงข้อมูล'}
                 </button>
-                {selectedStudentId && (
-                  <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
-                    className="flex-1 py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    เพิ่ม Log
-                  </button>
-                )}
+                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
+                  disabled={!selectedStudentId}
+                  className="flex-1 py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  เพิ่ม Log
+                </button>
               </div>
             </div>
 
