@@ -676,7 +676,7 @@ export default function ManagerPage() {
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalHours === 0 && totalMinutes === 0 ? 'text-gray-300' : 'text-green-600'}`}>{totalHours}h {totalMinutes}m</span></td>
                           <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3">
-                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium whitespace-nowrap">ดูรายละเอียด</button>
+                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium whitespace-nowrap">ดูรายละเอียด</button>
                           </td>
                         </tr>
                       ))}
