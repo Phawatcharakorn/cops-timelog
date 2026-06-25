@@ -593,7 +593,7 @@ export default function StudentPage() {
           }
         }}>
         {playing && (
-          <span className="text-xs text-indigo-500 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm animate-pulse">
+          <span className="text-xs text-indigo-500 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm">
             ♪ กำลังเล่น
           </span>
         )}
