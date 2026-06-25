@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, verifyPassword } from '@/lib/crypto'
 
+export async function PUT(req: NextRequest) {
+  const { username, name } = await req.json()
+  if (!username || !name?.trim()) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+  const { error } = await supabaseAdmin()
+    .from('managers')
+    .update({ name: name.trim() })
+    .eq('username', username)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 export async function PATCH(req: NextRequest) {
   const { username, currentPassword, newPassword } = await req.json()
   if (!username || !currentPassword || !newPassword) {

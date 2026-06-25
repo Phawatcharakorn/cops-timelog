@@ -117,6 +117,10 @@ export default function ManagerPage() {
   const [pwSavingSettings, setPwSavingSettings] = useState(false)
   const [pwSettingsError, setPwSettingsError] = useState('')
   const [pwSettingsSuccess, setPwSettingsSuccess] = useState(false)
+  const [editingName, setEditingName]   = useState(false)
+  const [nameInput, setNameInput]       = useState('')
+  const [nameSaving, setNameSaving]     = useState(false)
+  const [nameError, setNameError]       = useState('')
 
   useEffect(() => {
     if (localStorage.getItem('mgr_authed') === '1') {
@@ -1069,16 +1073,52 @@ export default function ManagerPage() {
 
             {settingsTab === 'info' && (
               <div className="space-y-3">
-                {[
-                  { label: 'ชื่อผู้ใช้', value: localStorage.getItem('mgr_username') || '-' },
-                  { label: 'ชื่อ-นามสกุล', value: mgrName || '-' },
-                  { label: 'ฝ่าย', value: mgrDept || 'ทุกแผนก' },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-gray-50 rounded-lg px-4 py-3">
-                    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                    <p className="text-sm font-medium text-gray-800">{value}</p>
+                <div className="bg-gray-50 rounded-lg px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">ชื่อผู้ใช้</p>
+                  <p className="text-sm font-medium text-gray-800">{localStorage.getItem('mgr_username') || '-'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg px-4 py-3">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-xs text-gray-400">ชื่อ-นามสกุล</p>
+                    {!editingName && (
+                      <button onClick={() => { setNameInput(mgrName); setNameError(''); setEditingName(true) }}
+                        className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
+                    )}
                   </div>
-                ))}
+                  {editingName ? (
+                    <div className="space-y-2 mt-1">
+                      <input className={inputCls} value={nameInput} onChange={e => { setNameInput(e.target.value); setNameError('') }} placeholder="ชื่อ-นามสกุล" autoFocus />
+                      {nameError && <p className="text-xs text-red-500">{nameError}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingName(false)}
+                          className="flex-1 border border-gray-300 text-gray-600 text-xs font-medium py-1.5 rounded-lg hover:bg-gray-50">ยกเลิก</button>
+                        <button disabled={nameSaving || !nameInput.trim()}
+                          onClick={async () => {
+                            setNameSaving(true); setNameError('')
+                            try {
+                              const res = await fetch('/api/manager/settings', {
+                                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username: localStorage.getItem('mgr_username') || '', name: nameInput }),
+                              })
+                              if (!res.ok) { const d = await res.json(); setNameError(d.error || 'เกิดข้อผิดพลาด'); return }
+                              setMgrName(nameInput)
+                              localStorage.setItem('mgr_name', nameInput)
+                              setEditingName(false)
+                            } catch { setNameError('เกิดข้อผิดพลาด') } finally { setNameSaving(false) }
+                          }}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-medium py-1.5 rounded-lg">
+                          {nameSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-800">{mgrName || '-'}</p>
+                  )}
+                </div>
+                <div className="bg-gray-50 rounded-lg px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">ฝ่าย</p>
+                  <p className="text-sm font-medium text-gray-800">{mgrDept || 'ทุกแผนก'}</p>
+                </div>
               </div>
             )}
 
