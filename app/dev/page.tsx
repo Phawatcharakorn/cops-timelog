@@ -32,7 +32,7 @@ type StudentOverview = {
 type EditForm     = { check_in: string; check_out: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
 type AddStudentForm = { student_id: string; name: string; department: string; faculty: string; major: string; pin: string }
-type AddLogForm   = { date: string; check_in: string; check_out: string; work_summary: string }
+type AddLogForm   = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string }
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string)         { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
@@ -115,7 +115,7 @@ export default function DevPage() {
 
   // Add Log modal
   const [addLogOpen, setAddLogOpen]     = useState(false)
-  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
+  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
   const [addLogSaving, setAddLogSaving] = useState(false)
 
   // PIN modal
@@ -366,24 +366,29 @@ export default function DevPage() {
     } finally { setAddStudentSaving(false) }
   }
 
-  // ── NEW: เพิ่ม Log ย้อนหลัง ───────────────────────────────────────────────
+  // ── เพิ่ม Log ย้อนหลัง ────────────────────────────────────────────────────
   const handleAddLog = async () => {
-    const { date, check_in, check_out, work_summary } = addLogForm
+    const { date, check_in, check_out, check_out_date, work_summary } = addLogForm
     if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
-    if (check_out && check_out <= check_in) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
+    const outDate = check_out_date || date
+    if (check_out) {
+      const inISO  = thaiToUTC(date, check_in)
+      const outISO = thaiToUTC(outDate, check_out)
+      if (outISO <= inISO) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
+    }
     setAddLogSaving(true)
     try {
       const { data: newLog, error } = await supabase.from('time_logs').insert({
         student_id:   selectedStudentId,
         check_in:     thaiToUTC(date, check_in),
-        check_out:    check_out ? thaiToUTC(date, check_out) : null,
+        check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
         work_summary: work_summary || null,
       }).select('id').single()
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false)
-      setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
+      setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
       await fetchSummary()
     } catch (e) {
       showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error')
@@ -736,13 +741,13 @@ export default function DevPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce', 'roster'] as const).map(t => (
+          {/* 'roster' tab (รายละเอียด) ซ่อนชั่วคราว — ฟีเจอร์ยังไม่พร้อม */}
+          {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t)
               if (t === 'feedback') loadFeedback()
               if (t === 'managers') loadManagers()
               if (t === 'announce') fetchAnnouncements()
-              if (t === 'roster') fetchRoster()
             }}
               className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[56px] ${
                 tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
@@ -825,7 +830,7 @@ export default function DevPage() {
                     : 'ดึงข้อมูล'
                   }
                 </button>
-                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' }); setAddLogOpen(true) }}
+                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
                   className="py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1629,16 +1634,22 @@ export default function DevPage() {
                 <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
                   <input type="checkbox"
                     checked={!!addLogForm.check_out}
-                    onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.checked ? '18:00' : '' }))}
+                    onChange={e => setAddLogForm(f => ({ ...f, check_out: e.target.checked ? '18:00' : '', check_out_date: e.target.checked ? f.date : '' }))}
                   />
                   ระบุเวลาออก
                 </label>
               </div>
-              {addLogForm.check_out && (
+              {addLogForm.check_out && (<>
+                <div className="mb-2">
+                  <label className="block text-xs text-gray-500 mb-1">วันที่ออก</label>
+                  <input type="date" className={inputCls} value={addLogForm.check_out_date || addLogForm.date}
+                    min={addLogForm.date}
+                    onChange={e => setAddLogForm(f => ({ ...f, check_out_date: e.target.value }))} />
+                </div>
                 <TimeWheelPicker
                   value={addLogForm.check_out}
                   onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} />
-              )}
+              </>)}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
