@@ -378,32 +378,37 @@ export default function ManagerPage() {
     } catch (e) { showToast('แก้ไขไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setEditStudentSaving(false) }
   }
 
+  const patchLog = (logId: string, patch: Partial<LogWithDuration>) =>
+    setSummary(prev => prev ? { ...prev, logs: prev.logs.map(l => l.id === logId ? { ...l, ...patch } : l) } : prev)
+
   const handleApprove = async (logId: string) => {
-    const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: mgrName, approved_at: new Date().toISOString() }).eq('id', logId)
-    if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    const now = new Date().toISOString()
+    patchLog(logId, { status: 'approved', approved_by: mgrName, approved_at: now })
+    const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: mgrName, approved_at: now }).eq('id', logId)
+    if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
     showToast('อนุมัติเรียบร้อยแล้ว', 'success')
-    await fetchSummary()
   }
 
   const handleUnapprove = async (logId: string) => {
+    patchLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
     const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
-    if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); return }
+    if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
     showToast('ยกเลิกอนุมัติแล้ว', 'info')
-    await fetchSummary()
   }
 
   const handlePay = async (logId: string) => {
-    const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: new Date().toISOString() }).eq('id', logId)
-    if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
+    const now = new Date().toISOString()
+    patchLog(logId, { paid: true, paid_at: now })
+    const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: now }).eq('id', logId)
+    if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
     showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
-    await fetchSummary()
   }
 
   const handleUnpay = async (logId: string) => {
+    patchLog(logId, { paid: false, paid_at: null })
     const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
-    if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); return }
+    if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
     showToast('ยกเลิกการจ่ายแล้ว', 'info')
-    await fetchSummary()
   }
 
   const handleLogin = async () => {
