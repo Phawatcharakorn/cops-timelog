@@ -175,18 +175,19 @@ export default function DevPage() {
 
   // ── Data fetchers ──────────────────────────────────────────────────────────
 
-  const fetchSummary = useCallback(async () => {
-    if (!selectedStudentId) return
+  const fetchSummary = useCallback(async (overrideId?: string) => {
+    const sid = overrideId ?? selectedStudentId
+    if (!sid) return
     setLoading(true)
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
       const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
-      let logsQ = supabase.from('time_logs').select('*').eq('student_id', selectedStudentId)
+      let logsQ = supabase.from('time_logs').select('*').eq('student_id', sid)
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
       const [{ data: logs }, { data: student }] = await Promise.all([
         logsQ,
-        supabase.from('students').select('*').eq('student_id', selectedStudentId).single(),
+        supabase.from('students').select('*').eq('student_id', sid).single(),
       ])
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
         ...log,
@@ -824,7 +825,7 @@ export default function DevPage() {
 
               {/* 3. Action buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={fetchSummary} disabled={!selectedStudentId || loading}
+                <button onClick={() => fetchSummary()} disabled={!selectedStudentId || loading}
                   className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading
                     ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</>
@@ -1165,7 +1166,7 @@ export default function DevPage() {
                           </td>
                           <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3">
-                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id) }}
+                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }}
                               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
                               ดูรายละเอียด
                             </button>
