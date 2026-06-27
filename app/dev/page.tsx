@@ -9,6 +9,10 @@ import RosterTab from '@/app/components/RosterTab'
 import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
+function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
+function sortByDept<T extends { department: string; name: string }>(arr: T[]): T[] {
+  return [...arr].sort((a, b) => deptOrder(a.department) - deptOrder(b.department) || a.name.localeCompare(b.name, 'th'))
+}
 const DEPT_CHIP: Record<string, string> = {
   'Marketing':                  'bg-rose-100 text-rose-700 border-rose-300',
   'Event Organizer':            'bg-violet-100 text-violet-700 border-violet-300',
@@ -534,9 +538,6 @@ export default function DevPage() {
     : overview).sort((a, b) => deptOrder(a.student.department) - deptOrder(b.student.department) || a.student.name.localeCompare(b.student.name, 'th'))
 
   const q = (s: string) => s.toLowerCase()
-  const deptOrder = (dept: string) => { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
-  const sortByDept = <T extends { department: string; name: string }>(arr: T[]) =>
-    [...arr].sort((a, b) => deptOrder(a.department) - deptOrder(b.department) || a.name.localeCompare(b.name, 'th'))
   const filteredStudentsIndividual = sortByDept(searchIndividual
     ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual) || (s.nickname && q(s.nickname).includes(q(searchIndividual))))
     : students)
