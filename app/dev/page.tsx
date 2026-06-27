@@ -8,7 +8,7 @@ import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
 import { showToast } from '@/app/components/Toast'
 
-const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
+const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES = [
   'คณะพาณิชยนาวีนานาชาติ',
   'คณะเศรษฐศาสตร์ ศรีราชา',

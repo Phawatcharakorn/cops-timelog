@@ -16,7 +16,7 @@ function SkeletonRow() {
   )
 }
 
-const DEPARTMENTS = ['Marketing', 'Event', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
+const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 const FACULTIES   = ['คณะพาณิชยนาวีนานาชาติ','คณะเศรษฐศาสตร์ ศรีราชา','คณะวิทยาศาสตร์ ศรีราชา','คณะวิศวกรรมศาสตร์ ศรีราชา','คณะวิทยาการจัดการ']
 const GENDERS     = ['ชาย', 'หญิง', 'ไม่ระบุ']
 const STATUSES    = ['นิสิต', 'จบแล้ว', 'พักการศึกษา', 'อื่นๆ']
