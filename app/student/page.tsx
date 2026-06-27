@@ -260,7 +260,7 @@ export default function StudentPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col items-center justify-start pb-24">
 
-      <SdecHeader
+      <div className="w-full"><SdecHeader
         subtitle="CoPs — ระบบบันทึกเวลา"
         right={
           <a href="/manager" className="text-xs text-white/80 hover:text-white font-medium whitespace-nowrap transition-colors flex items-center gap-1.5">
@@ -271,7 +271,7 @@ export default function StudentPage() {
             Manager
           </a>
         }
-      />
+      /></div>
 
       <div className="w-full max-w-sm space-y-4 p-4 pt-6">
 
