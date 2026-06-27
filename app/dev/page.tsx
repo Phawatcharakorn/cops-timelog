@@ -1169,7 +1169,12 @@ export default function DevPage() {
                     <tbody className="divide-y divide-gray-100">
                       {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">{student.name}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800">
+                            <div className="flex items-center gap-2">
+                              {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
+                              <span className={student.student_id === '6630202571' ? 'admin-rainbow' : ''}>{student.name}</span>
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
                           <td className="px-4 py-3">
                             <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span>
