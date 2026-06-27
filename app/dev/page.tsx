@@ -534,9 +534,12 @@ export default function DevPage() {
     : overview
 
   const q = (s: string) => s.toLowerCase()
-  const filteredStudentsIndividual = searchIndividual
+  const deptOrder = (dept: string) => { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
+  const sortByDept = <T extends { department: string; name: string }>(arr: T[]) =>
+    [...arr].sort((a, b) => deptOrder(a.department) - deptOrder(b.department) || a.name.localeCompare(b.name, 'th'))
+  const filteredStudentsIndividual = sortByDept(searchIndividual
     ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual) || (s.nickname && q(s.nickname).includes(q(searchIndividual))))
-    : students
+    : students)
   const filteredStudentsManage = searchManage
     ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage))
     : students
