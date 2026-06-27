@@ -540,9 +540,9 @@ export default function DevPage() {
   const filteredStudentsIndividual = sortByDept(searchIndividual
     ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual) || (s.nickname && q(s.nickname).includes(q(searchIndividual))))
     : students)
-  const filteredStudentsManage = searchManage
-    ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage))
-    : students
+  const filteredStudentsManage = sortByDept(searchManage
+    ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage) || (s.nickname && q(s.nickname).includes(q(searchManage))))
+    : students)
 
   // ── Login UI ───────────────────────────────────────────────────────────────
   if (!authed) {
@@ -1249,7 +1249,12 @@ export default function DevPage() {
                   <tbody className="divide-y divide-gray-100">
                     {filteredStudentsManage.map(s => (
                       <tr key={s.student_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{s.name}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {s.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[s.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{s.nickname}</span>}
+                            {s.name}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>

@@ -436,7 +436,7 @@ export default function ManagerPage() {
   const sortByDept = <T extends { department: string; name: string }>(arr: T[]) =>
     [...arr].sort((a, b) => deptOrder(a.department) - deptOrder(b.department) || a.name.localeCompare(b.name, 'th'))
   const filteredIndividual = sortByDept(searchIndividual ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual) || (s.nickname && q(s.nickname).includes(q(searchIndividual)))) : students)
-  const filteredManage     = searchManage ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage)) : students
+  const filteredManage     = sortByDept(searchManage ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage) || (s.nickname && q(s.nickname).includes(q(searchManage)))) : students)
 
   // ── Login ─────────────────────────────────────────────────────────────────
   if (!authed) {
@@ -910,7 +910,12 @@ export default function ManagerPage() {
                     <tbody className="divide-y divide-gray-100">
                       {filteredManage.map(s => (
                         <tr key={s.student_id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{s.name}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {s.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[s.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{s.nickname}</span>}
+                              {s.name}
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
                           <td className="px-4 py-3 whitespace-nowrap"><span className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span></td>
                           <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px]">
