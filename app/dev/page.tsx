@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, type Student, type TimeLog, type Manager, type FeedbackCampaign, type FeedbackResponse, type Announcement } from '@/lib/supabase'
@@ -55,7 +55,7 @@ function todayThai() {
   return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
 }
 
-const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400'
+const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
 
 export default function DevPage() {
   const [authed, setAuthed]           = useState(false)
@@ -552,7 +552,7 @@ export default function DevPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 w-full max-w-sm space-y-5">
           <div className="text-center">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -575,11 +575,11 @@ export default function DevPage() {
             <input type="password" className={inputCls} placeholder="กรอกรหัสผ่าน" value={pwInput}
               onChange={e => setPwInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           </div>
-          <button onClick={handleLogin} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors">
+          <button onClick={handleLogin} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl transition-colors">
             เข้าสู่ระบบ
           </button>
           <div className="text-center">
-            <a href="/student" className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">กลับหน้าบันทึกเวลา</a>
+            <a href="/student" className="text-xs text-gray-400 hover:text-blue-600 transition-colors">กลับหน้าบันทึกเวลา</a>
           </div>
         </div>
       </div>
@@ -760,7 +760,7 @@ export default function DevPage() {
               if (t === 'announce') fetchAnnouncements()
             }}
               className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[56px] ${
-                tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
+                tab === t ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'
               }`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการ' : t === 'feedback' ? 'Feedback' : t === 'managers' ? 'Managers' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
@@ -803,7 +803,7 @@ export default function DevPage() {
                   <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
                     {filteredStudentsIndividual.map(s => (
                       <li key={s.student_id}
-                        className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 ${selectedStudentId === s.student_id ? 'bg-indigo-50' : ''}`}
+                        className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-blue-50 ${selectedStudentId === s.student_id ? 'bg-blue-50' : ''}`}
                         onMouseDown={() => { setSelectedStudentId(s.student_id); setSearchIndividual(`${s.name} (${s.student_id})`); setShowStudentDropdown(false); setUndoAction(null) }}>
                         <div className="flex items-center gap-2">
                           {s.nickname && (
@@ -841,7 +841,7 @@ export default function DevPage() {
               {/* 3. Action buttons */}
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => fetchSummary()} disabled={!selectedStudentId || loading}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading
                     ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</>
                     : 'ดึงข้อมูล'
@@ -849,7 +849,7 @@ export default function DevPage() {
                 </button>
                 <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
-                  className="py-2.5 border-2 border-indigo-300 text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  className="py-2.5 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -1009,7 +1009,7 @@ export default function DevPage() {
                             <td style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="flex gap-2">
                                 <button onClick={() => openEdit(log)}
-                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
+                                  className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
                                 <button onClick={() => handleDelete(log.id)}
                                   className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
                               </div>
@@ -1029,7 +1029,7 @@ export default function DevPage() {
                       <span className="text-xs text-gray-400 mr-2">{summary.logs.length} รายการ</span>
                       <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">‹</button>
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-blue-700 text-white border-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
                       ))}
                       <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">›</button>
                     </div>
@@ -1054,7 +1054,7 @@ export default function DevPage() {
                       value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMultiStats(null) }} />
                   </div>
                   <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">
+                    className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">
                     {multiLoading ? 'กำลังโหลด...' : 'ดูสถิติ'}
                   </button>
                   {multiStats && (
@@ -1133,7 +1133,7 @@ export default function DevPage() {
                 </select>
               </div>
               <button onClick={fetchOverview} disabled={overviewLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
+                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
                 {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
               </button>
             </div>
@@ -1174,7 +1174,7 @@ export default function DevPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
                           <td className="px-4 py-3">
-                            <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span>
+                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className={`font-semibold ${totalDays === 0 ? 'text-gray-300' : 'text-blue-600'}`}>{totalDays}</span>
@@ -1187,7 +1187,7 @@ export default function DevPage() {
                           <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3">
                             <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
+                              className="text-xs text-blue-700 hover:text-blue-800 font-medium whitespace-nowrap">
                               ดูรายละเอียด
                             </button>
                           </td>
@@ -1207,7 +1207,7 @@ export default function DevPage() {
             {/* NEW: เพิ่มนิสิต button */}
             <div className="flex justify-end">
               <button onClick={() => setAddStudentOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
@@ -1259,7 +1259,7 @@ export default function DevPage() {
                         </td>
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
+                          <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
                         </td>
                         <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px]">
                           <div className="truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
@@ -1291,9 +1291,9 @@ export default function DevPage() {
                               setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
                               setEditStudentCustomDept(deptInList ? '' : s.department)
                             }}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">แก้ไข</button>
+                              className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
                             <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                              className="text-xs text-blue-700 hover:text-blue-800 font-medium">
                               {s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}
                             </button>
                             <button onClick={() => handleDeleteStudent(s)}
@@ -1328,7 +1328,7 @@ export default function DevPage() {
                   <p className="text-xs text-gray-400">เริ่ม: {new Date(activeCampaign.created_at).toLocaleString('th-TH')}</p>
                   <p className="text-sm text-gray-600">
                     ตอบแล้ว <strong>{feedbackResponses.length}</strong> คน
-                    {avgRating && <> · คะแนนเฉลี่ย <strong className="text-indigo-600">{avgRating}/5</strong></>}
+                    {avgRating && <> · คะแนนเฉลี่ย <strong className="text-blue-700">{avgRating}/5</strong></>}
                   </p>
                   {activeCampaign.end_date && (
                     <p className="text-xs text-gray-400">
@@ -1347,7 +1347,7 @@ export default function DevPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">หัวข้อ</label>
                     <input
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       placeholder="เช่น ความพึงพอใจระบบ ประจำเดือน มิ.ย."
                       value={newCampaignTitle}
                       onChange={e => setNewCampaignTitle(e.target.value)}
@@ -1356,7 +1356,7 @@ export default function DevPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">คำถาม / ข้อความถึงผู้ใช้</label>
                     <textarea
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       rows={2}
                       placeholder="กรุณาให้ความคิดเห็นเกี่ยวกับระบบ (ไม่กรอกใช้ข้อความเริ่มต้น)"
                       value={newCampaignMsg}
@@ -1367,14 +1367,14 @@ export default function DevPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">ระยะเวลา (วัน) — ว่าง = ไม่จำกัด</label>
                     <input
                       type="number" min={1}
-                      className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       placeholder="เช่น 30"
                       value={newCampaignDays}
                       onChange={e => setNewCampaignDays(e.target.value)}
                     />
                   </div>
                   <button onClick={startCampaign} disabled={campaignSaving}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                     {campaignSaving ? 'กำลังเริ่ม...' : 'เริ่ม Campaign'}
                   </button>
                 </div>
@@ -1453,7 +1453,7 @@ export default function DevPage() {
                 </div>
               </div>
               <button onClick={addManager} disabled={newMgrSaving}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 {newMgrSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Manager'}
               </button>
             </div>
@@ -1478,7 +1478,7 @@ export default function DevPage() {
                         <p className="text-xs text-gray-400">{m.department || 'ทุกแผนก'}</p>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => openEditMgr(m)} className="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">แก้ไข</button>
+                        <button onClick={() => openEditMgr(m)} className="text-xs text-blue-600 hover:text-blue-700 transition-colors">แก้ไข</button>
                         <button onClick={() => deleteManager(m.id)} className="text-xs text-red-400 hover:text-red-600 transition-colors">ลบ</button>
                       </div>
                     </div>
@@ -1522,7 +1522,7 @@ export default function DevPage() {
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditMgrModal(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={saveEditMgr} disabled={editMgrSaving} className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editMgrSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+              <button onClick={saveEditMgr} disabled={editMgrSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editMgrSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -1569,7 +1569,7 @@ export default function DevPage() {
               <button onClick={() => setEditingLog(null)}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleEditSave} disabled={editSaving}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {editSaving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>
@@ -1643,7 +1643,7 @@ export default function DevPage() {
               <button onClick={() => setAddStudentOpen(false)}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleAddStudent} disabled={addStudentSaving}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {addStudentSaving ? 'กำลังเพิ่ม...' : 'เพิ่มนิสิต'}
               </button>
             </div>
@@ -1713,7 +1713,7 @@ export default function DevPage() {
               <button onClick={() => setAddLogOpen(false)}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleAddLog} disabled={addLogSaving}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}
               </button>
             </div>
@@ -1788,7 +1788,7 @@ export default function DevPage() {
               <button onClick={() => { setEditStudentModal(null); setEditStudentCustomDept('') }}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleEditStudent} disabled={editStudentSaving}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {editStudentSaving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
             </div>
@@ -1823,7 +1823,7 @@ export default function DevPage() {
               <button onClick={() => { setPinModal(null); setPinInput('') }}
                 className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleSetPin} disabled={pinSaving}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {pinSaving ? 'กำลังบันทึก...' : 'บันทึก PIN'}
               </button>
             </div>
@@ -1840,14 +1840,14 @@ export default function DevPage() {
             <div><label className="block text-xs font-medium text-gray-500 mb-1">หัวข้อ</label><input className={inputCls} placeholder="เช่น แจ้งกำหนดส่งงาน" value={annTitle} onChange={e => setAnnTitle(e.target.value)} /></div>
             <div><label className="block text-xs font-medium text-gray-500 mb-1">เนื้อหา</label><textarea className={inputCls + ' resize-none'} rows={3} placeholder="รายละเอียดประกาศ..." value={annBody} onChange={e => setAnnBody(e.target.value)} /></div>
             <div><label className="block text-xs font-medium text-gray-500 mb-1">หมดอายุ (ไม่บังคับ)</label><input type="datetime-local" className={inputCls + ' w-auto'} value={annExpires} onChange={e => setAnnExpires(e.target.value)} /></div>
-            <button onClick={handlePostAnnouncement} disabled={annSaving} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+            <button onClick={handlePostAnnouncement} disabled={annSaving} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
               {annSaving ? 'กำลังโพสต์...' : 'โพสต์ประกาศ'}
             </button>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-700 text-sm">ประกาศที่ใช้งานอยู่</h2>
-              <button onClick={fetchAnnouncements} disabled={annLoading} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{annLoading ? '...' : 'รีเฟรช'}</button>
+              <button onClick={fetchAnnouncements} disabled={annLoading} className="text-xs text-blue-700 hover:text-blue-800 font-medium">{annLoading ? '...' : 'รีเฟรช'}</button>
             </div>
             {annLoading ? (
               <div className="py-10 text-center text-gray-400 text-sm">กำลังโหลด...</div>

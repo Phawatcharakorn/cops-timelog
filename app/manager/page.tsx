@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, type Student, type TimeLog, type Announcement } from '@/lib/supabase'
@@ -45,7 +45,7 @@ function fromDatetimeLocal(local: string) { if (!local) return null; return new 
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
 
-const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400'
+const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
 
 export default function ManagerPage() {
   const [authed, setAuthed]     = useState(false)
@@ -446,7 +446,7 @@ export default function ManagerPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm p-8 space-y-5">
           <div className="text-center">
-            <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -457,8 +457,8 @@ export default function ManagerPage() {
           {pwError && <div className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-sm text-center">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>}
           <div><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label><input className={inputCls} placeholder="username" value={userInput} onChange={e => setUserInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label><input type="password" className={inputCls} placeholder="password" value={pwInput} onChange={e => setPwInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} /></div>
-          <button onClick={handleLogin} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-colors">เข้าสู่ระบบ</button>
-          <div className="text-center"><a href="/student" className="text-xs text-gray-400 hover:text-purple-500 transition-colors">กลับหน้าบันทึกเวลา</a></div>
+          <button onClick={handleLogin} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl transition-colors">เข้าสู่ระบบ</button>
+          <div className="text-center"><a href="/student" className="text-xs text-gray-400 hover:text-blue-600 transition-colors">กลับหน้าบันทึกเวลา</a></div>
         </div>
       </div>
     )
@@ -494,7 +494,7 @@ export default function ManagerPage() {
           {/* 'roster' tab (รายละเอียด) ซ่อนชั่วคราว — ฟีเจอร์ยังไม่พร้อม */}
           {(['individual', 'overview', 'manage', 'announce'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements() }}
-              className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[64px] ${tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+              className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[64px] ${tab === t ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
           ))}
@@ -525,7 +525,7 @@ export default function ManagerPage() {
                   <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
                     {filteredIndividual.map(s => (
                       <li key={s.student_id}
-                        className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-purple-50 ${selectedStudentId === s.student_id ? 'bg-purple-50' : ''}`}
+                        className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-blue-50 ${selectedStudentId === s.student_id ? 'bg-blue-50' : ''}`}
                         onMouseDown={() => { setSelectedStudentId(s.student_id); setSearchIndividual(`${s.name} (${s.student_id})`); setShowStudentDropdown(false); setUndoAction(null) }}>
                         <div className="flex items-center gap-2">
                           {s.nickname && (
@@ -550,12 +550,12 @@ export default function ManagerPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => fetchSummary()} disabled={!selectedStudentId || loading}
-                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                  className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</> : 'ดึงข้อมูล'}
                 </button>
                 <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
-                  className="py-2.5 border-2 border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  className="py-2.5 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   เพิ่ม Log
                 </button>
@@ -568,7 +568,7 @@ export default function ManagerPage() {
                   {[
                     { label: 'Work Days',   value: `${summary.totalDays}`,                            color: 'bg-blue-50 text-blue-700 border-blue-100' },
                     { label: 'Total Hours', value: `${summary.totalHours}h ${summary.totalMinutes}m`, color: 'bg-green-50 text-green-700 border-green-100' },
-                    { label: 'Tasks',       value: `${summary.taskCount}`,                            color: 'bg-purple-50 text-purple-700 border-purple-100' },
+                    { label: 'Tasks',       value: `${summary.taskCount}`,                            color: 'bg-blue-50 text-blue-700 border-blue-100' },
                   ].map(c => (
                     <div key={c.label} className={`${c.color} border rounded-xl p-3 sm:p-5 text-center`}>
                       <p className="text-xs sm:text-sm font-medium opacity-60 mb-1 sm:mb-3">{c.label}</p>
@@ -622,7 +622,7 @@ export default function ManagerPage() {
                             </div>
                           </div>
                           <div className="flex gap-3 flex-shrink-0">
-                            <button onClick={() => openEdit(log)} className="text-xs text-purple-600 hover:text-purple-800 font-semibold">แก้ไข</button>
+                            <button onClick={() => openEdit(log)} className="text-xs text-blue-700 hover:text-blue-800 font-semibold">แก้ไข</button>
                             <button onClick={() => handleDelete(log.id)} className="text-xs text-red-500 hover:text-red-700 font-semibold">ลบ</button>
                           </div>
                         </div>
@@ -744,7 +744,7 @@ export default function ManagerPage() {
                             </td>
                             <td style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               <div className="flex gap-2">
-                                <button onClick={() => openEdit(log)} className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
+                                <button onClick={() => openEdit(log)} className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
                                 <button onClick={() => handleDelete(log.id)} className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
                               </div>
                             </td>
@@ -761,7 +761,7 @@ export default function ManagerPage() {
                       <span className="text-xs text-gray-400 mr-2">{summary.logs.length} รายการ</span>
                       <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">‹</button>
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
+                        <button key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 text-xs rounded-lg border ${currentPage === p ? 'bg-blue-700 text-white border-blue-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{p}</button>
                       ))}
                       <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50">›</button>
                     </div>
@@ -776,7 +776,7 @@ export default function ManagerPage() {
                 <div className="flex flex-wrap items-end gap-4">
                   <div><label className="block text-xs text-gray-500 mb-1">จากเดือน</label><input type="month" className={inputCls + ' w-auto'} value={rangeStart} onChange={e => { setRangeStart(e.target.value); setMultiStats(null) }} /></div>
                   <div><label className="block text-xs text-gray-500 mb-1">ถึงเดือน</label><input type="month" className={inputCls + ' w-auto'} value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMultiStats(null) }} /></div>
-                  <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">{multiLoading ? 'กำลังโหลด...' : 'ดูสถิติ'}</button>
+                  <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">{multiLoading ? 'กำลังโหลด...' : 'ดูสถิติ'}</button>
                   {multiStats && <button onClick={() => handleExportCSV(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export CSV ช่วงนี้</button>}
                 </div>
                 {multiStats && (
@@ -796,14 +796,14 @@ export default function ManagerPage() {
                             <td className="px-4 py-3 font-medium text-gray-700">{format(new Date(s.month + '-01'), 'MMMM yyyy', { locale: th })}</td>
                             <td className="px-4 py-3 text-center text-blue-600 font-semibold">{s.days}</td>
                             <td className="px-4 py-3 text-center text-green-600 font-semibold">{s.hours}h {s.minutes}m</td>
-                            <td className="px-4 py-3 text-center text-purple-600 font-semibold">{s.tasks}</td>
+                            <td className="px-4 py-3 text-center text-blue-700 font-semibold">{s.tasks}</td>
                           </tr>
                         ))}
                         <tr className="bg-gray-50 font-semibold text-gray-700 border-t-2 border-gray-200">
                           <td className="px-4 py-3">รวม {multiStats.length} เดือน</td>
                           <td className="px-4 py-3 text-center text-blue-700">{multiStats.reduce((s, m) => s + m.days, 0)} วัน</td>
                           <td className="px-4 py-3 text-center text-green-700">{(() => { const t = multiStats.reduce((s, m) => s + m.hours * 60 + m.minutes, 0); return `${Math.floor(t / 60)}h ${t % 60}m` })()}</td>
-                          <td className="px-4 py-3 text-center text-purple-700">{multiStats.reduce((s, m) => s + m.tasks, 0)}</td>
+                          <td className="px-4 py-3 text-center text-blue-700">{multiStats.reduce((s, m) => s + m.tasks, 0)}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -826,7 +826,7 @@ export default function ManagerPage() {
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <button onClick={fetchOverview} disabled={overviewLoading} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
+              <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
             </div>
             {overview.length > 0 && (() => {
               const filteredOverview = (overviewDept ? overview.filter(o => o.student.department === overviewDept) : overview).sort((a, b) => deptOrder(a.student.department) - deptOrder(b.student.department) || a.student.name.localeCompare(b.student.name, 'th'))
@@ -859,12 +859,12 @@ export default function ManagerPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
-                          <td className="px-4 py-3"><span className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span></td>
+                          <td className="px-4 py-3"><span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span></td>
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalDays === 0 ? 'text-gray-300' : 'text-blue-600'}`}>{totalDays}</span></td>
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalHours === 0 && totalMinutes === 0 ? 'text-gray-300' : 'text-green-600'}`}>{totalHours}h {totalMinutes}m</span></td>
-                          <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
+                          <td className="px-4 py-3 text-center text-blue-700 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3">
-                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium whitespace-nowrap">ดูรายละเอียด</button>
+                            <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }} className="text-xs text-blue-700 hover:text-blue-800 font-medium whitespace-nowrap">ดูรายละเอียด</button>
                           </td>
                         </tr>
                       ))}
@@ -880,7 +880,7 @@ export default function ManagerPage() {
         {tab === 'manage' && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button onClick={() => setAddStudentOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+              <button onClick={() => setAddStudentOpen(true)} className="bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
                 เพิ่มนิสิตใหม่
               </button>
@@ -920,7 +920,7 @@ export default function ManagerPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
-                          <td className="px-4 py-3 whitespace-nowrap"><span className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span></td>
+                          <td className="px-4 py-3 whitespace-nowrap"><span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span></td>
                           <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px]">
                             <div className="truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
                             {s.major && <div className="text-gray-400 truncate">{s.major}</div>}
@@ -940,8 +940,8 @@ export default function ManagerPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-3">
-                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
-                              <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }} className="text-xs text-purple-600 hover:text-purple-800 font-medium">{s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}</button>
+                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
+                              <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }} className="text-xs text-blue-700 hover:text-blue-800 font-medium">{s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}</button>
                               <button onClick={() => handleDeleteStudent(s)} className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
                             </div>
                           </td>
@@ -967,7 +967,7 @@ export default function ManagerPage() {
             <div><label className="block text-xs font-medium text-gray-600 mb-1">สรุปงาน</label><textarea className={inputCls} rows={3} value={editForm.work_summary} onChange={e => setEditForm(f => ({ ...f, work_summary: e.target.value }))} /></div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditingLog(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleEditSave} disabled={editSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+              <button onClick={handleEditSave} disabled={editSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -1019,7 +1019,7 @@ export default function ManagerPage() {
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setAddLogOpen(false)} className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">{addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}</button>
+              <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">{addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}</button>
             </div>
           </div>
         </div>
@@ -1050,7 +1050,7 @@ export default function ManagerPage() {
             <div><label className="block text-xs font-medium text-gray-600 mb-1">PIN (4 หลัก, ไม่บังคับ)</label><input className={inputCls} placeholder="0000" maxLength={4} value={addStudentForm.pin} onChange={e => setAddStudentForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '') }))} /></div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => { setAddStudentOpen(false); setAddStudentCustomDept('') }} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleAddStudent} disabled={addStudentSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{addStudentSaving ? 'กำลังบันทึก...' : 'เพิ่มนิสิต'}</button>
+              <button onClick={handleAddStudent} disabled={addStudentSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{addStudentSaving ? 'กำลังบันทึก...' : 'เพิ่มนิสิต'}</button>
             </div>
           </div>
         </div>
@@ -1079,7 +1079,7 @@ export default function ManagerPage() {
             <div><label className="block text-xs font-medium text-gray-600 mb-1">สาขา</label><input className={inputCls} value={editStudentForm.major} onChange={e => setEditStudentForm(f => ({ ...f, major: e.target.value }))} /></div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditStudentModal(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleEditStudent} disabled={editStudentSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editStudentSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+              <button onClick={handleEditStudent} disabled={editStudentSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{editStudentSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -1094,7 +1094,7 @@ export default function ManagerPage() {
             <p className="text-xs text-gray-400 text-center">ปล่อยว่างเพื่อลบ PIN</p>
             <div className="flex gap-3">
               <button onClick={() => { setPinModal(null); setPinInput('') }} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
-              <button onClick={handleSetPin} disabled={pinSaving} className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{pinSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+              <button onClick={handleSetPin} disabled={pinSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{pinSaving ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -1110,7 +1110,7 @@ export default function ManagerPage() {
             <div><label className="block text-xs font-medium text-gray-500 mb-1">หัวข้อ</label><input className={inputCls} placeholder="เช่น แจ้งกำหนดส่งงาน" value={annTitle} onChange={e => setAnnTitle(e.target.value)} /></div>
             <div><label className="block text-xs font-medium text-gray-500 mb-1">เนื้อหา</label><textarea className={inputCls + ' resize-none'} rows={3} placeholder="รายละเอียดประกาศ..." value={annBody} onChange={e => setAnnBody(e.target.value)} /></div>
             <div><label className="block text-xs font-medium text-gray-500 mb-1">หมดอายุ (ไม่บังคับ)</label><input type="datetime-local" className={inputCls + ' w-auto'} value={annExpires} onChange={e => setAnnExpires(e.target.value)} /></div>
-            <button onClick={handlePostAnnouncement} disabled={annSaving} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+            <button onClick={handlePostAnnouncement} disabled={annSaving} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
               {annSaving ? 'กำลังโพสต์...' : 'โพสต์ประกาศ'}
             </button>
           </div>
@@ -1118,7 +1118,7 @@ export default function ManagerPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-700 text-sm">ประกาศที่ใช้งานอยู่</h2>
-              <button onClick={fetchAnnouncements} disabled={annLoading} className="text-xs text-purple-600 hover:text-purple-800 font-medium">{annLoading ? '...' : 'รีเฟรช'}</button>
+              <button onClick={fetchAnnouncements} disabled={annLoading} className="text-xs text-blue-700 hover:text-blue-800 font-medium">{annLoading ? '...' : 'รีเฟรช'}</button>
             </div>
             {annLoading ? (
               <div className="py-10 text-center text-gray-400 text-sm">กำลังโหลด...</div>
@@ -1171,7 +1171,7 @@ export default function ManagerPage() {
             <div className="flex rounded-lg border border-gray-200 p-1 gap-1">
               {(['info', 'password'] as const).map(t => (
                 <button key={t} onClick={() => { setSettingsTab(t); setPwSettingsError(''); setPwSettingsSuccess(false) }}
-                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${settingsTab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}>
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${settingsTab === t ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}>
                   {t === 'info' ? 'ข้อมูลบัญชี' : 'เปลี่ยนรหัสผ่าน'}
                 </button>
               ))}
@@ -1188,7 +1188,7 @@ export default function ManagerPage() {
                     <p className="text-xs text-gray-400">ชื่อ-นามสกุล</p>
                     {!editingName && (
                       <button onClick={() => { setNameInput(mgrName); setNameError(''); setEditingName(true) }}
-                        className="text-xs text-purple-600 hover:text-purple-800 font-medium">แก้ไข</button>
+                        className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
                     )}
                   </div>
                   {editingName ? (
@@ -1212,7 +1212,7 @@ export default function ManagerPage() {
                               setEditingName(false)
                             } catch { setNameError('เกิดข้อผิดพลาด') } finally { setNameSaving(false) }
                           }}
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-medium py-1.5 rounded-lg">
+                          className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-xs font-medium py-1.5 rounded-lg">
                           {nameSaving ? 'กำลังบันทึก...' : 'บันทึก'}
                         </button>
                       </div>
@@ -1254,7 +1254,7 @@ export default function ManagerPage() {
                           else { setPwSettingsSuccess(true); setPwCurrent(''); setPwNew(''); setPwConfirm('') }
                         } catch { setPwSettingsError('เกิดข้อผิดพลาด กรุณาลองใหม่') } finally { setPwSavingSettings(false) }
                       }}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                      className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
                       {pwSavingSettings ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}
                     </button>
                   </>
@@ -1270,8 +1270,8 @@ export default function ManagerPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
@@ -1284,7 +1284,7 @@ export default function ManagerPage() {
               ))}
             </div>
             {feedbackRating > 0 && <p className="text-center text-sm text-gray-500">{['','แย่มาก','พอใช้','ดี','ดีมาก','ยอดเยี่ยม'][feedbackRating]}</p>}
-            <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" rows={3} placeholder="ความคิดเห็นเพิ่มเติม (ไม่บังคับ)" value={feedbackComment} onChange={e => setFeedbackComment(e.target.value)} />
+            <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" rows={3} placeholder="ความคิดเห็นเพิ่มเติม (ไม่บังคับ)" value={feedbackComment} onChange={e => setFeedbackComment(e.target.value)} />
             <div className="flex gap-3">
               <button onClick={() => setFeedbackModal(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ข้าม</button>
               <button disabled={feedbackRating === 0 || feedbackSaving}
@@ -1296,7 +1296,7 @@ export default function ManagerPage() {
                   })
                   setFeedbackSaving(false); setFeedbackModal(null)
                 }}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
                 {feedbackSaving ? 'กำลังส่ง...' : 'ส่ง Feedback'}
               </button>
             </div>

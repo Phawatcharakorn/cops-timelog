@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase, type Announcement } from '@/lib/supabase'
@@ -258,7 +258,7 @@ export default function StudentPage() {
   const historyDays = new Set(historyLogs.map(l => toThaiTime(l.check_in).toISOString().slice(0, 10))).size
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-start pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col items-center justify-start pb-24">
 
       <SdecHeader
         subtitle="CoPs — ระบบบันทึกเวลา"
@@ -299,13 +299,13 @@ export default function StudentPage() {
 
           {/* Active status bar */}
           {activeLog && (
-            <div className="bg-indigo-600 px-5 py-3 flex items-center justify-between">
+            <div className="bg-blue-700 px-5 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-indigo-200 text-xs">กำลังทำงาน</span>
+                <span className="text-blue-200 text-xs">กำลังทำงาน</span>
               </div>
               <div className="text-white text-sm">
-                <span className="text-indigo-300 text-xs">เข้างาน </span>
+                <span className="text-blue-300 text-xs">เข้างาน </span>
                 <span className="font-semibold">{fmtHHMM(activeLog.check_in)}</span>
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function StudentPage() {
               </label>
               <div className="relative">
                 <input
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium tracking-widest bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:opacity-50 transition-all duration-200 text-center"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium tracking-widest bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:opacity-50 transition-all duration-200 text-center"
                   placeholder="กรอกรหัสนิสิต"
                   value={form.student_id}
                   inputMode="numeric"
@@ -336,7 +336,7 @@ export default function StudentPage() {
                   onBlur={handleStudentIdBlur}
                 />
                 {idLooking && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-indigo-400 animate-pulse">ค้นหา...</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-400 animate-pulse">ค้นหา...</span>
                 )}
               </div>
               {studentNotFound && (
@@ -349,27 +349,27 @@ export default function StudentPage() {
             {/* Student info card */}
             {studentLocked && (
               <div className="anim-slide-up rounded-xl border border-indigo-100 overflow-hidden">
-                <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-indigo-400 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                <div className="bg-blue-700 px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-400 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                     {getInitials(form.name)}
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium text-sm truncate text-white">{form.name}</div>
-                    <div className="text-indigo-300 text-xs">{form.student_id} · {form.department}</div>
+                    <div className="text-blue-300 text-xs">{form.student_id} · {form.department}</div>
                   </div>
                 </div>
                 {(form.faculty || form.major) && (
-                  <div className="px-4 py-2.5 bg-indigo-50 grid grid-cols-2 gap-x-4 gap-y-1">
+                  <div className="px-4 py-2.5 bg-blue-50 grid grid-cols-2 gap-x-4 gap-y-1">
                     {form.faculty && (
                       <div>
-                        <div className="text-xs text-indigo-400">คณะ</div>
-                        <div className="text-xs text-indigo-800 font-medium leading-tight mt-0.5">{form.faculty}</div>
+                        <div className="text-xs text-blue-400">คณะ</div>
+                        <div className="text-xs text-blue-800 font-medium leading-tight mt-0.5">{form.faculty}</div>
                       </div>
                     )}
                     {form.major && (
                       <div>
-                        <div className="text-xs text-indigo-400">สาขา</div>
-                        <div className="text-xs text-indigo-800 font-medium leading-tight mt-0.5">{form.major}</div>
+                        <div className="text-xs text-blue-400">สาขา</div>
+                        <div className="text-xs text-blue-800 font-medium leading-tight mt-0.5">{form.major}</div>
                       </div>
                     )}
                   </div>
@@ -380,12 +380,12 @@ export default function StudentPage() {
             {/* PIN setup (first time) — 2 fields at once */}
             {studentLocked && pinSetStep && (
               <div className="anim-slide-up space-y-3">
-                <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest">ตั้ง PIN ครั้งแรก 🔑</p>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">ตั้ง PIN ครั้งแรก 🔑</p>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">PIN</label>
                   <input
                     type="password" inputMode="numeric" maxLength={4} autoFocus autoComplete="new-password"
-                    className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent tracking-widest text-center"
                     placeholder="• • • •"
                     value={pinFirst}
                     onChange={e => setPinFirst(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -395,7 +395,7 @@ export default function StudentPage() {
                   <label className="block text-xs text-gray-400 mb-1">ยืนยัน PIN</label>
                   <input
                     type="password" inputMode="numeric" maxLength={4} autoComplete="new-password"
-                    className="w-full border border-indigo-300 rounded-xl px-4 py-3 text-sm bg-indigo-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent tracking-widest text-center"
                     placeholder="• • • •"
                     value={pinConfirm}
                     onChange={e => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -405,7 +405,7 @@ export default function StudentPage() {
                 <button
                   onClick={handleSetNewPin}
                   disabled={pinSetting || pinFirst.length !== 4 || pinConfirm.length !== 4}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
                   {pinSetting ? 'กำลังบันทึก...' : 'ยืนยัน PIN'}
                 </button>
               </div>
@@ -417,7 +417,7 @@ export default function StudentPage() {
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
                   type="password" inputMode="numeric" maxLength={4} autoComplete="off"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent tracking-widest text-center"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent tracking-widest text-center"
                   placeholder="กรอก PIN 4 หลัก"
                   value={pinInput}
                   onChange={e => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -430,7 +430,7 @@ export default function StudentPage() {
               <div className="anim-slide-up border-t border-gray-100 pt-4">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
                 <textarea
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
                   rows={3}
                   placeholder="อธิบายงานที่ทำในวันนี้..."
                   value={workSummary}
@@ -444,7 +444,7 @@ export default function StudentPage() {
               <button
                 onClick={handleCheckIn}
                 disabled={loading || studentNotFound || cooldown > 0 || !studentLocked}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300"
+                className="w-full bg-blue-700 hover:bg-blue-800 active:scale-95 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all duration-150 shadow-md shadow-blue-200 hover:shadow-lg hover:shadow-blue-300"
               >
                 {loading ? 'กำลังบันทึก...' : cooldown > 0 ? `รอ ${cooldown} วินาที...` : 'บันทึกเวลาเข้า'}
               </button>
@@ -461,7 +461,7 @@ export default function StudentPage() {
             {/* History toggle */}
             {studentLocked && (
               <button onClick={handleToggleHistory}
-                className="w-full text-xs text-gray-400 hover:text-indigo-500 font-medium py-1 transition-colors flex items-center justify-center gap-1">
+                className="w-full text-xs text-gray-400 hover:text-blue-600 font-medium py-1 transition-colors flex items-center justify-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -496,7 +496,7 @@ export default function StudentPage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">ประวัติการลงเวลา</p>
                 <button onClick={() => fetchHistory(historyMonth)} disabled={historyLoading}
-                  className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium">
                   {historyLoading ? '...' : 'รีเฟรช'}
                 </button>
               </div>
@@ -573,7 +573,7 @@ export default function StudentPage() {
             ].map(l => (
               <a key={l.label} href={l.href}
                 {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
+                className="text-xs text-gray-400 hover:text-blue-600 transition-colors">
                 {l.label}
               </a>
             ))}
@@ -597,7 +597,7 @@ export default function StudentPage() {
           }
         }}>
         {playing && (
-          <span className="text-xs text-indigo-500 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm">
+          <span className="text-xs text-blue-600 font-medium bg-white/80 rounded-full px-2 py-0.5 shadow-sm">
             ♪ กำลังเล่น
           </span>
         )}
@@ -616,8 +616,8 @@ export default function StudentPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
             <div className="text-center">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
@@ -674,7 +674,7 @@ export default function StudentPage() {
                   setFeedbackSaving(false)
                   setFeedbackModal(null)
                 }}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
                 {feedbackSaving ? 'กำลังส่ง...' : 'ส่ง Feedback'}
               </button>
             </div>
