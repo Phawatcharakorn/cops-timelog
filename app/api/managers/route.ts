@@ -11,10 +11,20 @@ function unauthorized() {
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
-  const { data, error } = await supabaseAdmin()
+  let { data, error } = await supabaseAdmin()
     .from('managers')
     .select('id, username, name, role, department, created_at')
     .order('created_at', { ascending: false })
+
+  if (error) {
+    // role column may not exist yet — fallback without it
+    const fallback = await supabaseAdmin()
+      .from('managers')
+      .select('id, username, name, department, created_at')
+      .order('created_at', { ascending: false })
+    data = fallback.data
+    error = fallback.error
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
