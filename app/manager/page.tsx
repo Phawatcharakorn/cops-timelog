@@ -6,6 +6,7 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
+import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
@@ -471,24 +472,20 @@ export default function ManagerPage() {
   // ── Main ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1 flex items-center gap-2">
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">Manager Dashboard</h1>
-            <p className="text-xs text-gray-400 mt-0.5 truncate">{mgrName}{mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}</p>
-          </div>
+      <SdecHeader
+        subtitle={`${mgrName}${mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}`}
+        right={<>
           <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="ตั้งค่า">
+            className="w-8 h-8 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="ตั้งค่า">
             <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
             </svg>
           </button>
-        </div>
-        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-          <a href="/student" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors whitespace-nowrap">หน้าบันทึก</a>
-          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept','mgr_token'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }} className="text-xs sm:text-sm text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">ออกจากระบบ</button>
-        </div>
-      </header>
+          <a href="/student" className="text-xs text-white/80 hover:text-white font-medium whitespace-nowrap transition-colors">หน้าบันทึก</a>
+          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept','mgr_token'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }}
+            className="text-xs text-white/50 hover:text-white/80 whitespace-nowrap transition-colors">ออกจากระบบ</button>
+        </>}
+      />
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
