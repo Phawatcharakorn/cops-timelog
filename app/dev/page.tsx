@@ -529,9 +529,9 @@ export default function DevPage() {
   }
 
   // ── Derived state ──────────────────────────────────────────────────────────
-  const filteredOverview = overviewDept
+  const filteredOverview = (overviewDept
     ? overview.filter(o => o.student.department === overviewDept)
-    : overview
+    : overview).sort((a, b) => deptOrder(a.student.department) - deptOrder(b.student.department) || a.student.name.localeCompare(b.student.name, 'th'))
 
   const q = (s: string) => s.toLowerCase()
   const deptOrder = (dept: string) => { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -1154,12 +1154,12 @@ export default function DevPage() {
                   </p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[600px] text-sm">
                     <thead className="bg-gray-50 text-gray-500 text-xs">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
-                        <th className="px-4 py-3 text-left font-medium">รหัส</th>
-                        <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
+                        <th className="px-4 py-3 text-left font-medium whitespace-nowrap">ชื่อ-นามสกุล</th>
+                        <th className="px-4 py-3 text-left font-medium whitespace-nowrap">รหัส</th>
+                        <th className="px-4 py-3 text-left font-medium whitespace-nowrap">ฝ่าย</th>
                         <th className="px-4 py-3 text-center font-medium">วันทำงาน</th>
                         <th className="px-4 py-3 text-center font-medium">ชั่วโมงรวม</th>
                         <th className="px-4 py-3 text-center font-medium">งาน</th>
@@ -1169,7 +1169,7 @@ export default function DevPage() {
                     <tbody className="divide-y divide-gray-100">
                       {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">
+                          <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
                               <span className={student.student_id === '6630202571' ? 'admin-rainbow' : ''}>{student.name}</span>

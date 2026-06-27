@@ -831,7 +831,7 @@ export default function ManagerPage() {
               <button onClick={fetchOverview} disabled={overviewLoading} className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
             </div>
             {overview.length > 0 && (() => {
-              const filteredOverview = overviewDept ? overview.filter(o => o.student.department === overviewDept) : overview
+              const filteredOverview = (overviewDept ? overview.filter(o => o.student.department === overviewDept) : overview).sort((a, b) => deptOrder(a.student.department) - deptOrder(b.student.department) || a.student.name.localeCompare(b.student.name, 'th'))
               return (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
@@ -854,7 +854,7 @@ export default function ManagerPage() {
                     <tbody className="divide-y divide-gray-100">
                       {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-800">
+                          <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
                               <span className={student.student_id === '6630202571' ? 'admin-rainbow' : ''}>{student.name}</span>
