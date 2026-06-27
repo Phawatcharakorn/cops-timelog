@@ -9,6 +9,13 @@ import RosterTab from '@/app/components/RosterTab'
 import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
+const DEPT_CHIP: Record<string, string> = {
+  'Marketing':                  'bg-rose-100 text-rose-700 border-rose-300',
+  'Event Organizer':            'bg-violet-100 text-violet-700 border-violet-300',
+  'Human Resource Development': 'bg-sky-100 text-sky-700 border-sky-300',
+  'Catering':                   'bg-amber-100 text-amber-700 border-amber-300',
+  'Student Assistant':          'bg-emerald-100 text-emerald-700 border-emerald-300',
+}
 const FACULTIES = [
   'คณะพาณิชยนาวีนานาชาติ',
   'คณะเศรษฐศาสตร์ ศรีราชา',
@@ -528,7 +535,7 @@ export default function DevPage() {
 
   const q = (s: string) => s.toLowerCase()
   const filteredStudentsIndividual = searchIndividual
-    ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual))
+    ? students.filter(s => q(s.name).includes(q(searchIndividual)) || s.student_id.includes(searchIndividual) || (s.nickname && q(s.nickname).includes(q(searchIndividual))))
     : students
   const filteredStudentsManage = searchManage
     ? students.filter(s => q(s.name).includes(q(searchManage)) || s.student_id.includes(searchManage))
@@ -796,10 +803,17 @@ export default function DevPage() {
                   <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
                     {filteredStudentsIndividual.map(s => (
                       <li key={s.student_id}
-                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${selectedStudentId === s.student_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                        className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 ${selectedStudentId === s.student_id ? 'bg-indigo-50' : ''}`}
                         onMouseDown={() => { setSelectedStudentId(s.student_id); setSearchIndividual(`${s.name} (${s.student_id})`); setShowStudentDropdown(false); setUndoAction(null) }}>
-                        <span className="font-medium">{s.name}</span>
-                        <span className="text-xs text-gray-400 ml-2">{s.student_id}</span>
+                        <div className="flex items-center gap-2">
+                          {s.nickname && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[s.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                              {s.nickname}
+                            </span>
+                          )}
+                          <span className="font-medium text-gray-800 truncate">{s.name}</span>
+                          <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{s.student_id}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
