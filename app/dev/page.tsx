@@ -6,7 +6,6 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
-import RainbowText from '@/app/components/RainbowText'
 import { showToast } from '@/app/components/Toast'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
@@ -1174,7 +1173,7 @@ export default function DevPage() {
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
-                              {student.student_id === '6630202571' ? <RainbowText text={student.name} /> : <span>{student.name}</span>}
+                              <span>{student.name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>

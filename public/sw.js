@@ -19,13 +19,17 @@ self.addEventListener('fetch', e => {
 
   if (url.pathname.startsWith('/api/')) return
 
+  function cacheable(res) {
+    return res.ok && res.status !== 206
+  }
+
   // Next.js hashed static assets: cache-first
   if (url.pathname.startsWith('/_next/static/')) {
     e.respondWith(
       caches.match(e.request).then(hit => {
         if (hit) return hit
         return fetch(e.request).then(res => {
-          if (res.ok) {
+          if (cacheable(res)) {
             const clone = res.clone()
             caches.open(CACHE).then(c => c.put(e.request, clone))
           }
@@ -41,7 +45,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(e.request)
         .then(res => {
-          if (res.ok) {
+          if (cacheable(res)) {
             const clone = res.clone()
             caches.open(CACHE).then(c => c.put(e.request, clone))
           }
@@ -56,7 +60,7 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => {
       const fresh = fetch(e.request).then(res => {
-        if (res.ok) {
+        if (cacheable(res)) {
           const clone = res.clone()
           caches.open(CACHE).then(c => c.put(e.request, clone))
         }

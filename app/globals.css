@@ -73,18 +73,6 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
 .anim-delay-3    { animation-delay: 0.24s; }
 .anim-delay-4    { animation-delay: 0.32s; }
 
-/* ── Admin rainbow text effect ───────────────────────────────────────────── */
-@keyframes rainbow-text {
-  0%   { color: #ff4d4d; }
-  14%  { color: #ff9900; }
-  28%  { color: #ffe600; }
-  42%  { color: #00e676; }
-  57%  { color: #00cfff; }
-  71%  { color: #7c4dff; }
-  85%  { color: #ff40ff; }
-  100% { color: #ff4d4d; }
-}
-
 /* ── Smooth animation system ─────────────────────────────────────────────── */
 
 @keyframes fadeInUp {

@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   themeColor: '#4f46e5',
   appleWebApp: { statusBarStyle: 'default', title: 'SDEC' },
+  other: { 'mobile-web-app-capable': 'yes' },
   viewport: { width: 'device-width', initialScale: 1, maximumScale: 1, viewportFit: 'cover' },
 }
 
