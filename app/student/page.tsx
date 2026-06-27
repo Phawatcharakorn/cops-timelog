@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, type Announcement } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
+import RainbowText from '@/app/components/RainbowText'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
@@ -350,7 +351,7 @@ export default function StudentPage() {
                     {getInitials(form.name)}
                   </div>
                   <div className="min-w-0">
-                    <div className={`font-medium text-sm truncate ${form.student_id === '6630202571' ? 'admin-rainbow' : 'text-white'}`}>{form.name}</div>
+                    <div className="font-medium text-sm truncate">{form.student_id === '6630202571' ? <RainbowText text={form.name} /> : <span className="text-white">{form.name}</span>}</div>
                     <div className="text-indigo-300 text-xs">{form.student_id} · {form.department}</div>
                   </div>
                 </div>

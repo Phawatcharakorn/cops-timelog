@@ -84,10 +84,6 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
   85%  { color: #ff40ff; }
   100% { color: #ff4d4d; }
 }
-.admin-rainbow {
-  animation: rainbow-text 2s linear infinite;
-  font-weight: 700 !important;
-}
 
 /* ── Smooth animation system ─────────────────────────────────────────────── */
 
