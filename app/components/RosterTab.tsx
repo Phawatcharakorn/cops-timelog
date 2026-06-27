@@ -139,8 +139,8 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
     setSaving(true)
     try {
       const newId = editForm.student_id.trim()
-      const { error } = await supabase.from('students').update({
-        student_id:  newId || detail.student_id,
+      const idChanged = newId && newId !== detail.student_id
+      const updates: Record<string, unknown> = {
         name:        editForm.name.trim() || detail.name,
         nickname:    editForm.nickname.trim() || null,
         department:  deptToSave,
@@ -156,7 +156,9 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
         national_id: editForm.national_id.trim() || null,
         note:        editForm.note.trim() || null,
         status:      editForm.status || null,
-      }).eq('student_id', detail.student_id)
+      }
+      if (idChanged) updates.student_id = newId
+      const { error } = await supabase.from('students').update(updates).eq('student_id', detail.student_id)
       if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
       showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
       onRefresh()
