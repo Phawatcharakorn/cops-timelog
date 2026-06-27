@@ -29,6 +29,15 @@ const GEN_COLORS: Record<number, { chip: string; active: string; hex: string }> 
   5: { chip: 'bg-rose-100 text-rose-700 border border-rose-300',       active: 'bg-rose-600 text-white border-transparent',   hex: '#e11d48' },
 }
 
+const DEPT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  'Marketing':                  { bg: 'bg-rose-100',    text: 'text-rose-700',    border: 'border-rose-300' },
+  'Event Organizer':            { bg: 'bg-violet-100',  text: 'text-violet-700',  border: 'border-violet-300' },
+  'Human Resource Development': { bg: 'bg-sky-100',     text: 'text-sky-700',     border: 'border-sky-300' },
+  'Catering':                   { bg: 'bg-amber-100',   text: 'text-amber-700',   border: 'border-amber-300' },
+  'Student Assistant':          { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
+}
+const DEFAULT_DEPT_COLOR = { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-300' }
+
 const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white'
 
 function GenBadge({ gen }: { gen: number | null }) {
@@ -49,6 +58,16 @@ function StatusBadge({ status }: { status: string | null }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${cls}`}>{status}</span>
 }
 
+function NicknameBadge({ nickname, department }: { nickname: string | null; department: string }) {
+  if (!nickname) return null
+  const c = DEPT_COLORS[department] ?? DEFAULT_DEPT_COLOR
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${c.bg} ${c.text} ${c.border}`}>
+      {nickname}
+    </span>
+  )
+}
+
 function formatBirthdate(iso: string | null) {
   if (!iso) return null
   const d = new Date(iso)
@@ -57,7 +76,7 @@ function formatBirthdate(iso: string | null) {
 
 type EditForm = {
   student_id: string
-  name: string; department: string; faculty: string; major: string
+  name: string; nickname: string; department: string; faculty: string; major: string
   gen: string; phone: string; email: string; religion: string
   nationality: string; birthdate: string; gender: string; national_id: string
   note: string; status: string
@@ -80,7 +99,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
   const [saving,     setSaving]     = useState(false)
   const [editForm,   setEditForm]   = useState<EditForm>({
     student_id: '',
-    name: '', department: '', faculty: '', major: '',
+    name: '', nickname: '', department: '', faculty: '', major: '',
     gen: '', phone: '', email: '', religion: '',
     nationality: '', birthdate: '', gender: '', national_id: '',
     note: '', status: '',
@@ -95,6 +114,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
     setEditForm({
       student_id:  s.student_id,
       name:        s.name,
+      nickname:    s.nickname ?? '',
       department:  deptInList ? s.department : 'อื่นๆ',
       faculty:     s.faculty ?? FACULTIES[0],
       major:       s.major ?? '',
@@ -122,6 +142,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
       const { error } = await supabase.from('students').update({
         student_id:  newId || detail.student_id,
         name:        editForm.name.trim() || detail.name,
+        nickname:    editForm.nickname.trim() || null,
         department:  deptToSave,
         faculty:     editForm.faculty || null,
         major:       editForm.major.trim() || null,
@@ -242,7 +263,12 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                       className="roster-row hover:bg-purple-50 cursor-pointer" style={{ minHeight: 44 }}>
                       <td className="px-3 py-2.5 whitespace-nowrap"><GenBadge gen={s.gen} /></td>
                       <td className="px-3 py-2.5 whitespace-nowrap"><StatusBadge status={s.status} /></td>
-                      <td className="px-3 py-2.5 font-medium text-gray-800 text-sm whitespace-nowrap">{s.name}</td>
+                      <td className="px-3 py-2.5 text-sm whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-gray-800">{s.name}</span>
+                          <NicknameBadge nickname={s.nickname} department={s.department} />
+                        </div>
+                      </td>
                       <td className="px-3 py-2.5 text-gray-500 text-xs font-mono whitespace-nowrap">{s.student_id}</td>
                       <td className="px-3 py-2.5 text-gray-600 text-xs whitespace-nowrap">{s.department}</td>
                       <td className="px-3 py-2.5 text-gray-500 text-xs whitespace-nowrap">{[s.faculty, s.major].filter(Boolean).join(' · ')}</td>
@@ -263,6 +289,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-gray-800 text-base">{detail.name}</h3>
+                  <NicknameBadge nickname={detail.nickname} department={detail.department} />
                   <button
                     onClick={() => {
                       window.open(`/print-roster?studentId=${detail.student_id}`, '_blank')
@@ -288,6 +315,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                 </div>
                 <div className="space-y-1.5">
                   {[
+                    { label: 'ชื่อเล่น',       value: detail.nickname },
                     { label: 'ฝ่าย',          value: detail.department },
                     { label: 'คณะ',            value: detail.faculty },
                     { label: 'สาขาวิชา',       value: detail.major },
@@ -322,6 +350,10 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล</label>
                   <input className={inputCls} value={editForm.name} onChange={set('name')} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">ชื่อเล่น</label>
+                  <input className={inputCls} placeholder="ชื่อเล่น..." value={editForm.nickname} onChange={set('nickname')} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">ฝ่าย</label>

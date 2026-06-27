@@ -31,7 +31,7 @@ type StudentOverview = {
 }
 type EditForm     = { check_in: string; check_out: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
-type AddStudentForm = { student_id: string; name: string; department: string; faculty: string; major: string; pin: string }
+type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
 type AddLogForm   = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string }
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
@@ -110,7 +110,7 @@ export default function DevPage() {
 
   // Add Student modal
   const [addStudentOpen, setAddStudentOpen]     = useState(false)
-  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
 
   // Add Log modal
@@ -342,7 +342,7 @@ export default function DevPage() {
 
   // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
   const handleAddStudent = async () => {
-    const { student_id, name, department, faculty, major, pin } = addStudentForm
+    const { student_id, name, nickname, department, faculty, major, pin } = addStudentForm
     if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
@@ -351,6 +351,7 @@ export default function DevPage() {
       const { error } = await supabase.from('students').insert({
         student_id: student_id.trim(),
         name:       name.trim(),
+        nickname:   nickname.trim() || null,
         department: deptToSave,
         faculty,
         major:      major.trim() || null,
@@ -359,7 +360,7 @@ export default function DevPage() {
       if (error) throw error
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false)
-      setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+      setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
       setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) {
@@ -1556,6 +1557,12 @@ export default function DevPage() {
               <input type="text" className={inputCls} placeholder="ชื่อ นามสกุล"
                 value={addStudentForm.name}
                 onChange={e => setAddStudentForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเล่น</label>
+              <input type="text" className={inputCls} placeholder="ชื่อเล่น..."
+                value={addStudentForm.nickname}
+                onChange={e => setAddStudentForm(f => ({ ...f, nickname: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>

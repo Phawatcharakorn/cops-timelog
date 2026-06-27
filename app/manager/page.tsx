@@ -23,7 +23,7 @@ type Summary = { totalDays: number; totalHours: number; totalMinutes: number; ta
 type StudentOverview = { student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number }
 type EditForm = { check_in: string; check_out: string; work_summary: string }
 type MonthStat = { month: string; days: number; hours: number; minutes: number; tasks: number }
-type AddStudentForm = { student_id: string; name: string; department: string; faculty: string; major: string; pin: string }
+type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
 type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string }
 
 function fmtTime(iso: string) { return format(new Date(iso), 'HH:mm', { locale: th }) }
@@ -78,7 +78,7 @@ export default function ManagerPage() {
   const [editSaving, setEditSaving] = useState(false)
 
   const [addStudentOpen, setAddStudentOpen]   = useState(false)
-  const [addStudentForm, setAddStudentForm]   = useState<AddStudentForm>({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+  const [addStudentForm, setAddStudentForm]   = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
   const [addStudentCustomDept, setAddStudentCustomDept] = useState('')
 
@@ -305,16 +305,16 @@ export default function ManagerPage() {
   }
 
   const handleAddStudent = async () => {
-    const { student_id, name, department, faculty, major, pin } = addStudentForm
+    const { student_id, name, nickname, department, faculty, major, pin } = addStudentForm
     if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
-      const { error } = await supabase.from('students').insert({ student_id: student_id.trim(), name: name.trim(), department: deptToSave, faculty, major: major.trim() || null, pin: pin || null })
+      const { error } = await supabase.from('students').insert({ student_id: student_id.trim(), name: name.trim(), nickname: nickname.trim() || null, department: deptToSave, faculty, major: major.trim() || null, pin: pin || null })
       if (error) throw error
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
-      setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' }); setAddStudentCustomDept('')
+      setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' }); setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) { showToast('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddStudentSaving(false) }
   }
@@ -1006,6 +1006,7 @@ export default function ManagerPage() {
             <h3 className="font-bold text-gray-800">เพิ่มนิสิตใหม่</h3>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">รหัสนิสิต *</label><input className={inputCls} placeholder="6630200000" value={addStudentForm.student_id} onChange={e => setAddStudentForm(f => ({ ...f, student_id: e.target.value }))} /></div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">ชื่อ-นามสกุล *</label><input className={inputCls} placeholder="นาย..." value={addStudentForm.name} onChange={e => setAddStudentForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">ชื่อเล่น</label><input className={inputCls} placeholder="ชื่อเล่น..." value={addStudentForm.nickname} onChange={e => setAddStudentForm(f => ({ ...f, nickname: e.target.value }))} /></div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">ฝ่าย</label>
               <select className={inputCls} value={addStudentForm.department} onChange={e => setAddStudentForm(f => ({ ...f, department: e.target.value }))}>
