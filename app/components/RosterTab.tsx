@@ -265,7 +265,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                       <td className="px-3 py-2.5 whitespace-nowrap"><StatusBadge status={s.status} /></td>
                       <td className="px-3 py-2.5 text-sm whitespace-nowrap">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-medium text-gray-800">{s.name}</span>
+                          <span className={`font-medium ${s.student_id === '6630202571' ? 'admin-rainbow' : 'text-gray-800'}`}>{s.name}</span>
                           <NicknameBadge nickname={s.nickname} department={s.department} />
                         </div>
                       </td>
@@ -288,7 +288,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-gray-800 text-base">{detail.name}</h3>
+                  <h3 className={`font-bold text-base ${detail.student_id === '6630202571' ? 'admin-rainbow' : 'text-gray-800'}`}>{detail.name}</h3>
                   <NicknameBadge nickname={detail.nickname} department={detail.department} />
                   <button
                     onClick={() => {

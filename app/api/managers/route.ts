@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin()
     .from('managers')
-    .select('id, username, name, department, created_at')
+    .select('id, username, name, role, department, created_at')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 // POST: create manager
 export async function POST(req: NextRequest) {
   if (!validateDevToken(req.headers.get('x-dev-token'))) return unauthorized()
-  const { username, password, name, department } = await req.json()
+  const { username, password, name, role, department } = await req.json()
   if (!username || !password || !name) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
   const password_hash = hashPassword(password)
   const { data, error } = await supabaseAdmin()
     .from('managers')
-    .insert({ username, password_hash, name, department: department || null })
-    .select('id, username, name, department, created_at')
+    .insert({ username, password_hash, name, role: role || 'MD', department: department || null })
+    .select('id, username, name, role, department, created_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
 // PATCH: update manager (name, department, optional new password)
 export async function PATCH(req: NextRequest) {
   if (!validateDevToken(req.headers.get('x-dev-token'))) return unauthorized()
-  const { id, name, department, password } = await req.json()
+  const { id, name, role, department, password } = await req.json()
   if (!id || !name) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
-  const updates: Record<string, string | null> = { name, department: department || null }
+  const updates: Record<string, string | null> = { name, role: role || null, department: department || null }
   if (password) updates.password_hash = hashPassword(password)
 
   const { error } = await supabaseAdmin().from('managers').update(updates).eq('id', id)

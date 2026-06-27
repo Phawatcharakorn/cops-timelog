@@ -1,7 +1,17 @@
 -- ─────────────────────────────────────────────────────────────────
--- 0. เพิ่ม column ชื่อเล่น (ถ้ายังไม่มี)
+-- 0a. เพิ่ม column ชื่อเล่น (ถ้ายังไม่มี)
 -- ─────────────────────────────────────────────────────────────────
 ALTER TABLE students ADD COLUMN IF NOT EXISTS nickname TEXT;
+
+-- ─────────────────────────────────────────────────────────────────
+-- 0b. เพิ่ม column ยศ (role) ใน managers (ถ้ายังไม่มี)
+-- ─────────────────────────────────────────────────────────────────
+ALTER TABLE managers ADD COLUMN IF NOT EXISTS role TEXT;
+
+-- ตั้งยศ MD ให้ ณัชพล (@Monday) และ ธัญชนก (@Noey)
+UPDATE managers SET role = 'MD'      WHERE username IN ('Monday', 'Noey');
+-- ตั้งยศ Manager ให้อาจารย์ Ardhan และ Fmsctr
+UPDATE managers SET role = 'Manager' WHERE username IN ('Ardhan', 'Fmsctr');
 
 -- ─────────────────────────────────────────────────────────────────
 -- 1. เปลี่ยนชื่อฝ่ายเก่า "Event" → "Event Organizer" ในฐานข้อมูล

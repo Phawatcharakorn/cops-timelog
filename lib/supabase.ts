@@ -41,6 +41,7 @@ export type Manager = {
   id: string
   username: string
   name: string
+  role: string | null
   department: string | null
   created_at: string
 }

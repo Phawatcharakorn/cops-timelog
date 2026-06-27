@@ -350,7 +350,7 @@ export default function StudentPage() {
                     {getInitials(form.name)}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-white font-medium text-sm truncate">{form.name}</div>
+                    <div className={`font-medium text-sm truncate ${form.student_id === '6630202571' ? 'admin-rainbow' : 'text-white'}`}>{form.name}</div>
                     <div className="text-indigo-300 text-xs">{form.student_id} · {form.department}</div>
                   </div>
                 </div>
