@@ -304,7 +304,7 @@ export default function ManagerPage() {
       const { error } = await supabase.from('time_logs').update({ check_in: fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in, check_out: editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null, work_summary: editForm.work_summary || null }).eq('id', editingLog.id)
       if (error) throw error
       showToast('บันทึกเรียบร้อยแล้ว', 'success')
-      setUndoAction({ type: 'edit', log: prevLog }); setEditingLog(null); await fetchSummary()
+      setUndoAction({ type: 'edit', log: prevLog }); setEditingLog(null); await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) { showToast('บันทึกไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setEditSaving(false) }
   }
 
@@ -313,7 +313,7 @@ export default function ManagerPage() {
     const logToDelete = summary?.logs.find(l => l.id === id)
     await supabase.from('time_logs').delete().eq('id', id)
     if (logToDelete) setUndoAction({ type: 'delete', log: logToDelete })
-    await fetchSummary()
+    await fetchSummary(); if (overview.length > 0) void fetchOverview()
   }
 
   const handleAddStudent = async () => {
@@ -351,7 +351,7 @@ export default function ManagerPage() {
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
-      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); await fetchSummary()
+      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) { showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddLogSaving(false) }
   }
 
@@ -373,7 +373,7 @@ export default function ManagerPage() {
       if (undoAction.type === 'delete') { const { log } = undoAction; await supabase.from('time_logs').insert({ id: log.id, student_id: log.student_id, check_in: log.check_in, check_out: log.check_out, work_summary: log.work_summary }) }
       else if (undoAction.type === 'edit') { await supabase.from('time_logs').update({ check_in: undoAction.log.check_in, check_out: undoAction.log.check_out, work_summary: undoAction.log.work_summary }).eq('id', undoAction.log.id) }
       else if (undoAction.type === 'add') { await supabase.from('time_logs').delete().eq('id', undoAction.id) }
-      setUndoAction(null); await fetchSummary()
+      setUndoAction(null); await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) { showToast('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message, 'error') }
   }
 

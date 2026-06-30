@@ -338,7 +338,7 @@ export default function DevPage() {
       showToast('บันทึกเรียบร้อยแล้ว', 'success')
       setUndoAction({ type: 'edit', log: prevLog })
       setEditingLog(null)
-      await fetchSummary()
+      await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) {
       showToast('บันทึกไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setEditSaving(false) }
@@ -349,7 +349,7 @@ export default function DevPage() {
     const logToDelete = summary?.logs.find(l => l.id === id)
     await supabase.from('time_logs').delete().eq('id', id)
     if (logToDelete) setUndoAction({ type: 'delete', log: logToDelete })
-    await fetchSummary()
+    await fetchSummary(); if (overview.length > 0) void fetchOverview()
   }
 
   // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ export default function DevPage() {
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false)
       setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
-      await fetchSummary()
+      await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) {
       showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error')
     } finally { setAddLogSaving(false) }
@@ -447,7 +447,7 @@ export default function DevPage() {
         await supabase.from('time_logs').delete().eq('id', undoAction.id)
       }
       setUndoAction(null)
-      await fetchSummary()
+      await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) {
       showToast('ย้อนกลับไม่สำเร็จ: ' + (e as Error).message, 'error')
     }
