@@ -962,8 +962,22 @@ export default function ManagerPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-gray-800">แก้ไขรายการลงเวลา</h3>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาเข้า</label><input type="datetime-local" className={inputCls} value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">เวลาออก</label><TimeWheelPicker value={editForm.check_out ? editForm.check_out.slice(11, 16) : ''} onChange={t => { if (!t) { setEditForm(f => ({ ...f, check_out: '' })); return } const base = editForm.check_in?.slice(0, 10) ?? new Date().toISOString().slice(0, 10); setEditForm(f => ({ ...f, check_out: `${base}T${t}` })) }} /></div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">เวลาเข้า</label>
+              <input type="date" className={inputCls} value={editForm.check_in.slice(0, 10)}
+                onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value + 'T' + (f.check_in.slice(11) || '00:00') }))} />
+              <p className="text-xs text-gray-400 mt-2 mb-1">เวลา</p>
+              <TimeWheelPicker value={editForm.check_in.slice(11, 16) || '00:00'}
+                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">เวลาออก</label>
+              <input type="date" className={inputCls} value={editForm.check_out.slice(0, 10)}
+                onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value + 'T' + (f.check_out.slice(11) || '00:00') }))} />
+              <p className="text-xs text-gray-400 mt-2 mb-1">เวลา</p>
+              <TimeWheelPicker value={editForm.check_out ? editForm.check_out.slice(11, 16) : ''}
+                onChange={t => { if (!t) { setEditForm(f => ({ ...f, check_out: '' })); return } setEditForm(f => ({ ...f, check_out: (f.check_out.slice(0, 10) || f.check_in.slice(0, 10)) + 'T' + t })) }} />
+            </div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">สรุปงาน</label><textarea className={inputCls} rows={3} value={editForm.work_summary} onChange={e => setEditForm(f => ({ ...f, work_summary: e.target.value }))} /></div>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setEditingLog(null)} className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">ยกเลิก</button>
