@@ -607,7 +607,7 @@ export default function StudentPage() {
                   {historyLoading ? '...' : 'รีเฟรช'}
                 </button>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   type="month"
                   value={historyMonth}
@@ -619,7 +619,16 @@ export default function StudentPage() {
                     {historyDays} วัน · {Math.floor(historyTotalMin / 60)}h {historyTotalMin % 60}m
                   </p>
                 )}
+                <button
+                  onClick={() => window.open(`/print?studentId=${form.student_id}&month=${historyMonth}`, '_blank')}
+                  className="ml-auto inline-flex items-center gap-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg font-medium transition-colors">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m0-6V5a2 2 0 012-2h6a2 2 0 012 2v6H7z" />
+                  </svg>
+                  พิมพ์รายงาน
+                </button>
               </div>
+              <p className="text-[10px] text-gray-400">* แสดงเฉพาะรายการที่ผู้ดูแลอนุมัติแล้วเท่านั้น</p>
             </div>
             {historyLoading ? (
               <div className="py-8 text-center text-gray-400 text-xs">กำลังโหลด...</div>
