@@ -67,3 +67,22 @@ CREATE UNIQUE INDEX idx_feedback_unique ON feedback_responses(campaign_id, respo
 -- production but predate this file — run only the ALTER below if missing.
 -- ──────────────────────────────────────────────────────────────────────────────
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_self_reported BOOLEAN NOT NULL DEFAULT false;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Attachments (photo_url column above was defined from the start but unused
+-- until now — student/manager/dev "add log" forms can attach an image or PDF)
+-- Reuses the "work-photos" Storage bucket. Run this if the bucket isn't public yet.
+-- ──────────────────────────────────────────────────────────────────────────────
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('work-photos', 'work-photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Allow anon (client-side) uploads/reads to this bucket, since students/managers
+-- authenticate via PIN/HMAC token, not Supabase Auth.
+-- (CREATE POLICY has no IF NOT EXISTS in Postgres, so drop first to stay idempotent.)
+DROP POLICY IF EXISTS "work-photos public read" ON storage.objects;
+CREATE POLICY "work-photos public read" ON storage.objects
+  FOR SELECT USING (bucket_id = 'work-photos');
+DROP POLICY IF EXISTS "work-photos anon upload" ON storage.objects;
+CREATE POLICY "work-photos anon upload" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'work-photos');

@@ -8,6 +8,7 @@ import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
 import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
+import AttachmentInput from '@/app/components/AttachmentInput'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -36,7 +37,7 @@ type StudentOverview = { student: Student; totalDays: number; totalHours: number
 type EditForm = { check_in: string; check_out: string; work_summary: string }
 type MonthStat = { month: string; days: number; hours: number; minutes: number; tasks: number }
 type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
-type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string }
+type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string; photo_url: string | null }
 
 function fmtTime(iso: string) { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string) { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
@@ -95,7 +96,7 @@ export default function ManagerPage() {
   const [addStudentCustomDept, setAddStudentCustomDept] = useState('')
 
   const [addLogOpen, setAddLogOpen]   = useState(false)
-  const [addLogForm, setAddLogForm]   = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
+  const [addLogForm, setAddLogForm]   = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null })
   const [addLogSaving, setAddLogSaving] = useState(false)
 
   const [pinModal, setPinModal] = useState<{ student_id: string; name: string } | null>(null)
@@ -332,7 +333,7 @@ export default function ManagerPage() {
   }
 
   const handleAddLog = async () => {
-    const { date, check_in, check_out, check_out_date, work_summary } = addLogForm
+    const { date, check_in, check_out, check_out_date, work_summary, photo_url } = addLogForm
     if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
     const outDate = check_out_date || date
     if (check_out) {
@@ -347,11 +348,12 @@ export default function ManagerPage() {
         check_in:     thaiToUTC(date, check_in),
         check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
         work_summary: work_summary || null,
+        photo_url,
       }).select('id').single()
       if (error) throw error
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
-      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); await fetchSummary(); if (overview.length > 0) void fetchOverview()
+      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null }); await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) { showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddLogSaving(false) }
   }
 
@@ -553,7 +555,7 @@ export default function ManagerPage() {
                   className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</> : 'ดึงข้อมูล'}
                 </button>
-                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' }); setAddLogOpen(true) }}
+                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
                   className="py-2.5 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -632,6 +634,9 @@ export default function ManagerPage() {
                         {log.work_summary && (
                           <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 line-clamp-2">{log.work_summary}</div>
                         )}
+                        {log.photo_url && (
+                          <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">📎 ดูไฟล์แนบ</a>
+                        )}
                         <div>
                           {log.status === 'approved' ? (
                             <div className="space-y-2">
@@ -707,7 +712,12 @@ export default function ManagerPage() {
                             <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.durationMinutes < 0 ? <span className="text-red-500 text-xs font-medium">⚠ ข้อมูลผิด</span> : log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
-                            <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}><div className="truncate">{log.work_summary || '-'}</div></td>
+                            <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
+                              <div className="truncate">{log.work_summary || '-'}</div>
+                              {log.photo_url && (
+                                <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
+                              )}
+                            </td>
                             <td style={{ padding: '10px 16px', minWidth: '180px' }}>
                               {log.status === 'approved' ? (
                                 <div className="space-y-2">
@@ -1037,6 +1047,11 @@ export default function ManagerPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
               <textarea rows={2} className={inputCls + ' resize-none'} placeholder="งานที่ทำ..." value={addLogForm.work_summary} onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} />
             </div>
+            <AttachmentInput
+              value={addLogForm.photo_url}
+              onChange={url => setAddLogForm(f => ({ ...f, photo_url: url }))}
+              studentId={selectedStudentId}
+            />
             <div className="flex gap-3 pt-1">
               <button onClick={() => setAddLogOpen(false)} className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">{addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}</button>
