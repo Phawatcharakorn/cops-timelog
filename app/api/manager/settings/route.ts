@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, verifyPassword } from '@/lib/crypto'
 
+export const dynamic = 'force-dynamic'
+
 export async function PUT(req: NextRequest) {
   const { username, name } = await req.json()
   if (!username || !name?.trim()) {

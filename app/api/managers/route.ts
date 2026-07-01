@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, validateDevToken } from '@/lib/crypto'
 import { checkAuth } from '@/lib/apiAuth'
 
+export const dynamic = 'force-dynamic'
+
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }

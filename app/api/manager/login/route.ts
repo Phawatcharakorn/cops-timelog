@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyPassword, makeMgrToken } from '@/lib/crypto'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   const { username, password } = await req.json()
   if (!username || !password) return NextResponse.json({ ok: false }, { status: 400 })

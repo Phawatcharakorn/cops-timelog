@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 // GET: responses for a campaign, optionally filtered by respondent
 export async function GET(req: NextRequest) {
   const campaign_id    = req.nextUrl.searchParams.get('campaign_id')

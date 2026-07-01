@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { validateDevToken } from '@/lib/crypto'
 
+export const dynamic = 'force-dynamic'
+
 async function isAuthorized(req: NextRequest): Promise<boolean> {
   if (validateDevToken(req.headers.get('x-dev-token'))) return true
   const username = req.headers.get('x-mgr-username')

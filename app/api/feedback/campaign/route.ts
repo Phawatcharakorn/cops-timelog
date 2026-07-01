@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { validateDevToken } from '@/lib/crypto'
 
+export const dynamic = 'force-dynamic'
+
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }

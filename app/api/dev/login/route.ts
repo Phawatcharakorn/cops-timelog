@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { makeDevToken } from '@/lib/crypto'
 
+export const dynamic = 'force-dynamic'
+
 function safeEqual(a: string, b: string): boolean {
   try {
     const ba = Buffer.from(a), bb = Buffer.from(b)
