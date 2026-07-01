@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase, type Student, type TimeLog } from '@/lib/supabase'
+import { type TimeLog } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
+
+type ReportStudent = {
+  student_id: string; name: string; department: string
+  faculty: string | null; major: string | null
+}
 
 type ProcessedLog = TimeLog & {
   durationMinutes: number
@@ -15,7 +20,7 @@ type ProcessedLog = TimeLog & {
 }
 
 type ReportData = {
-  student: Student
+  student: ReportStudent
   logs: ProcessedLog[]
   monthLabel: string
   totalDays: number
@@ -35,6 +40,8 @@ export default function PrintPageClient() {
   const date         = searchParams.get('date')
   const from         = searchParams.get('from')   // yyyy-MM-dd (date range)
   const to           = searchParams.get('to')
+  const pin          = searchParams.get('pin')
+  const token        = searchParams.get('token')
   const projectParam = searchParams.get('project') ?? ''
 
   const [data,  setData]  = useState<ReportData | null>(null)
@@ -44,12 +51,8 @@ export default function PrintPageClient() {
   useEffect(() => {
     if (!studentId || (!month && !date && !from && !to)) { setError('Missing params'); return }
 
-    const TZ = 7 * 60 * 60 * 1000
-    let start: string, end: string, periodLabel: string
-
+    let periodLabel: string
     if (to) {
-      end = new Date(to + 'T23:59:59+07:00').toISOString()
-      start = from ? new Date(from + 'T00:00:00+07:00').toISOString() : '2000-01-01T00:00:00.000Z'
       const td = new Date(to + 'T12:00:00')
       if (from) {
         const fd = new Date(from + 'T12:00:00')
@@ -61,60 +64,59 @@ export default function PrintPageClient() {
         periodLabel = `ทั้งหมด ถึง ${format(td, 'd MMM yyyy', { locale: th })}`
       }
     } else if (date) {
-      const d = new Date(date + 'T00:00:00+07:00')
-      start = new Date(d.getTime() - TZ).toISOString()
-      end   = new Date(d.getTime() - TZ + 86400000 - 1).toISOString()
-      periodLabel = format(d, 'd MMMM yyyy', { locale: th })
+      periodLabel = format(new Date(date + 'T00:00:00+07:00'), 'd MMMM yyyy', { locale: th })
     } else {
       const [y, m] = month!.split('-').map(Number)
-      start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
-      end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
       periodLabel = format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale: th })
     }
 
-    Promise.all([
-      supabase.from('students').select('*').eq('student_id', studentId).single(),
-      supabase.from('time_logs').select('*')
-        .eq('student_id', studentId)
-        .gte('check_in', start).lte('check_in', end)
-        .order('check_in', { ascending: true }),
-    ]).then(([{ data: student, error: sErr }, { data: logs, error: lErr }]) => {
-      if (sErr || !student) { setError('ไม่พบข้อมูลนิสิต'); return }
-      if (lErr)              { setError('โหลดข้อมูลไม่สำเร็จ'); return }
+    const params = new URLSearchParams({ studentId })
+    if (month) params.set('month', month)
+    if (date)  params.set('date', date)
+    if (from)  params.set('from', from)
+    if (to)    params.set('to', to)
+    if (pin)   params.set('pin', pin)
+    if (token) params.set('token', token)
 
-      const approvedLogs = (logs ?? []).filter(l => l.status === 'approved' && !l.paid)
-      const processed: ProcessedLog[] = approvedLogs.map(log => {
-        const dur = log.check_out
-          ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
-          : 0
-        const thaiIn  = toThai(log.check_in)
-        const thaiOut = log.check_out ? toThai(log.check_out) : null
-        return {
-          ...log,
-          durationMinutes: dur,
-          dateStr:     format(new Date(thaiIn.toISOString().slice(0, 10) + 'T12:00:00'), 'd MMM yy', { locale: th }),
-          checkInStr:  thaiIn.toISOString().slice(11, 16),
-          checkOutStr: thaiOut ? thaiOut.toISOString().slice(11, 16) : '-',
-          durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
-        }
+    fetch(`/api/print-data?${params}`)
+      .then(async res => {
+        const body = await res.json()
+        if (!res.ok) throw new Error(body?.error === 'Unauthorized' ? 'PIN ไม่ถูกต้อง — ไม่มีสิทธิ์ดูรายงานนี้' : 'ไม่พบข้อมูลนิสิต')
+
+        const approvedLogs: TimeLog[] = body.logs ?? []
+        const processed: ProcessedLog[] = approvedLogs.map(log => {
+          const dur = log.check_out
+            ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
+            : 0
+          const thaiIn  = toThai(log.check_in)
+          const thaiOut = log.check_out ? toThai(log.check_out) : null
+          return {
+            ...log,
+            durationMinutes: dur,
+            dateStr:     format(new Date(thaiIn.toISOString().slice(0, 10) + 'T12:00:00'), 'd MMM yy', { locale: th }),
+            checkInStr:  thaiIn.toISOString().slice(11, 16),
+            checkOutStr: thaiOut ? thaiOut.toISOString().slice(11, 16) : '-',
+            durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
+          }
+        })
+
+        const totalMin  = processed.reduce((s, l) => s + l.durationMinutes, 0)
+        const totalDays = new Set(processed.map(l => toThai(l.check_in).toISOString().slice(0, 10))).size
+
+        setData({
+          student: body.student,
+          logs: processed,
+          monthLabel: periodLabel,
+          totalDays,
+          totalHours:   Math.floor(totalMin / 60),
+          totalMinutes: totalMin % 60,
+          taskCount:    processed.filter(l => l.work_summary).length,
+        })
+
+        if (!projectParam) setProjectTitle('')
       })
-
-      const totalMin  = processed.reduce((s, l) => s + l.durationMinutes, 0)
-      const totalDays = new Set(processed.map(l => toThai(l.check_in).toISOString().slice(0, 10))).size
-
-      setData({
-        student,
-        logs: processed,
-        monthLabel: periodLabel,
-        totalDays,
-        totalHours:   Math.floor(totalMin / 60),
-        totalMinutes: totalMin % 60,
-        taskCount:    processed.filter(l => l.work_summary).length,
-      })
-
-      if (!projectParam) setProjectTitle('')
-    })
-  }, [studentId, month, date, from, to, projectParam])
+      .catch((e: Error) => setError(e.message || 'โหลดข้อมูลไม่สำเร็จ'))
+  }, [studentId, month, date, from, to, pin, token, projectParam])
 
   if (error) return (
     <div className="p-8 text-center text-red-500 text-sm">{error}</div>

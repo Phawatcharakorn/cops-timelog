@@ -4,10 +4,13 @@ import { createElement } from 'react'
 import { MonthlyReport } from '@/components/PDFReport'
 import { supabaseAdmin } from '@/lib/supabase'
 import { format } from 'date-fns'
+import { checkAuth, unauthorized } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return unauthorized()
+
   const { searchParams } = new URL(req.url)
   const studentId = searchParams.get('studentId')
   const month     = searchParams.get('month') // YYYY-MM

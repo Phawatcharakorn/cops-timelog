@@ -328,7 +328,8 @@ export default function ManagerPage() {
   }
   const handleExportPDF = () => {
     if (!summary) return
-    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo })
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
     if (dateFrom) params.set('from', dateFrom)
     window.open(`/print?${params}`, '_blank')
   }

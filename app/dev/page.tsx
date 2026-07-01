@@ -344,7 +344,8 @@ export default function DevPage() {
 
   const handleExportPDF = () => {
     if (!summary) return
-    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo })
+    const token = localStorage.getItem('dev_token') || ''
+    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
     if (dateFrom) params.set('from', dateFrom)
     const url = `/print?${params}`
     window.open(url, '_blank')
