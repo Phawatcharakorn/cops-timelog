@@ -1028,7 +1028,7 @@ export default function ManagerPage() {
                 onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value + 'T' + (f.check_in.slice(11) || '00:00') }))} />
               <p className="text-xs text-gray-400 mt-2 mb-1">เวลา</p>
               <TimeWheelPicker value={editForm.check_in.slice(11, 16) || '00:00'}
-                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} />
+                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} minuteStep={30} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">เวลาออก</label>
@@ -1036,7 +1036,7 @@ export default function ManagerPage() {
                 onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value + 'T' + (f.check_out.slice(11) || '00:00') }))} />
               <p className="text-xs text-gray-400 mt-2 mb-1">เวลา</p>
               <TimeWheelPicker value={editForm.check_out ? editForm.check_out.slice(11, 16) : ''}
-                onChange={t => { if (!t) { setEditForm(f => ({ ...f, check_out: '' })); return } setEditForm(f => ({ ...f, check_out: (f.check_out.slice(0, 10) || f.check_in.slice(0, 10)) + 'T' + t })) }} />
+                onChange={t => { if (!t) { setEditForm(f => ({ ...f, check_out: '' })); return } setEditForm(f => ({ ...f, check_out: (f.check_out.slice(0, 10) || f.check_in.slice(0, 10)) + 'T' + t })) }} minuteStep={30} />
             </div>
             <div><label className="block text-xs font-medium text-gray-600 mb-1">สรุปงาน</label><textarea className={inputCls} rows={3} value={editForm.work_summary} onChange={e => setEditForm(f => ({ ...f, work_summary: e.target.value }))} /></div>
             <div className="flex gap-3 pt-1">
@@ -1066,7 +1066,7 @@ export default function ManagerPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า <span className="text-red-400">*</span></label>
-              <TimeWheelPicker value={addLogForm.check_in || '00:00'} onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} />
+              <TimeWheelPicker value={addLogForm.check_in || '00:00'} onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} minuteStep={30} />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -1084,7 +1084,7 @@ export default function ManagerPage() {
                     min={addLogForm.date}
                     onChange={e => setAddLogForm(f => ({ ...f, check_out_date: e.target.value }))} />
                 </div>
-                <TimeWheelPicker value={addLogForm.check_out} onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} />
+                <TimeWheelPicker value={addLogForm.check_out} onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} minuteStep={30} />
               </>)}
             </div>
             <div>

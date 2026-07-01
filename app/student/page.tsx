@@ -228,15 +228,28 @@ export default function StudentPage() {
 
   const handleCheckOut = async () => {
     if (!activeLog) return
+    const rawMinutes = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
+    const remainder  = rawMinutes % 30
+    let duration = rawMinutes
+    if (remainder > 0) {
+      if (remainder > 25) {
+        duration = rawMinutes + (30 - remainder) // round up — silent
+      } else {
+        duration = rawMinutes - remainder // round down — confirm first
+        const h = Math.floor(duration / 60), m = duration % 60
+        const ok = window.confirm(`เวลาทำงานจะถูกปัดลงเหลือ ${h} ชม. ${m} นาที ต้องการบันทึกเวลาออกหรือไม่?`)
+        if (!ok) return
+      }
+    }
+    const checkOutISO = new Date(new Date(activeLog.check_in).getTime() + duration * 60000).toISOString()
     setLoading(true)
     try {
       const { error } = await supabase.from('time_logs').update({
-        check_out:    new Date().toISOString(),
+        check_out:    checkOutISO,
         work_summary: workSummary,
         photo_url:    checkOutPhoto,
       }).eq('id', activeLog.id)
       if (error) throw error
-      const duration = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
       const studentId = form.student_id
       const studentName = form.name
       startCooldown(3)
@@ -771,7 +784,7 @@ export default function StudentPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาเข้า</label>
-              <TimeWheelPicker value={selfReportForm.check_in} onChange={t => setSelfReportForm(f => ({ ...f, check_in: t }))} />
+              <TimeWheelPicker value={selfReportForm.check_in} onChange={t => setSelfReportForm(f => ({ ...f, check_in: t }))} minuteStep={30} />
             </div>
 
             <div>
@@ -792,7 +805,7 @@ export default function StudentPage() {
                     onChange={e => setSelfReportForm(f => ({ ...f, check_out_date: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   />
-                  <TimeWheelPicker value={selfReportForm.check_out} onChange={t => setSelfReportForm(f => ({ ...f, check_out: t }))} />
+                  <TimeWheelPicker value={selfReportForm.check_out} onChange={t => setSelfReportForm(f => ({ ...f, check_out: t }))} minuteStep={30} />
                 </div>
               )}
             </div>

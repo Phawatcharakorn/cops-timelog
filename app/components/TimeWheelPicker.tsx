@@ -123,15 +123,25 @@ function Wheel({ values, value, onChange }: {
   )
 }
 
-export default function TimeWheelPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export default function TimeWheelPicker({ value, onChange, minuteStep = 1 }: { value: string; onChange: (v: string) => void; minuteStep?: number }) {
   const [hh, mm] = (value || '00:00').split(':')
   const hours   = useMemo(() => Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')), [])
-  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')), [])
+  const minutes = useMemo(
+    () => Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) => (i * minuteStep).toString().padStart(2, '0')),
+    [minuteStep]
+  )
+  // Snap an incoming minute value that doesn't land on a step (e.g. loaded from an existing record) to the nearest option
+  const mmSnapped = useMemo(() => {
+    const m = Number(mm ?? 0)
+    if (minuteStep <= 1 || minutes.includes(mm ?? '00')) return mm ?? '00'
+    const nearest = Math.round(m / minuteStep) * minuteStep % 60
+    return nearest.toString().padStart(2, '0')
+  }, [mm, minuteStep, minutes])
   return (
     <div className="flex items-center justify-center gap-0.5 bg-gray-50 rounded-xl py-1 px-2">
-      <Wheel values={hours}   value={hh ?? '00'} onChange={h => onChange(`${h}:${mm ?? '00'}`)} />
+      <Wheel values={hours}   value={hh ?? '00'} onChange={h => onChange(`${h}:${mmSnapped}`)} />
       <span className="text-xl font-bold text-indigo-300 pointer-events-none select-none" style={{ paddingBottom: 2 }}>:</span>
-      <Wheel values={minutes} value={mm ?? '00'} onChange={m => onChange(`${hh ?? '00'}:${m}`)} />
+      <Wheel values={minutes} value={mmSnapped} onChange={m => onChange(`${hh ?? '00'}:${m}`)} />
     </div>
   )
 }

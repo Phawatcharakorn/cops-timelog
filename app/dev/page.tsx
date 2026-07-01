@@ -1593,7 +1593,7 @@ export default function DevPage() {
               <p className="text-xs text-gray-400 mt-1.5 mb-1">เวลาเข้า</p>
               <TimeWheelPicker
                 value={editForm.check_in.slice(11) || '00:00'}
-                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} />
+                onChange={t => setEditForm(f => ({ ...f, check_in: f.check_in.slice(0, 10) + 'T' + t }))} minuteStep={30} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">วันที่ออก (เวลาไทย)</label>
@@ -1603,7 +1603,7 @@ export default function DevPage() {
               <p className="text-xs text-gray-400 mt-1.5 mb-1">เวลาออก</p>
               <TimeWheelPicker
                 value={editForm.check_out.slice(11) || '00:00'}
-                onChange={t => setEditForm(f => ({ ...f, check_out: f.check_out.slice(0, 10) + 'T' + t }))} />
+                onChange={t => setEditForm(f => ({ ...f, check_out: f.check_out.slice(0, 10) + 'T' + t }))} minuteStep={30} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
@@ -1723,7 +1723,7 @@ export default function DevPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า <span className="text-red-400">*</span></label>
               <TimeWheelPicker
                 value={addLogForm.check_in || '00:00'}
-                onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} />
+                onChange={t => setAddLogForm(f => ({ ...f, check_in: t }))} minuteStep={30} />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -1745,7 +1745,7 @@ export default function DevPage() {
                 </div>
                 <TimeWheelPicker
                   value={addLogForm.check_out}
-                  onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} />
+                  onChange={t => setAddLogForm(f => ({ ...f, check_out: t }))} minuteStep={30} />
               </>)}
             </div>
             <div>
