@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase, type Announcement } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 import SdecHeader from '@/app/components/SdecHeader'
@@ -163,7 +163,7 @@ export default function StudentPage() {
     } finally { setIdLooking(false) }
   }
 
-  const fetchHistory = async (month: string) => {
+  const fetchHistory = useCallback(async (month: string) => {
     setHistoryLoading(true)
     const TZ    = 7 * 60 * 60 * 1000
     const [y, m] = month.split('-').map(Number)
@@ -188,7 +188,27 @@ export default function StudentPage() {
       }
     }))
     setHistoryLoading(false)
-  }
+  }, [form.student_id])
+
+  // Live refresh: if staff approve/reject/edit this student's log while their
+  // page is open, reflect it without needing a manual "รีเฟรช" click.
+  const showHistoryRef   = useRef(showHistory)
+  const historyMonthRef  = useRef(historyMonth)
+  useEffect(() => { showHistoryRef.current = showHistory }, [showHistory])
+  useEffect(() => { historyMonthRef.current = historyMonth }, [historyMonth])
+
+  useEffect(() => {
+    if (!studentLocked || !form.student_id) return
+    const channel = supabase
+      .channel(`student-time-logs-${form.student_id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'time_logs', filter: `student_id=eq.${form.student_id}`,
+      }, () => {
+        if (showHistoryRef.current) void fetchHistory(historyMonthRef.current)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [studentLocked, form.student_id, fetchHistory])
 
   const handleToggleHistory = () => {
     if (!showHistory && historyMonth) fetchHistory(historyMonth)

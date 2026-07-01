@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, type Student, type TimeLog, type Manager, type FeedbackCampaign, type FeedbackResponse, type Announcement } from '@/lib/supabase'
 import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -255,6 +255,27 @@ export default function DevPage() {
       setOverview(result)
     } finally { setOverviewLoading(false) }
   }, [dateFrom, dateTo])
+
+  // Live refresh: auto-refetch when time_logs changes anywhere (self-report
+  // submitted, another manager/dev approves, edits, etc.) instead of needing
+  // a manual "รีเฟรช" click. Refetches through the same functions the manual
+  // actions already use — no separate state-patching logic to keep in sync.
+  const overviewRef = useRef(overview)
+  useEffect(() => { overviewRef.current = overview }, [overview])
+
+  useEffect(() => {
+    if (!authed) return
+    const channel = supabase
+      .channel('dev-time-logs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_logs' }, payload => {
+        const changedId = (payload.new as { student_id?: string } | null)?.student_id
+          ?? (payload.old as { student_id?: string } | null)?.student_id
+        if (changedId && changedId === selectedStudentId) void fetchSummary()
+        if (overviewRef.current.length > 0) void fetchOverview()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [authed, selectedStudentId, fetchSummary, fetchOverview])
 
   const fetchMultiStats = useCallback(async () => {
     if (!selectedStudentId || !rangeStart || !rangeEnd) return

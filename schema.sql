@@ -108,3 +108,18 @@ ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
 -- ──────────────────────────────────────────────────────────────────────────────
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_log_per_student
   ON time_logs(student_id) WHERE check_out IS NULL;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Realtime: let student/manager/dev pages auto-refresh when time_logs changes
+-- (self-report submitted, approved, rejected, edited, deleted...) instead of
+-- requiring a manual "รีเฟรช" click every time.
+-- ──────────────────────────────────────────────────────────────────────────────
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'time_logs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE time_logs;
+  END IF;
+END $$;
