@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { checkAuth, unauthorized } from '@/lib/apiAuth'
+import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
 import { hashPassword } from '@/lib/crypto'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +14,17 @@ function hashPinInBody(body: Record<string, unknown>) {
   if ('pin' in body) { body.pin_fail_count = 0; body.pin_locked_until = null }
 }
 
+// A department-locked manager token only has authority over students in
+// that department. Dev tokens and managers with no department (department:
+// null = "sees every department", matching the app's existing dashboard
+// filtering) are unrestricted.
+async function forbiddenForDepartment(req: NextRequest, studentId: string): Promise<boolean> {
+  const auth = getAuth(req)
+  if (!auth || auth.role !== 'manager' || !auth.department) return false
+  const { data } = await supabaseAdmin().from('students').select('department').eq('student_id', studentId).maybeSingle()
+  return !data || data.department !== auth.department
+}
+
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
@@ -23,6 +34,7 @@ export async function GET(req: NextRequest) {
   const db   = supabaseAdmin()
 
   if (id) {
+    if (await forbiddenForDepartment(req, id)) return NextResponse.json(null)
     const { data, error } = await db.from('students').select('*').eq('student_id', id).maybeSingle()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)
@@ -51,6 +63,7 @@ export async function PATCH(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+  if (await forbiddenForDepartment(req, id)) return unauthorized()
 
   const body = await req.json()
   hashPinInBody(body)
@@ -65,6 +78,7 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+  if (await forbiddenForDepartment(req, id)) return unauthorized()
 
   const db = supabaseAdmin()
   await db.from('time_logs').delete().eq('student_id', id)

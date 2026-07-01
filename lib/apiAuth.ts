@@ -1,12 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { validateAnyToken } from './crypto'
+import { validateAnyToken, verifyToken, type TokenPayload } from './crypto'
 
-export function checkAuth(req: NextRequest): boolean {
-  const token =
+function tokenFrom(req: NextRequest): string | null {
+  return (
     req.headers.get('x-token') ||
     req.headers.get('x-dev-token') ||
     req.nextUrl.searchParams.get('token')
-  return validateAnyToken(token)
+  )
+}
+
+export function checkAuth(req: NextRequest): boolean {
+  return validateAnyToken(tokenFrom(req))
+}
+
+/** Decoded token claims (role/username/department), or null if missing/invalid. */
+export function getAuth(req: NextRequest): TokenPayload | null {
+  return verifyToken(tokenFrom(req))
 }
 
 export function unauthorized() {

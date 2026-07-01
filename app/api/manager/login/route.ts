@@ -24,6 +24,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     name: manager.name,
     department: manager.department,
-    mgrToken: makeMgrToken(process.env.ADMIN_PASSWORD!),
+    mgrToken: makeMgrToken(process.env.ADMIN_PASSWORD!, manager.username, manager.department ?? null),
   })
 }

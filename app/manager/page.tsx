@@ -304,9 +304,10 @@ export default function ManagerPage() {
     if (!annTitle.trim() || !annBody.trim()) return setAnnError('กรุณากรอกหัวข้อและเนื้อหา')
     setAnnSaving(true); setAnnError('')
     try {
+      const token = localStorage.getItem('mgr_token') || ''
       const res = await fetch('/api/announcements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-mgr-username': mgrUsername() },
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
         body: JSON.stringify({ title: annTitle, body: annBody, author: mgrName || mgrUsername(), expires_at: annExpires || null }),
       })
       if (!res.ok) { const d = await res.json(); setAnnError(d.error || 'เกิดข้อผิดพลาด'); return }
@@ -317,7 +318,8 @@ export default function ManagerPage() {
 
   const handleDeleteAnnouncement = async (id: string) => {
     if (!confirm('ลบประกาศนี้?')) return
-    await fetch(`/api/announcements/${id}`, { method: 'DELETE', headers: { 'x-mgr-username': mgrUsername() } })
+    const token = localStorage.getItem('mgr_token') || ''
+    await fetch(`/api/announcements/${id}`, { method: 'DELETE', headers: { 'x-token': token } })
     setAnnouncements(prev => prev.filter(a => a.id !== id))
   }
 

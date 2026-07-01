@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!validPass) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
 
   if (safeEqual(username, validUser) && safeEqual(password, validPass)) {
-    const token = makeDevToken(validPass)
+    const token = makeDevToken(validPass, validUser)
     return NextResponse.json({ ok: true, token })
   }
   return NextResponse.json({ ok: false }, { status: 401 })

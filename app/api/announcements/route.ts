@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { validateDevToken } from '@/lib/crypto'
+import { checkAuth } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
-
-async function isAuthorized(req: NextRequest): Promise<boolean> {
-  if (validateDevToken(req.headers.get('x-dev-token'))) return true
-  const username = req.headers.get('x-mgr-username')
-  if (!username) return false
-  const { data } = await supabaseAdmin().from('managers').select('id').eq('username', username).single()
-  return !!data
-}
 
 export async function GET() {
   const now = new Date().toISOString()
@@ -31,7 +23,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { title, body, author, expires_at } = await req.json()
   if (!title?.trim() || !body?.trim()) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
