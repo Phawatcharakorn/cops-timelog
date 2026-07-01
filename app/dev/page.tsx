@@ -221,14 +221,14 @@ export default function DevPage() {
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
       const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
-      let logsQ = supabase.from('time_logs').select('*').eq('student_id', sid)
-      if (start) logsQ = logsQ.gte('check_in', start)
-      logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
       const devToken = localStorage.getItem('dev_token') || ''
-      const [{ data: logs }, studentRes] = await Promise.all([
-        logsQ,
+      const logsParams = new URLSearchParams({ studentId: sid, end })
+      if (start) logsParams.set('start', start)
+      const [logsRes, studentRes] = await Promise.all([
+        fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': devToken } }),
         fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': devToken } }),
       ])
+      const logs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
@@ -256,15 +256,15 @@ export default function DevPage() {
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
       const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
-      let logsQ = supabase.from('time_logs').select('*')
-      if (start) logsQ = logsQ.gte('check_in', start)
-      logsQ = logsQ.lte('check_in', end)
       const devToken = localStorage.getItem('dev_token') || ''
-      const [studentsRes, { data: allLogs }] = await Promise.all([
+      const logsParams = new URLSearchParams({ end })
+      if (start) logsParams.set('start', start)
+      const [studentsRes, logsRes] = await Promise.all([
         fetch('/api/students', { headers: { 'x-token': devToken } }),
-        logsQ,
+        fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': devToken } }),
       ])
       const allStudents: Student[] = studentsRes.ok ? await studentsRes.json() : []
+      const allLogs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
@@ -314,10 +314,10 @@ export default function DevPage() {
       const [ey, em] = rangeEnd.split('-').map(Number)
       const start = new Date(Date.UTC(sy, sm - 1, 1) - TZ).toISOString()
       const end   = new Date(Date.UTC(ey, em, 1) - TZ - 1).toISOString()
-      const { data: logs } = await supabase.from('time_logs').select('*')
-        .eq('student_id', selectedStudentId)
-        .gte('check_in', start).lte('check_in', end)
-        .order('check_in', { ascending: true })
+      const token = localStorage.getItem('dev_token') || ''
+      const params = new URLSearchParams({ studentId: selectedStudentId, start, end })
+      const res = await fetch(`/api/time-logs?${params}`, { headers: { 'x-token': token } })
+      const logs: TimeLog[] = res.ok ? await res.json() : []
       const grouped: Record<string, { dates: Set<string>; totalMin: number; tasks: number }> = {}
       for (const log of logs ?? []) {
         const thai = new Date(new Date(log.check_in).getTime() + TZ)
@@ -386,13 +386,18 @@ export default function DevPage() {
     const prevLog = editingLog
     setEditSaving(true)
     try {
-      const { error } = await supabase.from('time_logs').update({
-        check_in:     fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in,
-        check_out:    editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
-        project_name: editForm.project_name || null,
-        work_summary: editForm.work_summary || null,
-      }).eq('id', editingLog.id)
-      if (error) throw error
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch(`/api/time-logs?id=${editingLog.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({
+          check_in:     fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in,
+          check_out:    editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
+          project_name: editForm.project_name || null,
+          work_summary: editForm.work_summary || null,
+        }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('บันทึกเรียบร้อยแล้ว', 'success')
       setUndoAction({ type: 'edit', log: prevLog })
       setEditingLog(null)
@@ -405,7 +410,8 @@ export default function DevPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('ลบรายการนี้?')) return
     const logToDelete = summary?.logs.find(l => l.id === id)
-    await supabase.from('time_logs').delete().eq('id', id)
+    const token = localStorage.getItem('dev_token') || ''
+    await fetch(`/api/time-logs?id=${id}`, { method: 'DELETE', headers: { 'x-token': token } })
     if (logToDelete) setUndoAction({ type: 'delete', log: logToDelete })
     await fetchSummary(); if (overview.length > 0) void fetchOverview()
   }
@@ -455,15 +461,21 @@ export default function DevPage() {
     }
     setAddLogSaving(true)
     try {
-      const { data: newLog, error } = await supabase.from('time_logs').insert({
-        student_id:   selectedStudentId,
-        check_in:     thaiToUTC(date, check_in),
-        check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
-        project_name: project_name || null,
-        work_summary: work_summary || null,
-        photo_url,
-      }).select('id').single()
-      if (error) throw error
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/time-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({
+          student_id:   selectedStudentId,
+          check_in:     thaiToUTC(date, check_in),
+          check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
+          project_name: project_name || null,
+          work_summary: work_summary || null,
+          photo_url,
+        }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
+      const newLog = await res.json()
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false)
@@ -499,22 +511,31 @@ export default function DevPage() {
   const handleUndo = async () => {
     if (!undoAction) return
     try {
+      const token = localStorage.getItem('dev_token') || ''
       if (undoAction.type === 'delete') {
         const { log } = undoAction
-        await supabase.from('time_logs').insert({
-          id: log.id, student_id: log.student_id,
-          check_in: log.check_in, check_out: log.check_out,
-          project_name: log.project_name, work_summary: log.work_summary,
+        await fetch('/api/time-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-token': token },
+          body: JSON.stringify({
+            id: log.id, student_id: log.student_id,
+            check_in: log.check_in, check_out: log.check_out,
+            project_name: log.project_name, work_summary: log.work_summary,
+          }),
         })
       } else if (undoAction.type === 'edit') {
-        await supabase.from('time_logs').update({
-          check_in: undoAction.log.check_in,
-          check_out: undoAction.log.check_out,
-          project_name: undoAction.log.project_name,
-          work_summary: undoAction.log.work_summary,
-        }).eq('id', undoAction.log.id)
+        await fetch(`/api/time-logs?id=${undoAction.log.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-token': token },
+          body: JSON.stringify({
+            check_in: undoAction.log.check_in,
+            check_out: undoAction.log.check_out,
+            project_name: undoAction.log.project_name,
+            work_summary: undoAction.log.work_summary,
+          }),
+        })
       } else if (undoAction.type === 'add') {
-        await supabase.from('time_logs').delete().eq('id', undoAction.id)
+        await fetch(`/api/time-logs?id=${undoAction.id}`, { method: 'DELETE', headers: { 'x-token': token } })
       }
       setUndoAction(null)
       await fetchSummary(); if (overview.length > 0) void fetchOverview()
@@ -556,6 +577,17 @@ export default function DevPage() {
   const patchLog = (logId: string, patch: Partial<LogWithDuration>) =>
     setSummary(prev => prev ? { ...prev, logs: prev.logs.map(l => l.id === logId ? { ...l, ...patch } : l) } : prev)
 
+  const putTimeLog = async (logId: string, patch: Record<string, unknown>) => {
+    const token = localStorage.getItem('dev_token') || ''
+    const res = await fetch(`/api/time-logs?id=${logId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-token': token },
+      body: JSON.stringify(patch),
+    })
+    if (!res.ok) { const d = await res.json().catch(() => ({})); return d.error || res.statusText }
+    return null
+  }
+
   const handleApprove = async (logId: string) => {
     if (busyLogIdRef.current) return
     busyLogIdRef.current = logId
@@ -563,8 +595,8 @@ export default function DevPage() {
     try {
       const now = new Date().toISOString()
       patchLog(logId, { status: 'approved', approved_by: adminUsername, approved_at: now })
-      const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: adminUsername, approved_at: now }).eq('id', logId)
-      if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      const err = await putTimeLog(logId, { status: 'approved', approved_by: adminUsername, approved_at: now })
+      if (err) { showToast('อนุมัติไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('อนุมัติเรียบร้อยแล้ว', 'success')
     } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
@@ -575,8 +607,8 @@ export default function DevPage() {
     setBusyLogId(logId)
     try {
       patchLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
-      const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
-      if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      const err = await putTimeLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
+      if (err) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกอนุมัติแล้ว', 'info')
     } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
@@ -591,8 +623,8 @@ export default function DevPage() {
         is_rejected: true, rejected_reason: rejectReason.trim(), rejected_at: new Date().toISOString(),
       }
       patchLog(rejectModal.id, patch)
-      const { error } = await supabase.from('time_logs').update(patch).eq('id', rejectModal.id)
-      if (error) throw error
+      const err = await putTimeLog(rejectModal.id, patch)
+      if (err) throw new Error(err)
       showToast('ตีกลับรายการเรียบร้อยแล้ว', 'success')
       setRejectModal(null); setRejectReason('')
       await fetchSummary(); if (overview.length > 0) void fetchOverview()
@@ -606,8 +638,8 @@ export default function DevPage() {
     try {
       const patch = { is_rejected: false, rejected_reason: null, rejected_at: null }
       patchLog(logId, patch)
-      const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
-      if (error) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      const err = await putTimeLog(logId, patch)
+      if (err) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการตีกลับแล้ว', 'info')
     } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
@@ -622,8 +654,8 @@ export default function DevPage() {
       const now = new Date().toISOString()
       const patch = { paid: true, paid_at: now, ...(photoUrl ? { photo_url: null } : {}) }
       patchLog(logId, patch)
-      const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
-      if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      const err = await putTimeLog(logId, patch)
+      if (err) { showToast('บันทึกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       // Staff have already reviewed the attachment by the time payment is
       // recorded — delete it from Storage to keep usage down. Best-effort:
       // the payment itself already succeeded regardless of this outcome.
@@ -638,8 +670,8 @@ export default function DevPage() {
     setBusyLogId(logId)
     try {
       patchLog(logId, { paid: false, paid_at: null })
-      const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
-      if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      const err = await putTimeLog(logId, { paid: false, paid_at: null })
+      if (err) { showToast('ยกเลิกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการจ่ายแล้ว', 'info')
     } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
