@@ -1,4 +1,8 @@
-const CACHE = 'sdec-v1'
+// Browsers only detect a new SW by byte-diffing this file, so editing app
+// code elsewhere never triggers an update on its own — bump this string
+// whenever you need every already-visited browser to drop its cache and
+// pick up a fresh deploy (e.g. reports of "still seeing the old site").
+const CACHE = 'sdec-v2'
 
 self.addEventListener('install', e => {
   self.skipWaiting()
