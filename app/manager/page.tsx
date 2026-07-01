@@ -500,11 +500,12 @@ export default function ManagerPage() {
 
   const handlePay = async (logId: string) => {
     if (busyLogIdRef.current) return
+    const photoUrl = summary?.logs.find(l => l.id === logId)?.photo_url ?? null
+    if (photoUrl && !window.confirm('ยืนยันบันทึกการจ่ายใช่ไหม?\n\nไฟล์แนบของรายการนี้จะถูกลบออกจากระบบทันทีหลังยืนยัน (กู้คืนไม่ได้)')) return
     busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       const now = new Date().toISOString()
-      const photoUrl = summary?.logs.find(l => l.id === logId)?.photo_url ?? null
       const patch = { paid: true, paid_at: now, ...(photoUrl ? { photo_url: null } : {}) }
       patchLog(logId, patch)
       const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
