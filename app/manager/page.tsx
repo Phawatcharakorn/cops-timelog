@@ -107,6 +107,11 @@ export default function ManagerPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectSaving, setRejectSaving] = useState(false)
 
+  // Guards the per-row action buttons (อนุมัติ/ตีกลับ/จ่าย/ฯลฯ) against a 2nd
+  // click while the 1st is still in flight — without this, a click with no
+  // visible feedback yet reads as "didn't register", so the row fires twice.
+  const [busyLogId, setBusyLogId] = useState<string | null>(null)
+
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
 
   const [searchIndividual, setSearchIndividual]   = useState('')
@@ -422,18 +427,26 @@ export default function ManagerPage() {
     setSummary(prev => prev ? { ...prev, logs: prev.logs.map(l => l.id === logId ? { ...l, ...patch } : l) } : prev)
 
   const handleApprove = async (logId: string) => {
-    const now = new Date().toISOString()
-    patchLog(logId, { status: 'approved', approved_by: mgrName, approved_at: now })
-    const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: mgrName, approved_at: now }).eq('id', logId)
-    if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
-    showToast('อนุมัติเรียบร้อยแล้ว', 'success')
+    if (busyLogId) return
+    setBusyLogId(logId)
+    try {
+      const now = new Date().toISOString()
+      patchLog(logId, { status: 'approved', approved_by: mgrName, approved_at: now })
+      const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: mgrName, approved_at: now }).eq('id', logId)
+      if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      showToast('อนุมัติเรียบร้อยแล้ว', 'success')
+    } finally { setBusyLogId(null) }
   }
 
   const handleUnapprove = async (logId: string) => {
-    patchLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
-    const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
-    if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
-    showToast('ยกเลิกอนุมัติแล้ว', 'info')
+    if (busyLogId) return
+    setBusyLogId(logId)
+    try {
+      patchLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
+      const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
+      if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      showToast('ยกเลิกอนุมัติแล้ว', 'info')
+    } finally { setBusyLogId(null) }
   }
 
   const handleReject = async () => {
@@ -455,26 +468,38 @@ export default function ManagerPage() {
   }
 
   const handleUndoReject = async (logId: string) => {
-    const patch = { is_rejected: false, rejected_reason: null, rejected_at: null }
-    patchLog(logId, patch)
-    const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
-    if (error) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
-    showToast('ยกเลิกการตีกลับแล้ว', 'info')
+    if (busyLogId) return
+    setBusyLogId(logId)
+    try {
+      const patch = { is_rejected: false, rejected_reason: null, rejected_at: null }
+      patchLog(logId, patch)
+      const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
+      if (error) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      showToast('ยกเลิกการตีกลับแล้ว', 'info')
+    } finally { setBusyLogId(null) }
   }
 
   const handlePay = async (logId: string) => {
-    const now = new Date().toISOString()
-    patchLog(logId, { paid: true, paid_at: now })
-    const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: now }).eq('id', logId)
-    if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
-    showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
+    if (busyLogId) return
+    setBusyLogId(logId)
+    try {
+      const now = new Date().toISOString()
+      patchLog(logId, { paid: true, paid_at: now })
+      const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: now }).eq('id', logId)
+      if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
+    } finally { setBusyLogId(null) }
   }
 
   const handleUnpay = async (logId: string) => {
-    patchLog(logId, { paid: false, paid_at: null })
-    const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
-    if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
-    showToast('ยกเลิกการจ่ายแล้ว', 'info')
+    if (busyLogId) return
+    setBusyLogId(logId)
+    try {
+      patchLog(logId, { paid: false, paid_at: null })
+      const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
+      if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      showToast('ยกเลิกการจ่ายแล้ว', 'info')
+    } finally { setBusyLogId(null) }
   }
 
   const handleLogin = async () => {
@@ -706,15 +731,15 @@ export default function ManagerPage() {
                               <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
                               <div className="flex flex-wrap gap-2 items-center">
                                 {!log.paid && (
-                                  <button onClick={() => handlePay(log.id)}
-                                    className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                  <button onClick={() => handlePay(log.id)} disabled={busyLogId === log.id}
+                                    className="text-xs bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
                                     บันทึกการจ่าย
                                   </button>
                                 )}
                                 {log.paid ? (
-                                  <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
+                                  <button onClick={() => handleUnpay(log.id)} disabled={busyLogId === log.id} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
                                 ) : (
-                                  <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
+                                  <button onClick={() => handleUnapprove(log.id)} disabled={busyLogId === log.id} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
                                 )}
                               </div>
                             </div>
@@ -724,7 +749,7 @@ export default function ManagerPage() {
                                 <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-full border border-red-200 font-medium whitespace-nowrap">
                                   ตีกลับแล้ว
                                 </span>
-                                <button onClick={() => handleUndoReject(log.id)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors">ยกเลิกการตีกลับ</button>
+                                <button onClick={() => handleUndoReject(log.id)} disabled={busyLogId === log.id} className="text-xs bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors">ยกเลิกการตีกลับ</button>
                               </div>
                               {log.rejected_reason && (
                                 <p className="text-xs text-red-500 bg-red-50 rounded-lg px-2.5 py-1.5">เหตุผล: {log.rejected_reason}</p>
@@ -736,8 +761,8 @@ export default function ManagerPage() {
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 รออนุมัติ
                               </span>
-                              <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors">อนุมัติ</button>
-                              <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }} className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors">ตีกลับ</button>
+                              <button onClick={() => handleApprove(log.id)} disabled={busyLogId === log.id} className="text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors">อนุมัติ</button>
+                              <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }} disabled={busyLogId === log.id} className="text-xs bg-red-50 hover:bg-red-100 disabled:opacity-40 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors">ตีกลับ</button>
                             </div>
                           )}
                         </div>
@@ -800,15 +825,15 @@ export default function ManagerPage() {
                                   <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
                                   <div className="flex flex-wrap gap-2 items-center">
                                     {!log.paid && (
-                                      <button onClick={() => handlePay(log.id)}
-                                        className="text-xs bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                      <button onClick={() => handlePay(log.id)} disabled={busyLogId === log.id}
+                                        className="text-xs bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
                                         บันทึกการจ่าย
                                       </button>
                                     )}
                                     {log.paid ? (
-                                      <button onClick={() => handleUnpay(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
+                                      <button onClick={() => handleUnpay(log.id)} disabled={busyLogId === log.id} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
                                     ) : (
-                                      <button onClick={() => handleUnapprove(log.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
+                                      <button onClick={() => handleUnapprove(log.id)} disabled={busyLogId === log.id} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
                                     )}
                                   </div>
                                 </div>
@@ -818,7 +843,7 @@ export default function ManagerPage() {
                                     <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-full border border-red-200 font-medium whitespace-nowrap">
                                       ตีกลับแล้ว
                                     </span>
-                                    <button onClick={() => handleUndoReject(log.id)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">ยกเลิกการตีกลับ</button>
+                                    <button onClick={() => handleUndoReject(log.id)} disabled={busyLogId === log.id} className="text-xs bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">ยกเลิกการตีกลับ</button>
                                   </div>
                                   {log.rejected_reason && (
                                     <p className="text-xs text-red-500 bg-red-50 rounded-lg px-2.5 py-1.5 max-w-xs">เหตุผล: {log.rejected_reason}</p>
@@ -830,8 +855,8 @@ export default function ManagerPage() {
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     รออนุมัติ
                                   </span>
-                                  <button onClick={() => handleApprove(log.id)} className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">อนุมัติ</button>
-                                  <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }} className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">ตีกลับ</button>
+                                  <button onClick={() => handleApprove(log.id)} disabled={busyLogId === log.id} className="text-xs bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">อนุมัติ</button>
+                                  <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }} disabled={busyLogId === log.id} className="text-xs bg-red-50 hover:bg-red-100 disabled:opacity-40 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">ตีกลับ</button>
                                 </div>
                               )}
                             </td>
