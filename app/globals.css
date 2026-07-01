@@ -108,7 +108,12 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
   height: 16px;
 }
 
-/* Staggered table-row entrance */
+/* Staggered table-row entrance — only for the first 10 rows. Past that,
+   there's no delay rule, so every remaining row (a roster can easily have
+   50-200+ students) animated at once with zero delay: dozens of elements
+   all running fadeInUp in the same frame, on top of the .tab-content
+   animation already running for the whole panel. That compounding was the
+   actual jank, not any single animation. Rows past 10 just render as-is. */
 .roster-row { animation: fadeInUp 0.30s ease both; }
 .roster-row:nth-child(1)  { animation-delay: 0.04s; }
 .roster-row:nth-child(2)  { animation-delay: 0.08s; }
@@ -120,6 +125,7 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
 .roster-row:nth-child(8)  { animation-delay: 0.32s; }
 .roster-row:nth-child(9)  { animation-delay: 0.36s; }
 .roster-row:nth-child(10) { animation-delay: 0.40s; }
+.roster-row:nth-child(n+11) { animation: none; }
 
 /* Roster row hover: X-slide + entrance animation */
 .roster-row {
@@ -127,19 +133,21 @@ input::placeholder { letter-spacing: 0; font-weight: 400; color: #9ca3af; }
 }
 .roster-row:hover { transform: translateX(2px); }
 
-/* Button hover lift (GPU-only: transform + shadow + brightness) */
+/* Button hover lift — transform-only. box-shadow/filter used to also be
+   in this transition, but neither is reliably GPU-composited (box-shadow
+   forces a repaint of its own bounds, filter often does too outside of
+   Chrome), and this rule applies to every <button> site-wide, so hovering/
+   tapping *any* button was repainting on every animation frame. transform
+   alone is compositor-only and stays smooth no matter how many buttons
+   are on screen (e.g. a roster table). */
 button {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  transition: transform 0.15s ease;
 }
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  filter: brightness(1.05);
 }
 button:active:not(:disabled) {
   transform: translateY(0) scale(0.98) !important;
-  box-shadow: none !important;
-  filter: none !important;
 }
 
 /* Respect reduced-motion preference */
