@@ -128,10 +128,15 @@ export default function StudentPage() {
     if (!form.student_id || studentLocked) return
     setIdLooking(true)
     try {
+      // Fetch the month summary in the same round-trip instead of waiting
+      // for studentLocked to flip and a separate effect to kick off a
+      // follow-up fetch afterward — the badges used to visibly pop in a
+      // beat later than the rest of the student info for no real reason.
       const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
         supabase.from('students').select('name, department, faculty, major').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
         fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
+        historyMonth ? fetchHistory(historyMonth) : Promise.resolve(),
       ])
       if (student) {
         const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
@@ -193,11 +198,11 @@ export default function StudentPage() {
     setHistoryLoading(false)
   }, [form.student_id])
 
-  // Live refresh: if staff approve/reject/edit this student's log while their
-  // page is open, reflect it without needing a manual "รีเฟรช" click.
-  const showHistoryRef   = useRef(showHistory)
+  // Live refresh: if staff approve/reject/edit this student's log — or the
+  // student submits/edits their own self-report — reflect it immediately,
+  // both in the history table and the always-visible month summary badges,
+  // without needing a manual "รีเฟรช" click or the history panel open.
   const historyMonthRef  = useRef(historyMonth)
-  useEffect(() => { showHistoryRef.current = showHistory }, [showHistory])
   useEffect(() => { historyMonthRef.current = historyMonth }, [historyMonth])
 
   useEffect(() => {
@@ -207,7 +212,7 @@ export default function StudentPage() {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'time_logs', filter: `student_id=eq.${form.student_id}`,
       }, () => {
-        if (showHistoryRef.current) void fetchHistory(historyMonthRef.current)
+        void fetchHistory(historyMonthRef.current)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -217,12 +222,6 @@ export default function StudentPage() {
     if (!showHistory && historyMonth) fetchHistory(historyMonth)
     setShowHistory(h => !h)
   }
-
-  // Keep the month summary + latest-status badges fresh even while the
-  // history panel itself is collapsed.
-  useEffect(() => {
-    if (studentLocked && historyMonth) fetchHistory(historyMonth)
-  }, [studentLocked, historyMonth, fetchHistory])
 
   const handleSetNewPin = async () => {
     if (pinFirst.length !== 4) return showMsg('error', 'PIN ต้องเป็นตัวเลข 4 หลัก')
@@ -394,60 +393,69 @@ export default function StudentPage() {
   }
 
   const handleSelfReport = async () => {
+    // Acquire the re-entrancy lock synchronously, before any `await` — the
+    // overlap check below is an async DB round-trip, so a second tap while
+    // it's in flight used to sail straight through the same check (it
+    // hadn't inserted yet) and create a duplicate/overlapping log. Locking
+    // only after the check (as this used to) doesn't close that window.
     if (selfReportLock.current) return
-    if (hasPin) {
-      const { ok, locked } = await verifyPin(pinInput)
-      if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
-    }
-    const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
-    if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
-    if (!work_summary.trim() || work_summary.trim().length < 5)
-      return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
-    if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
-    if (date < minDateThai()) return showMsg('error', 'ลงย้อนหลังได้ไม่เกิน 1 เดือน กรุณาติดต่อผู้ดูแลโดยตรง')
-    const outDate = check_out_date || date
-    const inISO  = thaiToUTC(date, check_in)
-    const outISO = check_out ? thaiToUTC(outDate, check_out) : null
-    if (outISO && outISO <= inISO) return showMsg('error', 'เวลาออกต้องมากกว่าเวลาเข้า')
-    if (outISO) {
-      const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
-      if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
-    }
-    // ตรวจเวลาซ้อนทับ
-    const effectiveEnd = outISO || thaiToUTC(date, '23:59')
-    let overlapQ = supabase.from('time_logs').select('id').eq('student_id', form.student_id)
-      .lt('check_in', effectiveEnd)
-      .or(`check_out.is.null,check_out.gt.${inISO}`)
-    if (editingLog) overlapQ = overlapQ.neq('id', editingLog.id)
-    const { data: overlaps } = await overlapQ
-    if (overlaps && overlaps.length > 0) {
-      window.alert('คุณเคยลงเวลานี้แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
-      return
-    }
     selfReportLock.current = true
-    setSelfReportSaving(true)
     try {
-      if (editingLog) {
-        const { error } = await supabase.from('time_logs').update({
-          check_in: inISO, check_out: outISO, project_name: project_name || null, work_summary: work_summary || null, photo_url,
-          is_rejected: false, rejected_reason: null, rejected_at: null,
-        }).eq('id', editingLog.id)
-        if (error) throw error
-        showMsg('success', 'แก้ไขคำขอสำเร็จ ส่งกลับไปรออนุมัติอีกครั้ง')
-      } else {
-        const { error } = await supabase.from('time_logs').insert({
-          student_id: form.student_id, check_in: inISO, check_out: outISO,
-          project_name: project_name || null, work_summary: work_summary || null, is_self_reported: true, photo_url,
-        })
-        if (error) throw error
-        showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
+      if (hasPin) {
+        const { ok, locked } = await verifyPin(pinInput)
+        if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
       }
-      setSelfReportOpen(false)
-      setEditingLog(null)
-      if (showHistory) fetchHistory(historyMonth)
-    } catch (e: unknown) {
-      showMsg('error', (e as Error).message)
-    } finally { setSelfReportSaving(false); selfReportLock.current = false }
+      const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
+      if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
+      if (!work_summary.trim() || work_summary.trim().length < 5)
+        return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
+      if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
+      if (date < minDateThai()) return showMsg('error', 'ลงย้อนหลังได้ไม่เกิน 1 เดือน กรุณาติดต่อผู้ดูแลโดยตรง')
+      const outDate = check_out_date || date
+      const inISO  = thaiToUTC(date, check_in)
+      const outISO = check_out ? thaiToUTC(outDate, check_out) : null
+      if (outISO && outISO <= inISO) return showMsg('error', 'เวลาออกต้องมากกว่าเวลาเข้า')
+      if (outISO) {
+        const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
+        if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
+      }
+      // ตรวจเวลาซ้อนทับ
+      const effectiveEnd = outISO || thaiToUTC(date, '23:59')
+      let overlapQ = supabase.from('time_logs').select('id').eq('student_id', form.student_id)
+        .lt('check_in', effectiveEnd)
+        .or(`check_out.is.null,check_out.gt.${inISO}`)
+      if (editingLog) overlapQ = overlapQ.neq('id', editingLog.id)
+      const { data: overlaps } = await overlapQ
+      if (overlaps && overlaps.length > 0) {
+        // window.alert() after an `await` gets silently blocked by some
+        // mobile browsers (no longer counts as a direct user gesture), so
+        // this used to look like the button just did nothing.
+        return showMsg('error', 'คุณเคยลงเวลานี้แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
+      }
+      setSelfReportSaving(true)
+      try {
+        if (editingLog) {
+          const { error } = await supabase.from('time_logs').update({
+            check_in: inISO, check_out: outISO, project_name: project_name || null, work_summary: work_summary || null, photo_url,
+            is_rejected: false, rejected_reason: null, rejected_at: null,
+          }).eq('id', editingLog.id)
+          if (error) throw error
+          showMsg('success', 'แก้ไขคำขอสำเร็จ ส่งกลับไปรออนุมัติอีกครั้ง')
+        } else {
+          const { error } = await supabase.from('time_logs').insert({
+            student_id: form.student_id, check_in: inISO, check_out: outISO,
+            project_name: project_name || null, work_summary: work_summary || null, is_self_reported: true, photo_url,
+          })
+          if (error) throw error
+          showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
+        }
+        setSelfReportOpen(false)
+        setEditingLog(null)
+        fetchHistory(historyMonth)
+      } catch (e: unknown) {
+        showMsg('error', (e as Error).message)
+      } finally { setSelfReportSaving(false) }
+    } finally { selfReportLock.current = false }
   }
 
   const historyTotalMin = historyLogs.reduce((s, l) => {
@@ -490,7 +498,10 @@ export default function StudentPage() {
             completely: a validation error (wrong PIN, duplicate time, etc.)
             while a modal was open looked like the button just did nothing. */}
         {message && (
-          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm rounded-xl px-4 py-3 text-sm font-medium border shadow-lg anim-slide-up ${
+          // mx-auto centering (not left-1/2 + translate-x) because
+          // anim-slide-up's keyframes set `transform` directly and would
+          // clobber a translateX-based centering transform.
+          <div className={`fixed top-4 inset-x-0 mx-auto z-[60] w-[calc(100%-2rem)] max-w-sm rounded-xl px-4 py-3 text-sm font-medium border shadow-lg anim-slide-up ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
             message.type === 'warn'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                          'bg-red-50 text-red-700 border-red-200'
