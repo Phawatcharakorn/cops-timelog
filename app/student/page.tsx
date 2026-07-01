@@ -20,7 +20,7 @@ const BKK = 'Asia/Bangkok'
 
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
-function minDateThai() { return new Date(Date.now() + 7 * 3600000 - 7 * 24 * 3600000).toISOString().slice(0, 10) }
+function minDateThai() { return new Date(Date.now() + 7 * 3600000 - 30 * 24 * 3600000).toISOString().slice(0, 10) }
 
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
@@ -302,7 +302,7 @@ export default function StudentPage() {
     if (!work_summary.trim() || work_summary.trim().length < 5)
       return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
     if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
-    if (date < minDateThai()) return showMsg('error', 'ลงย้อนหลังได้ไม่เกิน 7 วัน กรุณาติดต่อผู้ดูแลโดยตรง')
+    if (date < minDateThai()) return showMsg('error', 'ลงย้อนหลังได้ไม่เกิน 1 เดือน กรุณาติดต่อผู้ดูแลโดยตรง')
     const outDate = check_out_date || date
     const inISO  = thaiToUTC(date, check_in)
     const outISO = check_out ? thaiToUTC(outDate, check_out) : null
