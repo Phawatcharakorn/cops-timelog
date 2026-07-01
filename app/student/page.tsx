@@ -485,9 +485,12 @@ export default function StudentPage() {
           <div className="text-sm text-gray-400 mt-2">{dateStr}</div>
         </div>
 
-        {/* Alert */}
+        {/* Alert — fixed + high z-index so it's still visible over the
+            self-report/feedback modals (both z-50), which otherwise hid it
+            completely: a validation error (wrong PIN, duplicate time, etc.)
+            while a modal was open looked like the button just did nothing. */}
         {message && (
-          <div className={`rounded-xl px-4 py-3 text-sm font-medium border anim-slide-up ${
+          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm rounded-xl px-4 py-3 text-sm font-medium border shadow-lg anim-slide-up ${
             message.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' :
             message.type === 'warn'    ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                          'bg-red-50 text-red-700 border-red-200'
