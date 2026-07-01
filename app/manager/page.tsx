@@ -671,6 +671,52 @@ export default function ManagerPage() {
 
             {summary && (
               <>
+                {summary.student && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                      {summary.student.nickname && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${DEPT_CHIP[summary.student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                          {summary.student.nickname}
+                        </span>
+                      )}
+                      <h2 className="font-semibold text-gray-800">{summary.student.name}</h2>
+                      <span className="text-sm text-gray-400">({summary.student.student_id})</span>
+                      {summary.student.status && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 border border-gray-200 ml-auto">
+                          {summary.student.status}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                      {[
+                        ['แผนก', summary.student.department],
+                        ['คณะ', summary.student.faculty],
+                        ['สาขา', summary.student.major],
+                        ['รุ่น (Gen)', summary.student.gen != null ? String(summary.student.gen) : null],
+                        ['เพศ', summary.student.gender],
+                        ['วันเกิด', summary.student.birthdate ? format(new Date(summary.student.birthdate), 'd MMM yyyy', { locale: th }) : null],
+                        ['เบอร์โทร', summary.student.phone],
+                        ['อีเมล', summary.student.email],
+                        ['เลขบัตรประชาชน', summary.student.national_id],
+                        ['สัญชาติ', summary.student.nationality],
+                        ['ศาสนา', summary.student.religion],
+                        ['เข้าร่วมเมื่อ', summary.student.created_at ? format(new Date(summary.student.created_at), 'd MMM yyyy', { locale: th }) : null],
+                      ].filter(([, v]) => v).map(([label, value]) => (
+                        <div key={label}>
+                          <p className="text-xs text-gray-400">{label}</p>
+                          <p className="text-gray-700 font-medium truncate">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {summary.student.note && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-400 mb-1">หมายเหตุ</p>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{summary.student.note}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   {[
                     { label: 'Work Days',   value: `${summary.totalDays}`,                            color: 'bg-blue-50 text-blue-700 border-blue-100' },
