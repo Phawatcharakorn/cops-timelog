@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase, type Student } from '@/lib/supabase'
+import { type Student } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { th } from 'date-fns/locale'
 
@@ -39,15 +39,21 @@ export default function PrintRosterClient() {
 
   useEffect(() => {
     ;(async () => {
-      let q = supabase.from('students').select('*')
-        .order('gen', { ascending: true, nullsFirst: false }).order('name')
-      if (studentId) q = q.eq('student_id', studentId)
-      else {
-        if (dept)     q = q.eq('department', dept)
-        if (genParam) q = q.eq('gen', Number(genParam))
-      }
-      const { data } = await q
-      setStudents(data ?? [])
+      const token = localStorage.getItem('mgr_token') || localStorage.getItem('dev_token') || ''
+      const qs = new URLSearchParams()
+      if (studentId) qs.set('id', studentId)
+      else if (dept) qs.set('dept', dept)
+
+      const res = await fetch(`/api/students?${qs}`, { headers: { 'x-token': token } })
+      let data: Student[] = res.ok ? await res.json() : []
+      if (!Array.isArray(data)) data = data ? [data] : []
+      if (!studentId && genParam) data = data.filter(s => s.gen === Number(genParam))
+      data.sort((a, b) => {
+        const g = (a.gen ?? Infinity) - (b.gen ?? Infinity)
+        return g !== 0 ? g : a.name.localeCompare(b.name, 'th')
+      })
+
+      setStudents(data)
       setLoading(false)
     })()
   }, [dept, genParam, studentId])

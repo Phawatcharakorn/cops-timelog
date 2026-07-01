@@ -172,10 +172,11 @@ export default function ManagerPage() {
   }, [])
 
   const loadStudents = useCallback(async () => {
-    let q = supabase.from('students').select('*').order('name')
-    if (mgrDept) q = q.eq('department', mgrDept)
-    const { data } = await q
-    if (data) setStudents(data)
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams()
+    if (mgrDept) params.set('dept', mgrDept)
+    const res = await fetch(`/api/students?${params}`, { headers: { 'x-token': token } })
+    if (res.ok) setStudents(await res.json())
   }, [mgrDept])
 
   useEffect(() => { if (authed) { loadStudents(); checkFeedback() } }, [authed, loadStudents, checkFeedback])
@@ -200,10 +201,12 @@ export default function ManagerPage() {
       let logsQ = supabase.from('time_logs').select('*').eq('student_id', sid)
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
-      const [{ data: logs }, { data: student }] = await Promise.all([
+      const mgrToken = localStorage.getItem('mgr_token') || ''
+      const [{ data: logs }, studentRes] = await Promise.all([
         logsQ,
-        supabase.from('students').select('*').eq('student_id', sid).single(),
+        fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': mgrToken } }),
       ])
+      const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
@@ -219,12 +222,17 @@ export default function ManagerPage() {
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
       const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
-      let q = supabase.from('students').select('*').order('name')
-      if (mgrDept) q = q.eq('department', mgrDept)
+      const mgrToken = localStorage.getItem('mgr_token') || ''
+      const params = new URLSearchParams()
+      if (mgrDept) params.set('dept', mgrDept)
       let logsQ = supabase.from('time_logs').select('*')
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end)
-      const [{ data: allStudents }, { data: allLogs }] = await Promise.all([q, logsQ])
+      const [studentsRes, { data: allLogs }] = await Promise.all([
+        fetch(`/api/students?${params}`, { headers: { 'x-token': mgrToken } }),
+        logsQ,
+      ])
+      const allStudents: Student[] = studentsRes.ok ? await studentsRes.json() : []
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
@@ -311,10 +319,13 @@ export default function ManagerPage() {
   const fetchRoster = useCallback(async () => {
     setRosterLoading(true)
     try {
-      let q = supabase.from('students').select('*').order('gen', { ascending: true, nullsFirst: false }).order('name')
-      if (mgrDept) q = q.eq('department', mgrDept)
-      const { data } = await q
-      setRosterStudents(data ?? [])
+      const token = localStorage.getItem('mgr_token') || ''
+      const params = new URLSearchParams()
+      if (mgrDept) params.set('dept', mgrDept)
+      const res = await fetch(`/api/students?${params}`, { headers: { 'x-token': token } })
+      const data: Student[] = res.ok ? await res.json() : []
+      data.sort((a, b) => (a.gen ?? Infinity) - (b.gen ?? Infinity) || a.name.localeCompare(b.name, 'th'))
+      setRosterStudents(data)
     } finally { setRosterLoading(false) }
   }, [mgrDept])
 
@@ -336,8 +347,8 @@ export default function ManagerPage() {
 
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
-    await supabase.from('time_logs').delete().eq('student_id', student.student_id)
-    await supabase.from('students').delete().eq('student_id', student.student_id)
+    const token = localStorage.getItem('mgr_token') || ''
+    await fetch(`/api/students?id=${encodeURIComponent(student.student_id)}`, { method: 'DELETE', headers: { 'x-token': token } })
     if (selectedStudentId === student.student_id) { setSelectedStudentId(''); setSummary(null) }
     await loadStudents()
   }
@@ -371,8 +382,13 @@ export default function ManagerPage() {
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
-      const { error } = await supabase.from('students').insert({ student_id: student_id.trim(), name: name.trim(), nickname: nickname.trim() || null, department: deptToSave, faculty, major: major.trim() || null, pin: pin || null })
-      if (error) throw error
+      const token = localStorage.getItem('mgr_token') || ''
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ student_id: student_id.trim(), name: name.trim(), nickname: nickname.trim() || null, department: deptToSave, faculty, major: major.trim() || null, pin: pin || null }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' }); setAddStudentCustomDept('')
       await loadStudents()
@@ -410,8 +426,13 @@ export default function ManagerPage() {
     if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     setPinSaving(true)
     try {
-      const { error } = await supabase.from('students').update({ pin: pinInput || null }).eq('student_id', pinModal.student_id)
-      if (error) throw error
+      const token = localStorage.getItem('mgr_token') || ''
+      const res = await fetch(`/api/students?id=${encodeURIComponent(pinModal.student_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ pin: pinInput || null }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('ตั้ง PIN เรียบร้อยแล้ว', 'success')
       setPinModal(null); setPinInput(''); await loadStudents()
     } catch (e) { showToast('ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setPinSaving(false) }
@@ -434,8 +455,13 @@ export default function ManagerPage() {
     setEditStudentSaving(true)
     try {
       const newId = editStudentForm.student_id.trim()
-      const { error } = await supabase.from('students').update({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }).eq('student_id', editStudentModal.student_id)
-      if (error) throw error
+      const token = localStorage.getItem('mgr_token') || ''
+      const res = await fetch(`/api/students?id=${encodeURIComponent(editStudentModal.student_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
       setEditStudentModal(null); await loadStudents()
     } catch (e) { showToast('แก้ไขไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setEditStudentSaving(false) }

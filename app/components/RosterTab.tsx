@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase, type Student } from '@/lib/supabase'
+import { type Student } from '@/lib/supabase'
 import { showToast } from './Toast'
 
 function SkeletonRow() {
@@ -158,8 +158,13 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
         status:      editForm.status || null,
       }
       if (idChanged) updates.student_id = newId
-      const { error } = await supabase.from('students').update(updates).eq('student_id', detail.student_id)
-      if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); return }
+      const token = localStorage.getItem('mgr_token') || localStorage.getItem('dev_token') || ''
+      const res = await fetch(`/api/students?id=${encodeURIComponent(detail.student_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast('บันทึกไม่สำเร็จ: ' + (d.error || res.statusText), 'error'); return }
       showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
       onRefresh()
       setDetail(null)

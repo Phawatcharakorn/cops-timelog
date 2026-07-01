@@ -184,8 +184,9 @@ export default function DevPage() {
   }, [])
 
   const loadStudents = useCallback(async () => {
-    const { data } = await supabase.from('students').select('*').order('name')
-    if (data) setStudents(data)
+    const token = localStorage.getItem('dev_token') || ''
+    const res = await fetch('/api/students', { headers: { 'x-token': token } })
+    if (res.ok) setStudents(await res.json())
   }, [])
 
   useEffect(() => { if (authed) loadStudents() }, [authed, loadStudents])
@@ -193,9 +194,11 @@ export default function DevPage() {
   const fetchRoster = useCallback(async () => {
     setRosterLoading(true)
     try {
-      const { data } = await supabase.from('students').select('*')
-        .order('gen', { ascending: true, nullsFirst: false }).order('name')
-      setRosterStudents(data ?? [])
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/students', { headers: { 'x-token': token } })
+      const data: Student[] = res.ok ? await res.json() : []
+      data.sort((a, b) => (a.gen ?? Infinity) - (b.gen ?? Infinity) || a.name.localeCompare(b.name, 'th'))
+      setRosterStudents(data)
     } finally { setRosterLoading(false) }
   }, [])
 
@@ -221,10 +224,12 @@ export default function DevPage() {
       let logsQ = supabase.from('time_logs').select('*').eq('student_id', sid)
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end).order('check_in', { ascending: true })
-      const [{ data: logs }, { data: student }] = await Promise.all([
+      const devToken = localStorage.getItem('dev_token') || ''
+      const [{ data: logs }, studentRes] = await Promise.all([
         logsQ,
-        supabase.from('students').select('*').eq('student_id', sid).single(),
+        fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': devToken } }),
       ])
+      const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
         ...log,
@@ -254,10 +259,12 @@ export default function DevPage() {
       let logsQ = supabase.from('time_logs').select('*')
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end)
-      const [{ data: allStudents }, { data: allLogs }] = await Promise.all([
-        supabase.from('students').select('*').order('name'),
+      const devToken = localStorage.getItem('dev_token') || ''
+      const [studentsRes, { data: allLogs }] = await Promise.all([
+        fetch('/api/students', { headers: { 'x-token': devToken } }),
         logsQ,
       ])
+      const allStudents: Student[] = studentsRes.ok ? await studentsRes.json() : []
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
@@ -353,8 +360,8 @@ export default function DevPage() {
 
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
-    await supabase.from('time_logs').delete().eq('student_id', student.student_id)
-    await supabase.from('students').delete().eq('student_id', student.student_id)
+    const token = localStorage.getItem('dev_token') || ''
+    await fetch(`/api/students?id=${encodeURIComponent(student.student_id)}`, { method: 'DELETE', headers: { 'x-token': token } })
     if (selectedStudentId === student.student_id) { setSelectedStudentId(''); setSummary(null) }
     await loadStudents()
   }
@@ -411,16 +418,21 @@ export default function DevPage() {
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
     setAddStudentSaving(true)
     try {
-      const { error } = await supabase.from('students').insert({
-        student_id: student_id.trim(),
-        name:       name.trim(),
-        nickname:   nickname.trim() || null,
-        department: deptToSave,
-        faculty,
-        major:      major.trim() || null,
-        pin:        pin || null,
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({
+          student_id: student_id.trim(),
+          name:       name.trim(),
+          nickname:   nickname.trim() || null,
+          department: deptToSave,
+          faculty,
+          major:      major.trim() || null,
+          pin:        pin || null,
+        }),
       })
-      if (error) throw error
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false)
       setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
@@ -468,10 +480,13 @@ export default function DevPage() {
     if (pinInput && (pinInput.length !== 4 || !/^\d{4}$/.test(pinInput))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     setPinSaving(true)
     try {
-      const { error } = await supabase.from('students')
-        .update({ pin: pinInput || null })
-        .eq('student_id', pinModal.student_id)
-      if (error) throw error
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch(`/api/students?id=${encodeURIComponent(pinModal.student_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ pin: pinInput || null }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('ตั้ง PIN เรียบร้อยแล้ว', 'success')
       setPinModal(null); setPinInput('')
       await loadStudents()
@@ -515,16 +530,21 @@ export default function DevPage() {
     const deptToSave = editStudentForm.department === 'อื่นๆ' ? (editStudentCustomDept.trim() || 'อื่นๆ') : editStudentForm.department
     setEditStudentSaving(true)
     try {
-      const { error } = await supabase.from('students').update({
-        student_id: editStudentForm.student_id.trim() || editStudentModal.student_id,
-        name:       editStudentForm.name.trim(),
-        department: deptToSave,
-        faculty:    editStudentForm.faculty,
-        major:      editStudentForm.major.trim() || null,
-        gen:        editStudentForm.gen ? Number(editStudentForm.gen) : null,
-        phone:      editStudentForm.phone.trim() || null,
-      }).eq('student_id', editStudentModal.student_id)
-      if (error) throw error
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch(`/api/students?id=${encodeURIComponent(editStudentModal.student_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({
+          student_id: editStudentForm.student_id.trim() || editStudentModal.student_id,
+          name:       editStudentForm.name.trim(),
+          department: deptToSave,
+          faculty:    editStudentForm.faculty,
+          major:      editStudentForm.major.trim() || null,
+          gen:        editStudentForm.gen ? Number(editStudentForm.gen) : null,
+          phone:      editStudentForm.phone.trim() || null,
+        }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
       setEditStudentModal(null)
       await loadStudents()
