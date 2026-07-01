@@ -171,13 +171,23 @@ export default function ManagerPage() {
     } catch { /* ignore */ }
   }, [])
 
+  // Tokens now expire (24h) and a new deploy invalidates every previously
+  // issued one - without this, an expired/stale token just silently 401s
+  // forever (mgr_authed stays '1', so the login form never comes back).
+  const logout = useCallback(() => {
+    ;['mgr_authed', 'mgr_name', 'mgr_username', 'mgr_dept', 'mgr_token'].forEach(k => localStorage.removeItem(k))
+    setAuthed(false)
+    showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning')
+  }, [])
+
   const loadStudents = useCallback(async () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams()
     if (mgrDept) params.set('dept', mgrDept)
     const res = await fetch(`/api/students?${params}`, { headers: { 'x-token': token } })
+    if (res.status === 401) return logout()
     if (res.ok) setStudents(await res.json())
-  }, [mgrDept])
+  }, [mgrDept, logout])
 
   useEffect(() => { if (authed) { loadStudents(); checkFeedback() } }, [authed, loadStudents, checkFeedback])
 

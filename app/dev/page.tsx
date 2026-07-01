@@ -183,11 +183,21 @@ export default function DevPage() {
     }
   }, [])
 
+  // Tokens now expire (24h) and a new deploy invalidates every previously
+  // issued one - without this, an expired/stale token just silently 401s
+  // forever (dev_authed stays '1', so the login form never comes back).
+  const logout = useCallback(() => {
+    localStorage.removeItem('dev_authed'); localStorage.removeItem('dev_username'); localStorage.removeItem('dev_token')
+    setAuthed(false); setAdminUsername('')
+    showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning')
+  }, [])
+
   const loadStudents = useCallback(async () => {
     const token = localStorage.getItem('dev_token') || ''
     const res = await fetch('/api/students', { headers: { 'x-token': token } })
+    if (res.status === 401) return logout()
     if (res.ok) setStudents(await res.json())
-  }, [])
+  }, [logout])
 
   useEffect(() => { if (authed) loadStudents() }, [authed, loadStudents])
 
