@@ -13,3 +13,14 @@ export async function uploadAttachment(file: File, studentId: string): Promise<s
   const { data } = supabase.storage.from('work-photos').getPublicUrl(path)
   return data.publicUrl
 }
+
+// Once a log is paid, staff have already reviewed the attached receipt/photo
+// and it's no longer needed — delete it from Storage to keep usage down.
+// Best-effort: a failure here shouldn't block marking the log as paid.
+export async function deleteAttachment(url: string): Promise<void> {
+  const marker = '/work-photos/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return
+  const path = decodeURIComponent(url.slice(idx + marker.length))
+  await supabase.storage.from('work-photos').remove([path]).catch(() => {})
+}

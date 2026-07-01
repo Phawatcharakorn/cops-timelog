@@ -9,6 +9,7 @@ import RosterTab from '@/app/components/RosterTab'
 import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
+import { deleteAttachment } from '@/lib/upload'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -591,9 +592,15 @@ export default function DevPage() {
     setBusyLogId(logId)
     try {
       const now = new Date().toISOString()
-      patchLog(logId, { paid: true, paid_at: now })
-      const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: now }).eq('id', logId)
+      const photoUrl = summary?.logs.find(l => l.id === logId)?.photo_url ?? null
+      const patch = { paid: true, paid_at: now, ...(photoUrl ? { photo_url: null } : {}) }
+      patchLog(logId, patch)
+      const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
       if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+      // Staff have already reviewed the attachment by the time payment is
+      // recorded — delete it from Storage to keep usage down. Best-effort:
+      // the payment itself already succeeded regardless of this outcome.
+      if (photoUrl) void deleteAttachment(photoUrl)
       showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
     } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
