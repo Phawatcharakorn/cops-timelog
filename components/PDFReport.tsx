@@ -155,7 +155,9 @@ export function MonthlyReport({ student, logs, month }: Props) {
                   {log.check_out ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-'}
                 </Text>
                 <Text style={[s.td, { flex: 1 }]}>
-                  {log.work_summary || '-'}
+                  {log.project_name
+                    ? `${log.project_name}${log.work_summary ? ' — ' + log.work_summary : ''}`
+                    : (log.work_summary || '-')}
                 </Text>
               </View>
             )

@@ -28,6 +28,7 @@ export type TimeLog = {
   check_in: string
   check_out: string | null
   work_summary: string | null
+  project_name: string | null
   photo_url: string | null
   created_at: string
   status: 'pending' | 'approved'

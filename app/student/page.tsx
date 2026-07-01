@@ -10,12 +10,12 @@ import AttachmentInput from '@/app/components/AttachmentInput'
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
 type HistoryLog = {
-  id: string; check_in: string; check_out: string | null; work_summary: string | null; photo_url: string | null
+  id: string; check_in: string; check_out: string | null; work_summary: string | null; project_name: string | null; photo_url: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'; isSelfReported: boolean
   isRejected: boolean; rejectedReason: string | null
 }
-type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string; photo_url: string | null }
+type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
 const BKK = 'Asia/Bangkok'
 
@@ -48,6 +48,7 @@ export default function StudentPage() {
   const [studentLocked, setStudentLocked] = useState(false)
   const [studentNotFound, setStudentNotFound] = useState(false)
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
+  const [checkOutProject, setCheckOutProject] = useState('')
   const [workSummary, setWorkSummary] = useState('')
   const [checkOutPhoto, setCheckOutPhoto] = useState<string | null>(null)
   const [loading, setLoading]         = useState(false)
@@ -70,7 +71,7 @@ export default function StudentPage() {
   const [historyMonth, setHistoryMonth]     = useState('')
 
   const [selfReportOpen, setSelfReportOpen]     = useState(false)
-  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null })
+  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
   const [editingLog, setEditingLog]             = useState<HistoryLog | null>(null)
 
@@ -177,7 +178,7 @@ export default function StudentPage() {
       const dur = log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
       return {
         id: log.id, check_in: log.check_in, check_out: log.check_out,
-        work_summary: log.work_summary, photo_url: log.photo_url,
+        work_summary: log.work_summary, project_name: log.project_name, photo_url: log.photo_url,
         dateStr:     fmtShortDate(log.check_in),
         checkInStr:  fmtHHMM(log.check_in),
         checkOutStr: log.check_out ? fmtHHMM(log.check_out) : '-',
@@ -301,6 +302,7 @@ export default function StudentPage() {
       const { error } = await supabase.from('time_logs').update({
         check_out:    checkOutISO,
         work_summary: workSummary,
+        project_name: checkOutProject || null,
         photo_url:    checkOutPhoto,
       }).eq('id', activeLog.id)
       if (error) throw error
@@ -308,7 +310,7 @@ export default function StudentPage() {
       const studentName = form.name
       startCooldown(3)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
-      setActiveLog(null); setWorkSummary(''); setCheckOutPhoto(null)
+      setActiveLog(null); setWorkSummary(''); setCheckOutProject(''); setCheckOutPhoto(null)
       setStudentLocked(false); setStudentNotFound(false)
       setFoundPin(null); setPinInput(''); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
@@ -337,7 +339,7 @@ export default function StudentPage() {
 
   const openSelfReport = () => {
     setEditingLog(null)
-    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null })
+    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
     setSelfReportOpen(true)
   }
 
@@ -351,7 +353,7 @@ export default function StudentPage() {
       outTime = thaiOut.toISOString().slice(11, 16)
       outDate = thaiOut.toISOString().slice(0, 10)
     }
-    setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, work_summary: log.work_summary || '', photo_url: log.photo_url })
+    setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, project_name: log.project_name || '', work_summary: log.work_summary || '', photo_url: log.photo_url })
     setEditingLog(log)
     setSelfReportOpen(true)
   }
@@ -367,7 +369,7 @@ export default function StudentPage() {
   const handleSelfReport = async () => {
     if (selfReportLock.current) return
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
-    const { date, check_in, check_out, check_out_date, work_summary, photo_url } = selfReportForm
+    const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
     if (!work_summary.trim() || work_summary.trim().length < 5)
       return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
@@ -395,7 +397,7 @@ export default function StudentPage() {
     try {
       if (editingLog) {
         const { error } = await supabase.from('time_logs').update({
-          check_in: inISO, check_out: outISO, work_summary: work_summary || null, photo_url,
+          check_in: inISO, check_out: outISO, project_name: project_name || null, work_summary: work_summary || null, photo_url,
           is_rejected: false, rejected_reason: null, rejected_at: null,
         }).eq('id', editingLog.id)
         if (error) throw error
@@ -403,7 +405,7 @@ export default function StudentPage() {
       } else {
         const { error } = await supabase.from('time_logs').insert({
           student_id: form.student_id, check_in: inISO, check_out: outISO,
-          work_summary: work_summary || null, is_self_reported: true, photo_url,
+          project_name: project_name || null, work_summary: work_summary || null, is_self_reported: true, photo_url,
         })
         if (error) throw error
         showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
@@ -594,7 +596,16 @@ export default function StudentPage() {
             {activeLog && (
               <div className="anim-slide-up border-t border-gray-100 pt-4 space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ชื่อโครงงาน</label>
+                  <input
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    placeholder="เช่น Long Dee Market"
+                    value={checkOutProject}
+                    onChange={e => setCheckOutProject(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รายละเอียด</label>
                   <textarea
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
                     rows={3}
@@ -730,6 +741,7 @@ export default function StudentPage() {
                         <td className="px-3 py-2 text-rose-500 font-medium" style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.durationStr}</td>
                         <td className="px-3 py-2 text-gray-400 max-w-[100px]" style={{ lineHeight: 1.8 }}>
+                          {log.project_name && <div className="truncate font-medium text-gray-600">{log.project_name}</div>}
                           <div className="truncate">{log.work_summary || '-'}</div>
                           {log.photo_url && (
                             <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
@@ -867,7 +879,17 @@ export default function StudentPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">ชื่อโครงงาน</label>
+              <input
+                placeholder="เช่น Long Dee Market"
+                value={selfReportForm.project_name}
+                onChange={e => setSelfReportForm(f => ({ ...f, project_name: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">รายละเอียด</label>
               <textarea
                 rows={3}
                 placeholder="อธิบายงานที่ทำในวันนั้น..."

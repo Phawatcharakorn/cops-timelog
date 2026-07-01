@@ -290,7 +290,10 @@ export default function PrintPageClient() {
                 <td style={{ color: '#15803d', fontWeight: 500, textAlign: 'center' }}>{log.checkInStr}</td>
                 <td style={{ color: '#dc2626', fontWeight: 500, textAlign: 'center' }}>{log.checkOutStr}</td>
                 <td style={{ textAlign: 'center' }}>{log.durationStr}</td>
-                <td style={{ color: '#4b5563', textAlign: 'left' }}>{log.work_summary || '-'}</td>
+                <td style={{ color: '#4b5563', textAlign: 'left' }}>
+                  {log.project_name && <div style={{ fontWeight: 600, color: '#1a3a5c' }}>{log.project_name}</div>}
+                  {log.work_summary || (!log.project_name ? '-' : '')}
+                </td>
               </tr>
             ))}
           </tbody>

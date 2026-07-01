@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
       'เวลาออก':     co ? co.toISOString().slice(11, 16) : '-',
       'ชั่วโมง':      Math.floor(dur / 60),
       'นาที':         dur % 60,
+      'ชื่อโครงงาน':  log.project_name || '',
       'สรุปงาน':     log.work_summary || '',
       'สถานะ':       log.status === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ',
       'หมายเหตุ':    '',

@@ -123,3 +123,9 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE time_logs;
   END IF;
 END $$;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Split "สรุปงานที่ทำ" into a project name + details, instead of one free-text
+-- field, so it's scannable in the admin tables/reports.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS project_name TEXT;

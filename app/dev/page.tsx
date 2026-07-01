@@ -43,10 +43,10 @@ type Summary = {
 type StudentOverview = {
   student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
 }
-type EditForm     = { check_in: string; check_out: string; work_summary: string }
+type EditForm     = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
 type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
-type AddLogForm   = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string; photo_url: string | null }
+type AddLogForm   = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string)         { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
@@ -119,7 +119,7 @@ export default function DevPage() {
 
   // Edit modal
   const [editingLog, setEditingLog] = useState<TimeLog | null>(null)
-  const [editForm, setEditForm]     = useState<EditForm>({ check_in: '', check_out: '', work_summary: '' })
+  const [editForm, setEditForm]     = useState<EditForm>({ check_in: '', check_out: '', project_name: '', work_summary: '' })
   const [editSaving, setEditSaving] = useState(false)
 
   // Add Student modal
@@ -129,7 +129,7 @@ export default function DevPage() {
 
   // Add Log modal
   const [addLogOpen, setAddLogOpen]     = useState(false)
-  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null })
+  const [addLogForm, setAddLogForm]     = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
   const [addLogSaving, setAddLogSaving] = useState(false)
 
   // PIN modal
@@ -363,6 +363,7 @@ export default function DevPage() {
     setEditForm({
       check_in:     toDatetimeLocal(log.check_in),
       check_out:    log.check_out ? toDatetimeLocal(log.check_out) : '',
+      project_name: log.project_name ?? '',
       work_summary: log.work_summary ?? '',
     })
   }
@@ -380,6 +381,7 @@ export default function DevPage() {
       const { error } = await supabase.from('time_logs').update({
         check_in:     fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in,
         check_out:    editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
+        project_name: editForm.project_name || null,
         work_summary: editForm.work_summary || null,
       }).eq('id', editingLog.id)
       if (error) throw error
@@ -430,7 +432,7 @@ export default function DevPage() {
 
   // ── เพิ่ม Log ย้อนหลัง ────────────────────────────────────────────────────
   const handleAddLog = async () => {
-    const { date, check_in, check_out, check_out_date, work_summary, photo_url } = addLogForm
+    const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = addLogForm
     if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
     const outDate = check_out_date || date
     if (check_out) {
@@ -444,6 +446,7 @@ export default function DevPage() {
         student_id:   selectedStudentId,
         check_in:     thaiToUTC(date, check_in),
         check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
+        project_name: project_name || null,
         work_summary: work_summary || null,
         photo_url,
       }).select('id').single()
@@ -451,7 +454,7 @@ export default function DevPage() {
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
       setAddLogOpen(false)
-      setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null })
+      setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
       await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) {
       showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error')
@@ -484,12 +487,14 @@ export default function DevPage() {
         const { log } = undoAction
         await supabase.from('time_logs').insert({
           id: log.id, student_id: log.student_id,
-          check_in: log.check_in, check_out: log.check_out, work_summary: log.work_summary,
+          check_in: log.check_in, check_out: log.check_out,
+          project_name: log.project_name, work_summary: log.work_summary,
         })
       } else if (undoAction.type === 'edit') {
         await supabase.from('time_logs').update({
           check_in: undoAction.log.check_in,
           check_out: undoAction.log.check_out,
+          project_name: undoAction.log.project_name,
           work_summary: undoAction.log.work_summary,
         }).eq('id', undoAction.log.id)
       } else if (undoAction.type === 'add') {
@@ -954,7 +959,7 @@ export default function DevPage() {
                     : 'ดึงข้อมูล'
                   }
                 </button>
-                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '', photo_url: null }); setAddLogOpen(true) }}
+                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
                   className="py-2.5 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1060,6 +1065,7 @@ export default function DevPage() {
                                   : '-'}
                             </td>
                             <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
+                              {log.project_name && <div className="truncate font-semibold text-gray-700">{log.project_name}</div>}
                               <div className="truncate">{log.work_summary || '-'}</div>
                               {log.photo_url && (
                                 <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
@@ -1693,7 +1699,12 @@ export default function DevPage() {
                 onChange={t => setEditForm(f => ({ ...f, check_out: f.check_out.slice(0, 10) + 'T' + t }))} minuteStep={30} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อโครงงาน</label>
+              <input className={inputCls}
+                value={editForm.project_name} onChange={e => setEditForm(f => ({ ...f, project_name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
               <textarea rows={3} className={inputCls + ' resize-none'}
                 value={editForm.work_summary} onChange={e => setEditForm(f => ({ ...f, work_summary: e.target.value }))} />
             </div>
@@ -1836,7 +1847,13 @@ export default function DevPage() {
               </>)}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">สรุปงาน</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อโครงงาน</label>
+              <input className={inputCls} placeholder="เช่น Long Dee Market"
+                value={addLogForm.project_name}
+                onChange={e => setAddLogForm(f => ({ ...f, project_name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
               <textarea rows={2} className={inputCls + ' resize-none'} placeholder="งานที่ทำ..."
                 value={addLogForm.work_summary}
                 onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} />
