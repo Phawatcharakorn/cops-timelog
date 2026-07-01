@@ -19,6 +19,7 @@ const BKK = 'Asia/Bangkok'
 
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
+function minDateThai() { return new Date(Date.now() + 7 * 3600000 - 7 * 24 * 3600000).toISOString().slice(0, 10) }
 
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
@@ -68,6 +69,7 @@ export default function StudentPage() {
   const [selfReportOpen, setSelfReportOpen]     = useState(false)
   const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
+  const [editingLog, setEditingLog]             = useState<HistoryLog | null>(null)
 
   const [playing, setPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -262,31 +264,77 @@ export default function StudentPage() {
   }
 
   const openSelfReport = () => {
+    setEditingLog(null)
     setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
     setSelfReportOpen(true)
+  }
+
+  const openEditSelfReport = (log: HistoryLog) => {
+    const thaiIn  = new Date(new Date(log.check_in).getTime() + 7 * 3600000)
+    const inDate  = thaiIn.toISOString().slice(0, 10)
+    const inTime  = thaiIn.toISOString().slice(11, 16)
+    let outTime = '', outDate = ''
+    if (log.check_out) {
+      const thaiOut = new Date(new Date(log.check_out).getTime() + 7 * 3600000)
+      outTime = thaiOut.toISOString().slice(11, 16)
+      outDate = thaiOut.toISOString().slice(0, 10)
+    }
+    setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, work_summary: log.work_summary || '' })
+    setEditingLog(log)
+    setSelfReportOpen(true)
+  }
+
+  const handleDeleteSelfReport = async (log: HistoryLog) => {
+    if (!window.confirm('ต้องการลบคำขอนี้ใช่ไหม?')) return
+    const { error } = await supabase.from('time_logs').delete().eq('id', log.id)
+    if (error) return showMsg('error', error.message)
+    showMsg('success', 'ลบคำขอสำเร็จ')
+    fetchHistory(historyMonth)
   }
 
   const handleSelfReport = async () => {
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
     const { date, check_in, check_out, check_out_date, work_summary } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
+    if (!work_summary.trim() || work_summary.trim().length < 5)
+      return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
     if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
+    if (date < minDateThai()) return showMsg('error', 'ลงย้อนหลังได้ไม่เกิน 7 วัน กรุณาติดต่อผู้ดูแลโดยตรง')
     const outDate = check_out_date || date
     const inISO  = thaiToUTC(date, check_in)
     const outISO = check_out ? thaiToUTC(outDate, check_out) : null
     if (outISO && outISO <= inISO) return showMsg('error', 'เวลาออกต้องมากกว่าเวลาเข้า')
+    if (outISO) {
+      const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
+      if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
+    }
+    // ตรวจเวลาซ้อนทับ
+    const effectiveEnd = outISO || thaiToUTC(date, '23:59')
+    let overlapQ = supabase.from('time_logs').select('id').eq('student_id', form.student_id)
+      .lt('check_in', effectiveEnd)
+      .or(`check_out.is.null,check_out.gt.${inISO}`)
+    if (editingLog) overlapQ = overlapQ.neq('id', editingLog.id)
+    const { data: overlaps } = await overlapQ
+    if (overlaps && overlaps.length > 0)
+      return showMsg('error', 'ช่วงเวลานี้ซ้อนทับกับรายการที่มีอยู่แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
     setSelfReportSaving(true)
     try {
-      const { error } = await supabase.from('time_logs').insert({
-        student_id:       form.student_id,
-        check_in:         inISO,
-        check_out:        outISO,
-        work_summary:     work_summary || null,
-        is_self_reported: true,
-      })
-      if (error) throw error
-      showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
+      if (editingLog) {
+        const { error } = await supabase.from('time_logs').update({
+          check_in: inISO, check_out: outISO, work_summary: work_summary || null,
+        }).eq('id', editingLog.id)
+        if (error) throw error
+        showMsg('success', 'แก้ไขคำขอสำเร็จ')
+      } else {
+        const { error } = await supabase.from('time_logs').insert({
+          student_id: form.student_id, check_in: inISO, check_out: outISO,
+          work_summary: work_summary || null, is_self_reported: true,
+        })
+        if (error) throw error
+        showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
+      }
       setSelfReportOpen(false)
+      setEditingLog(null)
       if (showHistory) fetchHistory(historyMonth)
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
@@ -602,6 +650,12 @@ export default function StudentPage() {
                             ? <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">✓ อนุมัติ</span>
                             : <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">รออนุมัติ</span>
                           }
+                          {log.isSelfReported && log.status === 'pending' && (
+                            <div className="flex gap-2 mt-0.5">
+                              <button onClick={() => openEditSelfReport(log)} className="text-[10px] text-blue-500 hover:text-blue-700 font-medium">แก้ไข</button>
+                              <button onClick={() => handleDeleteSelfReport(log)} className="text-[10px] text-red-400 hover:text-red-600 font-medium">ลบ</button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -672,14 +726,18 @@ export default function StudentPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div>
-              <h3 className="font-bold text-gray-800 text-lg">ลงเวลาย้อนหลัง</h3>
-              <p className="text-xs text-gray-500 mt-1">สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล</p>
+              <h3 className="font-bold text-gray-800 text-lg">{editingLog ? 'แก้ไขคำขอลงเวลา' : 'ลงเวลาย้อนหลัง'}</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {editingLog
+                  ? 'แก้ไขได้เฉพาะรายการที่ยังรออนุมัติอยู่'
+                  : 'สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล'}
+              </p>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">วันที่</label>
               <input
-                type="date" max={todayThai()} value={selfReportForm.date}
+                type="date" min={minDateThai()} max={todayThai()} value={selfReportForm.date}
                 onChange={e => setSelfReportForm(f => ({ ...f, date: e.target.value }))}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               />
@@ -725,7 +783,7 @@ export default function StudentPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setSelfReportOpen(false)}
+              <button onClick={() => { setSelfReportOpen(false); setEditingLog(null) }}
                 className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
                 ยกเลิก
               </button>
@@ -733,7 +791,7 @@ export default function StudentPage() {
                 onClick={handleSelfReport}
                 disabled={selfReportSaving}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-                {selfReportSaving ? 'กำลังส่ง...' : 'ส่งขออนุมัติ'}
+                {selfReportSaving ? 'กำลังส่ง...' : editingLog ? 'บันทึกการแก้ไข' : 'ส่งขออนุมัติ'}
               </button>
             </div>
           </div>
