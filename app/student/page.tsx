@@ -939,8 +939,9 @@ export default function StudentPage() {
         )}
         <div className={`relative ${playing ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'drop-shadow-lg'}`}>
           <img
-            src="https://media.tenor.com/FtskoCrIAt8AAAAj/toothless-dance.gif"
+            src="/toothless.gif"
             alt="toothless"
+            fetchPriority="low"
             className="w-14 h-14 sm:w-20 sm:h-20 object-contain"
           />
         </div>

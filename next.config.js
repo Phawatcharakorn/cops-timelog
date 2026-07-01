@@ -50,6 +50,18 @@ const nextConfig = {
           { key: 'Content-Type',  value: 'application/javascript; charset=utf-8' },
         ],
       },
+      // Static, unhashed public/ assets (logos, mascot gif/audio, icons) -
+      // these don't change between deploys the way page HTML does, so the
+      // no-cache rule above (needed for the stale-bundle fix) was making
+      // the browser re-validate a 367KB gif on every single load instead
+      // of just using its cache. A day's cache still self-heals quickly if
+      // one of these files is ever replaced.
+      {
+        source: '/:all*(svg|jpg|jpeg|png|gif|webp|ico|mp3)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, must-revalidate' },
+        ],
+      },
       // Dev-server chunk paths aren't content-hashed like prod build output, so
       // an immutable 1-year cache here would make the browser ignore code edits.
       ...(process.env.NODE_ENV === 'production' ? [{
