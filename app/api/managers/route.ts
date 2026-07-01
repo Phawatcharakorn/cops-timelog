@@ -13,7 +13,7 @@ function unauthorized() {
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
-  let { data, error } = await supabaseAdmin()
+  let { data, error }: { data: { id: string; username: string; name: string; role?: string | null; department: string | null; created_at: string }[] | null, error: { message: string } | null } = await supabaseAdmin()
     .from('managers')
     .select('id, username, name, role, department, created_at')
     .order('created_at', { ascending: false })

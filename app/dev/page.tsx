@@ -850,7 +850,7 @@ export default function DevPage() {
       body: JSON.stringify(newMgrForm),
     })
     if (res.ok) {
-      setNewMgrForm({ username: '', password: '', name: '', department: '' })
+      setNewMgrForm({ username: '', password: '', name: '', role: 'MD', department: '' })
       await loadManagers()
     } else {
       const { error } = await res.json()
