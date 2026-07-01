@@ -931,24 +931,40 @@ export default function StudentPage() {
       {/* ── Self-report backdated log Modal ─────────────────────────────────── */}
       {selfReportOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div>
-              <h3 className="font-bold text-gray-800 text-lg">{editingLog ? 'แก้ไขคำขอลงเวลา' : 'ลงเวลาย้อนหลัง'}</h3>
-              <p className="text-xs text-gray-500 mt-1">
-                {editingLog
-                  ? 'แก้ไขได้เฉพาะรายการที่ยังรออนุมัติอยู่'
-                  : 'สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล'}
-              </p>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-700 to-blue-800 px-6 py-4 flex items-start justify-between gap-3 flex-shrink-0">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4.5 h-4.5 text-white" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg leading-tight">{editingLog ? 'แก้ไขคำขอลงเวลา' : 'ลงเวลาย้อนหลัง'}</h3>
+                  <p className="text-xs text-blue-100 mt-1 leading-relaxed">
+                    {editingLog
+                      ? 'แก้ไขได้เฉพาะรายการที่ยังรออนุมัติอยู่'
+                      : 'สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => { setSelfReportOpen(false); setEditingLog(null) }}
+                className="text-white/70 hover:text-white flex-shrink-0 p-1 -mr-1 -mt-1 rounded-lg hover:bg-white/10 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">วันที่</label>
-              <input
-                type="date" min={minDateThai()} max={todayThai()} value={selfReportForm.date}
-                onChange={e => setSelfReportForm(f => ({ ...f, date: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              />
-            </div>
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">วันที่</label>
+                <input
+                  type="date" min={minDateThai()} max={todayThai()} value={selfReportForm.date}
+                  onChange={e => setSelfReportForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                />
+              </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาเข้า</label>
@@ -1016,6 +1032,7 @@ export default function StudentPage() {
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
                 {selfReportSaving ? 'กำลังส่ง...' : editingLog ? 'บันทึกการแก้ไข' : 'บันทึกเวลาย้อนหลัง'}
               </button>
+            </div>
             </div>
           </div>
         </div>
