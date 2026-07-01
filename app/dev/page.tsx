@@ -542,6 +542,14 @@ export default function DevPage() {
     } catch (e) { showToast('ตีกลับไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setRejectSaving(false) }
   }
 
+  const handleUndoReject = async (logId: string) => {
+    const patch = { is_rejected: false, rejected_reason: null, rejected_at: null }
+    patchLog(logId, patch)
+    const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
+    if (error) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
+    showToast('ยกเลิกการตีกลับแล้ว', 'info')
+  }
+
   const handlePay = async (logId: string) => {
     const now = new Date().toISOString()
     patchLog(logId, { paid: true, paid_at: now })
@@ -1045,30 +1053,35 @@ export default function DevPage() {
                                     )}
                                   </div>
                                 </div>
-                              ) : (
+                              ) : log.is_rejected ? (
                                 <div className="space-y-1.5">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
-                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                      รออนุมัติ
+                                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-full border border-red-200 font-medium whitespace-nowrap">
+                                      ตีกลับแล้ว
                                     </span>
-                                    {log.is_rejected && (
-                                      <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-full border border-red-200 font-medium whitespace-nowrap">
-                                        ตีกลับแล้ว
-                                      </span>
-                                    )}
-                                    <button onClick={() => handleApprove(log.id)}
-                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
-                                      อนุมัติ
-                                    </button>
-                                    <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }}
-                                      className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
-                                      ตีกลับ
+                                    <button onClick={() => handleUndoReject(log.id)}
+                                      className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
+                                      ยกเลิกการตีกลับ
                                     </button>
                                   </div>
-                                  {log.is_rejected && log.rejected_reason && (
+                                  {log.rejected_reason && (
                                     <p className="text-xs text-red-500 bg-red-50 rounded-lg px-2.5 py-1.5 max-w-xs">เหตุผล: {log.rejected_reason}</p>
                                   )}
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    รออนุมัติ
+                                  </span>
+                                  <button onClick={() => handleApprove(log.id)}
+                                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
+                                    อนุมัติ
+                                  </button>
+                                  <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }}
+                                    className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
+                                    ตีกลับ
+                                  </button>
                                 </div>
                               )}
                             </td>
