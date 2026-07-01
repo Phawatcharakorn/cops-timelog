@@ -260,17 +260,17 @@ export default function StudentPage() {
   const handleCheckIn = async () => {
     if (checkInLock.current) return
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
-    if (hasPin) {
-      const { ok, locked } = await verifyPin(pinInput)
-      if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ผิด กรุณาลองใหม่')
-    }
     checkInLock.current = true
     setLoading(true)
     try {
+      // PIN verification and the open-log guard don't depend on each
+      // other — run them as one round-trip instead of two sequential ones.
+      const [pinResult, { data: openLog }] = await Promise.all([
+        hasPin ? verifyPin(pinInput) : Promise.resolve({ ok: true, locked: false }),
+        supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
+      ])
+      if (!pinResult.ok) return showMsg('error', pinResult.locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ผิด กรุณาลองใหม่')
       // Guard: ป้องกัน 2 tab check-in พร้อมกัน
-      const { data: openLog } = await supabase
-        .from('time_logs').select('id, check_in')
-        .eq('student_id', form.student_id).is('check_out', null).maybeSingle()
       if (openLog) {
         setActiveLog(openLog)
         return showMsg('warn', `มีการลงเวลาเข้าค้างอยู่แล้ว (เข้าเมื่อ ${fmtHHMM(openLog.check_in)})`, 0)
@@ -401,10 +401,15 @@ export default function StudentPage() {
     if (selfReportLock.current) return
     selfReportLock.current = true
     try {
-      if (hasPin) {
-        const { ok, locked } = await verifyPin(pinInput)
-        if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
-      }
+      // Self-report is a higher-trust action (a backdated entry with no
+      // check-in/out to corroborate it) than check-in, so — unlike
+      // check-in — it always requires a PIN, even for an account that
+      // never set one. Normally the UI already forces PIN setup before
+      // this button is reachable (pinSetStep gates it), but "แก้ไข" on an
+      // existing self-report opens this same form without going through
+      // that gate, so the handler enforces it independently too.
+      if (!hasPin) return showMsg('error', 'กรุณาตั้ง PIN ก่อนใช้งานฟีเจอร์นี้')
+
       const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
       if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
       if (!work_summary.trim() || work_summary.trim().length < 5)
@@ -419,13 +424,16 @@ export default function StudentPage() {
         const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
         if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
       }
-      // ตรวจเวลาซ้อนทับ
+
+      // PIN verification and the overlap check are independent of each
+      // other — run them as one round-trip instead of two sequential ones.
       const effectiveEnd = outISO || thaiToUTC(date, '23:59')
       let overlapQ = supabase.from('time_logs').select('id').eq('student_id', form.student_id)
         .lt('check_in', effectiveEnd)
         .or(`check_out.is.null,check_out.gt.${inISO}`)
       if (editingLog) overlapQ = overlapQ.neq('id', editingLog.id)
-      const { data: overlaps } = await overlapQ
+      const [{ ok, locked }, { data: overlaps }] = await Promise.all([verifyPin(pinInput), overlapQ])
+      if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
       if (overlaps && overlaps.length > 0) {
         // window.alert() after an `await` gets silently blocked by some
         // mobile browsers (no longer counts as a direct user gesture), so
