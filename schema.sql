@@ -95,3 +95,16 @@ CREATE POLICY "work-photos anon upload" ON storage.objects
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_rejected BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS rejected_reason TEXT;
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Guard against duplicate check-ins ("ปุ่มกดเอง" bug report): the app only
+-- checked "is there already an open log?" client-side before inserting, which
+-- is a check-then-act race — two rapid clicks (double-tap) or two tabs can
+-- both pass the check before either insert lands, creating two open rows for
+-- the same student. This constraint makes a 2nd concurrent check-in fail at
+-- the database instead of silently succeeding. The app already has a
+-- client-side re-entrancy lock as the first line of defense; this is the
+-- backstop. Safe to run — verified no student currently has 2+ open logs.
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_log_per_student
+  ON time_logs(student_id) WHERE check_out IS NULL;

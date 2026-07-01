@@ -79,6 +79,14 @@ export default function StudentPage() {
 
   useEffect(() => () => { audioRef.current?.pause() }, [])
 
+  // Synchronous re-entrancy locks — `loading`/`selfReportSaving` are React state,
+  // so a second click can slip through before a re-render disables the button
+  // (fast double-tap, or two queued click events). These refs are checked and
+  // set in the same tick the handler starts, closing that race window.
+  const checkInLock  = useRef(false)
+  const checkOutLock = useRef(false)
+  const selfReportLock = useRef(false)
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
 
   useEffect(() => {
@@ -134,8 +142,13 @@ export default function StudentPage() {
             setActiveLog(activeLogData)
             showMsg('warn', `คุณยังไม่ได้บันทึกเวลาออก (เข้าเมื่อ ${fmtHHMM(activeLogData.check_in)})`, 0)
           } else {
-            const endOfDay = toThaiTime(activeLogData.check_in)
+            const checkInThai = toThaiTime(activeLogData.check_in)
+            const endOfDay = new Date(checkInThai)
             endOfDay.setHours(18, 0, 0, 0)
+            // If check-in itself was at/after 18:00, "18:00 same day" would be
+            // BEFORE check-in — producing a negative-duration row. Close at
+            // 18:00 the next day instead so check_out is always after check_in.
+            if (endOfDay <= checkInThai) endOfDay.setDate(endOfDay.getDate() + 1)
             await supabase.from('time_logs').update({
               check_out:    new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
               work_summary: '(ปิดอัตโนมัติ — ลืม check-out)',
@@ -201,8 +214,10 @@ export default function StudentPage() {
   }
 
   const handleCheckIn = async () => {
+    if (checkInLock.current) return
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
+    checkInLock.current = true
     setLoading(true)
     try {
       // Guard: ป้องกัน 2 tab check-in พร้อมกัน
@@ -217,30 +232,49 @@ export default function StudentPage() {
       const { data, error } = await supabase.from('time_logs')
         .insert({ student_id: form.student_id, check_in: new Date().toISOString() })
         .select('id, check_in').single()
-      if (error) throw error
+      if (error) {
+        // 23505 = unique_violation — the DB-level guard caught a duplicate check-in
+        // that slipped past the client-side lock (e.g. two tabs/devices at once)
+        if ((error as { code?: string }).code === '23505') {
+          const { data: existing } = await supabase.from('time_logs').select('id, check_in')
+            .eq('student_id', form.student_id).is('check_out', null).maybeSingle()
+          if (existing) setActiveLog(existing)
+          return showMsg('warn', 'มีการลงเวลาเข้าค้างอยู่แล้ว กรุณารีเฟรชหน้าแล้วลองใหม่', 0)
+        }
+        throw error
+      }
       setActiveLog(data)
       startCooldown(3)
       showMsg('success', `บันทึกเวลาเข้า ${fmtHHMM(data.check_in)} สำเร็จ`)
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
-    } finally { setLoading(false) }
+    } finally { setLoading(false); checkInLock.current = false }
   }
 
   const handleCheckOut = async () => {
+    if (checkOutLock.current) return
     if (!activeLog) return
-    const rawMinutes = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
-    const remainder  = rawMinutes % 30
-    let duration = rawMinutes
-    if (remainder > 0) {
-      if (remainder > 25) {
-        duration = rawMinutes + (30 - remainder) // round up — silent
-      } else {
-        duration = rawMinutes - remainder // round down — confirm first
-        const h = Math.floor(duration / 60), m = duration % 60
-        const ok = window.confirm(`เวลาทำงานจะถูกปัดลงเหลือ ${h} ชม. ${m} นาที ต้องการบันทึกเวลาออกหรือไม่?`)
-        if (!ok) return
+    checkOutLock.current = true
+    try {
+      const rawMinutes = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
+      const remainder  = rawMinutes % 30
+      let duration = rawMinutes
+      if (remainder > 0) {
+        if (remainder > 25) {
+          duration = rawMinutes + (30 - remainder) // round up — silent
+        } else {
+          duration = rawMinutes - remainder // round down — confirm first
+          const h = Math.floor(duration / 60), m = duration % 60
+          const ok = window.confirm(`เวลาทำงานจะถูกปัดลงเหลือ ${h} ชม. ${m} นาที ต้องการบันทึกเวลาออกหรือไม่?`)
+          if (!ok) return
+        }
       }
-    }
+      await finishCheckOut(duration)
+    } finally { checkOutLock.current = false }
+  }
+
+  const finishCheckOut = async (duration: number) => {
+    if (!activeLog) return
     const checkOutISO = new Date(new Date(activeLog.check_in).getTime() + duration * 60000).toISOString()
     setLoading(true)
     try {
@@ -311,6 +345,7 @@ export default function StudentPage() {
   }
 
   const handleSelfReport = async () => {
+    if (selfReportLock.current) return
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
     const { date, check_in, check_out, check_out_date, work_summary, photo_url } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
@@ -335,6 +370,7 @@ export default function StudentPage() {
     const { data: overlaps } = await overlapQ
     if (overlaps && overlaps.length > 0)
       return showMsg('error', 'ช่วงเวลานี้ซ้อนทับกับรายการที่มีอยู่แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
+    selfReportLock.current = true
     setSelfReportSaving(true)
     try {
       if (editingLog) {
@@ -357,7 +393,7 @@ export default function StudentPage() {
       if (showHistory) fetchHistory(historyMonth)
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
-    } finally { setSelfReportSaving(false) }
+    } finally { setSelfReportSaving(false); selfReportLock.current = false }
   }
 
   const historyTotalMin = historyLogs.reduce((s, l) => {
