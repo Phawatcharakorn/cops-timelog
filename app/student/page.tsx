@@ -216,6 +216,12 @@ export default function StudentPage() {
     setShowHistory(h => !h)
   }
 
+  // Keep the month summary + latest-status badges fresh even while the
+  // history panel itself is collapsed.
+  useEffect(() => {
+    if (studentLocked && historyMonth) fetchHistory(historyMonth)
+  }, [studentLocked, historyMonth, fetchHistory])
+
   const handleSetNewPin = async () => {
     if (pinFirst.length !== 4) return showMsg('error', 'PIN ต้องเป็นตัวเลข 4 หลัก')
     if (pinConfirm !== pinFirst) {
@@ -425,6 +431,7 @@ export default function StudentPage() {
     return s + differenceInMinutes(new Date(l.check_out), new Date(l.check_in))
   }, 0)
   const historyDays = new Set(historyLogs.map(l => toThaiTime(l.check_in).toISOString().slice(0, 10))).size
+  const latestLog = historyLogs.length > 0 ? historyLogs[historyLogs.length - 1] : null
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col items-center justify-start pb-24">
@@ -543,6 +550,38 @@ export default function StudentPage() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Month summary + latest log status */}
+            {studentLocked && !pinSetStep && (
+              <div className="anim-slide-up grid grid-cols-2 gap-2">
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-center">
+                  <p className="text-[10px] text-blue-400 font-medium mb-0.5">เดือนนี้</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    {historyLoading ? '...' : `${historyDays} วัน · ${Math.floor(historyTotalMin / 60)}h ${historyTotalMin % 60}m`}
+                  </p>
+                </div>
+                <div className={`rounded-xl px-3 py-2.5 text-center border ${
+                  !latestLog ? 'bg-gray-50 border-gray-100' :
+                  latestLog.status === 'approved' ? 'bg-green-50 border-green-100' :
+                  latestLog.isRejected ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'
+                }`}>
+                  <p className={`text-[10px] font-medium mb-0.5 ${
+                    !latestLog ? 'text-gray-400' :
+                    latestLog.status === 'approved' ? 'text-green-500' :
+                    latestLog.isRejected ? 'text-red-500' : 'text-orange-500'
+                  }`}>รายการล่าสุด</p>
+                  <p className={`text-sm font-bold ${
+                    !latestLog ? 'text-gray-400' :
+                    latestLog.status === 'approved' ? 'text-green-700' :
+                    latestLog.isRejected ? 'text-red-600' : 'text-orange-600'
+                  }`}>
+                    {historyLoading ? '...' : !latestLog ? 'ไม่มีข้อมูล'
+                      : latestLog.status === 'approved' ? '✓ อนุมัติแล้ว'
+                      : latestLog.isRejected ? '✕ ถูกตีกลับ' : 'รออนุมัติ'}
+                  </p>
+                </div>
               </div>
             )}
 
