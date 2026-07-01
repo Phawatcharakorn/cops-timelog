@@ -13,6 +13,7 @@ type HistoryLog = {
   id: string; check_in: string; check_out: string | null; work_summary: string | null; photo_url: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'; isSelfReported: boolean
+  isRejected: boolean; rejectedReason: string | null
 }
 type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string; photo_url: string | null }
 
@@ -170,6 +171,7 @@ export default function StudentPage() {
         durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
         status: (log.status ?? 'pending') as 'pending' | 'approved',
         isSelfReported: !!log.is_self_reported,
+        isRejected: !!log.is_rejected, rejectedReason: log.rejected_reason,
       }
     }))
     setHistoryLoading(false)
@@ -325,9 +327,10 @@ export default function StudentPage() {
       if (editingLog) {
         const { error } = await supabase.from('time_logs').update({
           check_in: inISO, check_out: outISO, work_summary: work_summary || null, photo_url,
+          is_rejected: false, rejected_reason: null, rejected_at: null,
         }).eq('id', editingLog.id)
         if (error) throw error
-        showMsg('success', 'แก้ไขคำขอสำเร็จ')
+        showMsg('success', 'แก้ไขคำขอสำเร็จ ส่งกลับไปรออนุมัติอีกครั้ง')
       } else {
         const { error } = await supabase.from('time_logs').insert({
           student_id: form.student_id, check_in: inISO, check_out: outISO,
@@ -666,8 +669,13 @@ export default function StudentPage() {
                         <td className="px-3 py-2" style={{ lineHeight: 1.8 }}>
                           {log.status === 'approved'
                             ? <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">✓ อนุมัติ</span>
+                            : log.isRejected
+                            ? <span className="inline-block bg-red-50 text-red-600 text-xs px-2 py-0.5 rounded-full border border-red-200 whitespace-nowrap">✕ ถูกตีกลับ</span>
                             : <span className="inline-block bg-orange-50 text-orange-600 text-xs px-2 py-0.5 rounded-full border border-orange-200 whitespace-nowrap">รออนุมัติ</span>
                           }
+                          {log.isRejected && log.rejectedReason && (
+                            <p className="text-[10px] text-red-500 mt-0.5 max-w-[100px]">เหตุผล: {log.rejectedReason}</p>
+                          )}
                           {log.isSelfReported && log.status === 'pending' && (
                             <div className="flex gap-2 mt-0.5">
                               <button onClick={() => openEditSelfReport(log)} className="text-[10px] text-blue-500 hover:text-blue-700 font-medium">แก้ไข</button>

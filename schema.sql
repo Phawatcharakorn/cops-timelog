@@ -86,3 +86,12 @@ CREATE POLICY "work-photos public read" ON storage.objects
 DROP POLICY IF EXISTS "work-photos anon upload" ON storage.objects;
 CREATE POLICY "work-photos anon upload" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'work-photos');
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Reject ("ตีกลับ") a log back to the student with a reason, without deleting it.
+-- Status stays 'pending' so it still shows up for staff review after the
+-- student edits and resubmits.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_rejected BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS rejected_reason TEXT;
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;

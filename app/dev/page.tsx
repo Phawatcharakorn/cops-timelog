@@ -136,6 +136,11 @@ export default function DevPage() {
   const [pinInput, setPinInput]   = useState('')
   const [pinSaving, setPinSaving] = useState(false)
 
+  // Reject modal
+  const [rejectModal, setRejectModal]   = useState<{ id: string } | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectSaving, setRejectSaving] = useState(false)
+
   // Undo
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
 
@@ -496,6 +501,24 @@ export default function DevPage() {
     const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
     if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
     showToast('ยกเลิกอนุมัติแล้ว', 'info')
+  }
+
+  const handleReject = async () => {
+    if (!rejectModal) return
+    if (!rejectReason.trim()) { showToast('กรุณาระบุเหตุผลที่ตีกลับ', 'warning'); return }
+    setRejectSaving(true)
+    try {
+      const patch = {
+        status: 'pending' as const, approved_by: null, approved_at: null, paid: false, paid_at: null,
+        is_rejected: true, rejected_reason: rejectReason.trim(), rejected_at: new Date().toISOString(),
+      }
+      patchLog(rejectModal.id, patch)
+      const { error } = await supabase.from('time_logs').update(patch).eq('id', rejectModal.id)
+      if (error) throw error
+      showToast('ตีกลับรายการเรียบร้อยแล้ว', 'success')
+      setRejectModal(null); setRejectReason('')
+      await fetchSummary(); if (overview.length > 0) void fetchOverview()
+    } catch (e) { showToast('ตีกลับไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setRejectSaving(false) }
   }
 
   const handlePay = async (logId: string) => {
@@ -1002,15 +1025,29 @@ export default function DevPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    รออนุมัติ
-                                  </span>
-                                  <button onClick={() => handleApprove(log.id)}
-                                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
-                                    อนุมัติ
-                                  </button>
+                                <div className="space-y-1.5">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium whitespace-nowrap">
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                      รออนุมัติ
+                                    </span>
+                                    {log.is_rejected && (
+                                      <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs px-2.5 py-1 rounded-full border border-red-200 font-medium whitespace-nowrap">
+                                        ตีกลับแล้ว
+                                      </span>
+                                    )}
+                                    <button onClick={() => handleApprove(log.id)}
+                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
+                                      อนุมัติ
+                                    </button>
+                                    <button onClick={() => { setRejectModal({ id: log.id }); setRejectReason('') }}
+                                      className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap">
+                                      ตีกลับ
+                                    </button>
+                                  </div>
+                                  {log.is_rejected && log.rejected_reason && (
+                                    <p className="text-xs text-red-500 bg-red-50 rounded-lg px-2.5 py-1.5 max-w-xs">เหตุผล: {log.rejected_reason}</p>
+                                  )}
                                 </div>
                               )}
                             </td>
@@ -1838,6 +1875,26 @@ export default function DevPage() {
               <button onClick={handleSetPin} disabled={pinSaving}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {pinSaving ? 'กำลังบันทึก...' : 'บันทึก PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject Modal ────────────────────────────────────────────────────── */}
+      {rejectModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-bold text-gray-800">ตีกลับรายการนี้</h3>
+            <p className="text-xs text-gray-500">ระบุเหตุผลให้นิสิตทราบว่าทำไมรายการนี้ไม่ผ่าน นิสิตจะเห็นเหตุผลนี้และแก้ไขส่งใหม่ได้</p>
+            <textarea autoFocus rows={3} className={inputCls + ' resize-none'} placeholder="เช่น เวลาที่ลงไม่ตรงกับที่ทำงานจริง กรุณาแก้ไข..."
+              value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => { setRejectModal(null); setRejectReason('') }}
+                className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
+              <button onClick={handleReject} disabled={rejectSaving}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                {rejectSaving ? 'กำลังส่ง...' : 'ตีกลับ'}
               </button>
             </div>
           </div>

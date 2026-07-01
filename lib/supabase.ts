@@ -36,6 +36,9 @@ export type TimeLog = {
   paid: boolean
   paid_at: string | null
   is_self_reported: boolean
+  is_rejected: boolean
+  rejected_reason: string | null
+  rejected_at: string | null
 }
 
 export type Manager = {
