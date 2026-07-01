@@ -4,16 +4,21 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase, type Announcement } from '@/lib/supabase'
 import { differenceInMinutes } from 'date-fns'
 import SdecHeader from '@/app/components/SdecHeader'
+import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
 type HistoryLog = {
   id: string; check_in: string; check_out: string | null; work_summary: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
-  status: 'pending' | 'approved'
+  status: 'pending' | 'approved'; isSelfReported: boolean
 }
+type SelfReportForm = { date: string; check_in: string; check_out: string; work_summary: string }
 
 const BKK = 'Asia/Bangkok'
+
+function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
+function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
 
 function toThaiTime(iso: string) {
   return new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000)
@@ -59,6 +64,10 @@ export default function StudentPage() {
   const [historyLogs, setHistoryLogs]       = useState<HistoryLog[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyMonth, setHistoryMonth]     = useState('')
+
+  const [selfReportOpen, setSelfReportOpen]     = useState(false)
+  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', work_summary: '' })
+  const [selfReportSaving, setSelfReportSaving] = useState(false)
 
   const [playing, setPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -156,6 +165,7 @@ export default function StudentPage() {
         checkOutStr: log.check_out ? fmtHHMM(log.check_out) : '-',
         durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
         status: (log.status ?? 'pending') as 'pending' | 'approved',
+        isSelfReported: !!log.is_self_reported,
       }
     }))
     setHistoryLoading(false)
@@ -249,6 +259,37 @@ export default function StudentPage() {
     } catch (e: unknown) {
       showMsg('error', (e as Error).message)
     } finally { setLoading(false) }
+  }
+
+  const openSelfReport = () => {
+    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
+    setSelfReportOpen(true)
+  }
+
+  const handleSelfReport = async () => {
+    if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
+    const { date, check_in, check_out, work_summary } = selfReportForm
+    if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
+    if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
+    const inISO  = thaiToUTC(date, check_in)
+    const outISO = check_out ? thaiToUTC(date, check_out) : null
+    if (outISO && outISO <= inISO) return showMsg('error', 'เวลาออกต้องมากกว่าเวลาเข้า')
+    setSelfReportSaving(true)
+    try {
+      const { error } = await supabase.from('time_logs').insert({
+        student_id:       form.student_id,
+        check_in:         inISO,
+        check_out:        outISO,
+        work_summary:     work_summary || null,
+        is_self_reported: true,
+      })
+      if (error) throw error
+      showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
+      setSelfReportOpen(false)
+      if (showHistory) fetchHistory(historyMonth)
+    } catch (e: unknown) {
+      showMsg('error', (e as Error).message)
+    } finally { setSelfReportSaving(false) }
   }
 
   const historyTotalMin = historyLogs.reduce((s, l) => {
@@ -458,6 +499,17 @@ export default function StudentPage() {
               </button>
             ))}
 
+            {/* Self-report backdated log */}
+            {studentLocked && !activeLog && !pinSetStep && (
+              <button onClick={openSelfReport}
+                className="w-full text-xs text-gray-400 hover:text-blue-600 font-medium py-1 transition-colors flex items-center justify-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                ลืมลงเวลา? กรอกย้อนหลัง
+              </button>
+            )}
+
             {/* History toggle */}
             {studentLocked && (
               <button onClick={handleToggleHistory}
@@ -534,7 +586,10 @@ export default function StudentPage() {
                   <tbody className="divide-y divide-gray-50">
                     {historyLogs.map((log, i) => (
                       <tr key={log.id} className={i % 2 === 1 ? 'bg-gray-50/50' : ''}>
-                        <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.dateStr}</td>
+                        <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>
+                          {log.dateStr}
+                          {log.isSelfReported && <span className="block text-[10px] text-blue-500 font-medium whitespace-nowrap">ลงเองย้อนหลัง</span>}
+                        </td>
                         <td className="px-3 py-2 text-green-600 font-medium" style={{ lineHeight: 1.8 }}>{log.checkInStr}</td>
                         <td className="px-3 py-2 text-rose-500 font-medium" style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.durationStr}</td>
@@ -610,6 +665,62 @@ export default function StudentPage() {
         </div>
       </div>
 
+
+      {/* ── Self-report backdated log Modal ─────────────────────────────────── */}
+      {selfReportOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg">ลงเวลาย้อนหลัง</h3>
+              <p className="text-xs text-gray-500 mt-1">สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">วันที่</label>
+              <input
+                type="date" max={todayThai()} value={selfReportForm.date}
+                onChange={e => setSelfReportForm(f => ({ ...f, date: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาเข้า</label>
+                <TimeWheelPicker value={selfReportForm.check_in} onChange={t => setSelfReportForm(f => ({ ...f, check_in: t }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาออก</label>
+                <TimeWheelPicker value={selfReportForm.check_out || '00:00'} onChange={t => setSelfReportForm(f => ({ ...f, check_out: t }))} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">สรุปงานที่ทำ</label>
+              <textarea
+                rows={3}
+                placeholder="อธิบายงานที่ทำในวันนั้น..."
+                value={selfReportForm.work_summary}
+                onChange={e => setSelfReportForm(f => ({ ...f, work_summary: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setSelfReportOpen(false)}
+                className="flex-1 border border-gray-200 text-gray-500 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSelfReport}
+                disabled={selfReportSaving}
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                {selfReportSaving ? 'กำลังส่ง...' : 'ส่งขออนุมัติ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Feedback Modal ────────────────────────────────────────────────── */}
       {feedbackModal && (

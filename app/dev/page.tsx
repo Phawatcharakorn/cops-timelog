@@ -937,7 +937,10 @@ export default function DevPage() {
                           return (
                           <tr key={log.id} className="hover:bg-gray-50">
                             <td className="text-center text-xs text-gray-300" style={{ padding: '12px 8px', lineHeight: 1.8 }}>{globalIdx + 1}</td>
-                            <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtDate(log.check_in)}</td>
+                            <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
+                              {fmtDate(log.check_in)}
+                              {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
+                            </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}

@@ -60,3 +60,10 @@ CREATE TABLE feedback_responses (
 
 -- ป้องกัน submit ซ้ำ (คนเดิม + campaign เดิม)
 CREATE UNIQUE INDEX idx_feedback_unique ON feedback_responses(campaign_id, respondent_type, respondent_id);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Self-reported time logs (นิสิตลงเวลาย้อนหลังเอง — รอ dev/manager ตรวจสอบ)
+-- Note: status/approved_by/approved_at/paid/paid_at columns already exist in
+-- production but predate this file — run only the ALTER below if missing.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_self_reported BOOLEAN NOT NULL DEFAULT false;
