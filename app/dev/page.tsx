@@ -200,9 +200,19 @@ export default function DevPage() {
 
   // ── Data fetchers ──────────────────────────────────────────────────────────
 
+  // Realtime now triggers fetchSummary/fetchOverview automatically on every
+  // change, on top of the manual calls already in each action handler. Two
+  // overlapping fetches (e.g. clicking two different rows quickly) can
+  // resolve out of order — a slower, now-stale response landing last would
+  // silently overwrite newer state. These request-id refs make each fetch
+  // ignore its own result if a newer call has since started.
+  const summaryReqId  = useRef(0)
+  const overviewReqId = useRef(0)
+
   const fetchSummary = useCallback(async (overrideId?: string) => {
     const sid = overrideId ?? selectedStudentId
     if (!sid) return
+    const reqId = ++summaryReqId.current
     setLoading(true)
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
@@ -214,6 +224,7 @@ export default function DevPage() {
         logsQ,
         supabase.from('students').select('*').eq('student_id', sid).single(),
       ])
+      if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
         ...log,
         durationMinutes: log.check_out
@@ -230,10 +241,11 @@ export default function DevPage() {
         logs: processed, student, dateFrom, dateTo,
       })
       setCurrentPage(1)
-    } finally { setLoading(false) }
+    } finally { if (reqId === summaryReqId.current) setLoading(false) }
   }, [selectedStudentId, dateFrom, dateTo])
 
   const fetchOverview = useCallback(async () => {
+    const reqId = ++overviewReqId.current
     setOverviewLoading(true)
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
@@ -245,6 +257,7 @@ export default function DevPage() {
         supabase.from('students').select('*').order('name'),
         logsQ,
       ])
+      if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
         const totalMin = logs.reduce((sum, l) =>
@@ -260,7 +273,7 @@ export default function DevPage() {
         }
       })
       setOverview(result)
-    } finally { setOverviewLoading(false) }
+    } finally { if (reqId === overviewReqId.current) setOverviewLoading(false) }
   }, [dateFrom, dateTo])
 
   // Live refresh: auto-refetch when time_logs changes anywhere (self-report

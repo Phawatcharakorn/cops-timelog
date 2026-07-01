@@ -179,9 +179,19 @@ export default function ManagerPage() {
 
   useEffect(() => { if (authed) { loadStudents(); checkFeedback() } }, [authed, loadStudents, checkFeedback])
 
+  // Realtime now triggers fetchSummary/fetchOverview automatically on every
+  // change, on top of the manual calls already in each action handler. Two
+  // overlapping fetches (e.g. clicking two different rows quickly) can
+  // resolve out of order — a slower, now-stale response landing last would
+  // silently overwrite newer state. These request-id refs make each fetch
+  // ignore its own result if a newer call has since started.
+  const summaryReqId  = useRef(0)
+  const overviewReqId = useRef(0)
+
   const fetchSummary = useCallback(async (overrideId?: string) => {
     const sid = overrideId ?? selectedStudentId
     if (!sid) return
+    const reqId = ++summaryReqId.current
     setLoading(true)
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
@@ -193,15 +203,17 @@ export default function ManagerPage() {
         logsQ,
         supabase.from('students').select('*').eq('student_id', sid).single(),
       ])
+      if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
       setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom, dateTo })
       setCurrentPage(1)
-    } finally { setLoading(false) }
+    } finally { if (reqId === summaryReqId.current) setLoading(false) }
   }, [selectedStudentId, dateFrom, dateTo])
 
   const fetchOverview = useCallback(async () => {
+    const reqId = ++overviewReqId.current
     setOverviewLoading(true)
     try {
       const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
@@ -212,13 +224,14 @@ export default function ManagerPage() {
       if (start) logsQ = logsQ.gte('check_in', start)
       logsQ = logsQ.lte('check_in', end)
       const [{ data: allStudents }, { data: allLogs }] = await Promise.all([q, logsQ])
+      if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
         const totalMin = logs.reduce((sum, l) => sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return { student: s, totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7 * 3600000).toISOString().slice(0, 10))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: logs.length }
       })
       setOverview(result)
-    } finally { setOverviewLoading(false) }
+    } finally { if (reqId === overviewReqId.current) setOverviewLoading(false) }
   }, [dateFrom, dateTo, mgrDept])
 
   // Live refresh: auto-refetch when time_logs changes anywhere (self-report
