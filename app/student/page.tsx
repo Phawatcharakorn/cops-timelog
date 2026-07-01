@@ -13,7 +13,7 @@ type HistoryLog = {
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'; isSelfReported: boolean
 }
-type SelfReportForm = { date: string; check_in: string; check_out: string; work_summary: string }
+type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; work_summary: string }
 
 const BKK = 'Asia/Bangkok'
 
@@ -66,7 +66,7 @@ export default function StudentPage() {
   const [historyMonth, setHistoryMonth]     = useState('')
 
   const [selfReportOpen, setSelfReportOpen]     = useState(false)
-  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', work_summary: '' })
+  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
 
   const [playing, setPlaying] = useState(false)
@@ -262,17 +262,18 @@ export default function StudentPage() {
   }
 
   const openSelfReport = () => {
-    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', work_summary: '' })
+    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', work_summary: '' })
     setSelfReportOpen(true)
   }
 
   const handleSelfReport = async () => {
     if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
-    const { date, check_in, check_out, work_summary } = selfReportForm
+    const { date, check_in, check_out, check_out_date, work_summary } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
     if (date > todayThai()) return showMsg('error', 'ไม่สามารถลงเวลาล่วงหน้าได้')
+    const outDate = check_out_date || date
     const inISO  = thaiToUTC(date, check_in)
-    const outISO = check_out ? thaiToUTC(date, check_out) : null
+    const outISO = check_out ? thaiToUTC(outDate, check_out) : null
     if (outISO && outISO <= inISO) return showMsg('error', 'เวลาออกต้องมากกว่าเวลาเข้า')
     setSelfReportSaving(true)
     try {
@@ -684,15 +685,32 @@ export default function StudentPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาเข้า</label>
-                <TimeWheelPicker value={selfReportForm.check_in} onChange={t => setSelfReportForm(f => ({ ...f, check_in: t }))} />
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาเข้า</label>
+              <TimeWheelPicker value={selfReportForm.check_in} onChange={t => setSelfReportForm(f => ({ ...f, check_in: t }))} />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">เวลาออก</label>
+                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                  <input
+                    type="checkbox" checked={!!selfReportForm.check_out}
+                    onChange={e => setSelfReportForm(f => ({ ...f, check_out: e.target.checked ? '18:00' : '', check_out_date: e.target.checked ? f.date : '' }))}
+                  />
+                  ระบุเวลาออก
+                </label>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5 text-center">เวลาออก</label>
-                <TimeWheelPicker value={selfReportForm.check_out || '00:00'} onChange={t => setSelfReportForm(f => ({ ...f, check_out: t }))} />
-              </div>
+              {selfReportForm.check_out && (
+                <div className="space-y-2">
+                  <input
+                    type="date" min={selfReportForm.date} value={selfReportForm.check_out_date || selfReportForm.date}
+                    onChange={e => setSelfReportForm(f => ({ ...f, check_out_date: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  />
+                  <TimeWheelPicker value={selfReportForm.check_out} onChange={t => setSelfReportForm(f => ({ ...f, check_out: t }))} />
+                </div>
+              )}
             </div>
 
             <div>

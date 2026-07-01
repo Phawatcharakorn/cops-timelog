@@ -37,12 +37,14 @@ const nextConfig = {
           { key: 'Content-Type',  value: 'application/javascript; charset=utf-8' },
         ],
       },
-      {
+      // Dev-server chunk paths aren't content-hashed like prod build output, so
+      // an immutable 1-year cache here would make the browser ignore code edits.
+      ...(process.env.NODE_ENV === 'production' ? [{
         source: '/_next/static/(.*)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
-      },
+      }] : []),
     ]
   },
 }
