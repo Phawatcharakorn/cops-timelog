@@ -142,8 +142,10 @@ export default function DevPage() {
   const [rejectSaving, setRejectSaving] = useState(false)
 
   // Guards the per-row action buttons (อนุมัติ/ตีกลับ/จ่าย/ฯลฯ) against a 2nd
-  // click while the 1st is still in flight — without this, a click with no
-  // visible feedback yet reads as "didn't register", so the row fires twice.
+  // click while the 1st is still in flight. Uses a ref for the actual check
+  // (synchronous, immune to React batching two rapid clicks against the same
+  // stale state snapshot) and state only to drive the disabled/opacity UI.
+  const busyLogIdRef = useRef<string | null>(null)
   const [busyLogId, setBusyLogId] = useState<string | null>(null)
 
   // Undo
@@ -515,7 +517,8 @@ export default function DevPage() {
     setSummary(prev => prev ? { ...prev, logs: prev.logs.map(l => l.id === logId ? { ...l, ...patch } : l) } : prev)
 
   const handleApprove = async (logId: string) => {
-    if (busyLogId) return
+    if (busyLogIdRef.current) return
+    busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       const now = new Date().toISOString()
@@ -523,18 +526,19 @@ export default function DevPage() {
       const { error } = await supabase.from('time_logs').update({ status: 'approved', approved_by: adminUsername, approved_at: now }).eq('id', logId)
       if (error) { showToast('อนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
       showToast('อนุมัติเรียบร้อยแล้ว', 'success')
-    } finally { setBusyLogId(null) }
+    } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
 
   const handleUnapprove = async (logId: string) => {
-    if (busyLogId) return
+    if (busyLogIdRef.current) return
+    busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       patchLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
       const { error } = await supabase.from('time_logs').update({ status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null }).eq('id', logId)
       if (error) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกอนุมัติแล้ว', 'info')
-    } finally { setBusyLogId(null) }
+    } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
 
   const handleReject = async () => {
@@ -556,7 +560,8 @@ export default function DevPage() {
   }
 
   const handleUndoReject = async (logId: string) => {
-    if (busyLogId) return
+    if (busyLogIdRef.current) return
+    busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       const patch = { is_rejected: false, rejected_reason: null, rejected_at: null }
@@ -564,11 +569,12 @@ export default function DevPage() {
       const { error } = await supabase.from('time_logs').update(patch).eq('id', logId)
       if (error) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการตีกลับแล้ว', 'info')
-    } finally { setBusyLogId(null) }
+    } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
 
   const handlePay = async (logId: string) => {
-    if (busyLogId) return
+    if (busyLogIdRef.current) return
+    busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       const now = new Date().toISOString()
@@ -576,18 +582,19 @@ export default function DevPage() {
       const { error } = await supabase.from('time_logs').update({ paid: true, paid_at: now }).eq('id', logId)
       if (error) { showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
       showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
-    } finally { setBusyLogId(null) }
+    } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
 
   const handleUnpay = async (logId: string) => {
-    if (busyLogId) return
+    if (busyLogIdRef.current) return
+    busyLogIdRef.current = logId
     setBusyLogId(logId)
     try {
       patchLog(logId, { paid: false, paid_at: null })
       const { error } = await supabase.from('time_logs').update({ paid: false, paid_at: null }).eq('id', logId)
       if (error) { showToast('ยกเลิกไม่สำเร็จ: ' + error.message, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการจ่ายแล้ว', 'info')
-    } finally { setBusyLogId(null) }
+    } finally { busyLogIdRef.current = null; setBusyLogId(null) }
   }
 
   const handleLogin = async () => {
