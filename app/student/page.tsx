@@ -552,7 +552,18 @@ export default function StudentPage() {
                   onBlur={handleStudentIdBlur}
                 />
                 {idLooking && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-400 animate-pulse">ค้นหา...</span>
+                  // animate-pulse (opacity fading in/out on a loop) looked
+                  // like a flicker here since idLooking is usually only
+                  // true for a few hundred ms — barely enough for one pulse
+                  // cycle to start before it's cut off. A spinning icon
+                  // reads as "loading" immediately with no fade-in beat.
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-blue-400">
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    ค้นหา...
+                  </span>
                 )}
               </div>
               {studentNotFound && (

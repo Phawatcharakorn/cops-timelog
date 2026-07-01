@@ -12,6 +12,14 @@ function Wheel({ values, value, onChange }: {
   const el       = useRef<HTMLDivElement>(null)
   const timer    = useRef<ReturnType<typeof setTimeout>>()
   const dragging = useRef(false)
+  // settle() calls onChange(), which flows back down as this same wheel's
+  // own `value` prop a render later. Without this flag, the sync effect
+  // below couldn't tell "the parent just echoed back what I picked" apart
+  // from "the value changed for some other reason" — it would yank
+  // scrollTop back instantly mid-way through settle()'s smooth-scroll
+  // animation, which is what caused the visible stutter/flicker (scrolling
+  // to "1" would jump back toward "0" before landing).
+  const selfInitiated = useRef(false)
 
   const looped = useMemo(() => Array.from({ length: REPEAT }, () => values).flat(), [values])
   const mid    = values.length   // index offset of the middle copy
@@ -20,6 +28,7 @@ function Wheel({ values, value, onChange }: {
 
   // Sync external value → scroll position (instant, no animation)
   useEffect(() => {
+    if (selfInitiated.current) { selfInitiated.current = false; return }
     const i = values.indexOf(value)
     if (i >= 0 && el.current) {
       el.current.scrollTop = (mid + i) * IH
@@ -34,6 +43,7 @@ function Wheel({ values, value, onChange }: {
     const logical = ((raw % values.length) + values.length) % values.length
     el.current.scrollTo({ top: raw * IH, behavior: 'smooth' })
     setCenter(raw)
+    selfInitiated.current = true
     onChange(values[logical])
     // After smooth animation finishes, jump to middle copy — no visual change since same number
     setTimeout(() => {
