@@ -129,3 +129,46 @@ END $$;
 -- field, so it's scannable in the admin tables/reports.
 -- ──────────────────────────────────────────────────────────────────────────────
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS project_name TEXT;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Baseline Row Level Security — "formalize, don't break".
+--
+-- These 6 tables currently have NO RLS at all, which means Supabase's default
+-- PostgREST behavior applies: any request carrying the public anon key can
+-- read/write every row directly (bypassing the app's UI entirely), and the
+-- Supabase dashboard flags every one of them as "RLS disabled, exposed to
+-- PostgREST". The app's student/dev/manager pages all read and write these
+-- tables straight from the browser with that same anon key (no Supabase
+-- Auth, custom PIN/token auth instead) — so a strict "only see your own row"
+-- policy isn't possible yet without first moving those calls behind
+-- server-side API routes that can check identity (that's a separate, bigger
+-- follow-up; see /api/print-data and /api/export-csv for the pattern).
+--
+-- This migration only enables RLS and adds "allow everything" policies that
+-- mirror today's already-open behavior — it does not close the access-control
+-- gap above. What it DOES fix: it removes the "exposed table" footgun for
+-- anything not explicitly covered here (e.g. a table added later without
+-- thinking about access), and makes the permissive access explicit/auditable
+-- instead of implicit. Tighten these policies once the client-side calls
+-- above are migrated to authenticated server routes.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE students           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE time_logs          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE managers           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements      ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "students all access"           ON students;
+DROP POLICY IF EXISTS "time_logs all access"           ON time_logs;
+DROP POLICY IF EXISTS "managers all access"            ON managers;
+DROP POLICY IF EXISTS "feedback_campaigns all access"  ON feedback_campaigns;
+DROP POLICY IF EXISTS "feedback_responses all access"  ON feedback_responses;
+DROP POLICY IF EXISTS "announcements all access"       ON announcements;
+
+CREATE POLICY "students all access"          ON students           FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "time_logs all access"         ON time_logs          FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "managers all access"          ON managers           FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "feedback_campaigns all access" ON feedback_campaigns FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "feedback_responses all access" ON feedback_responses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "announcements all access"     ON announcements      FOR ALL USING (true) WITH CHECK (true);
