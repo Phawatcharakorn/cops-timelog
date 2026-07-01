@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, unauthorized } from '@/lib/apiAuth'
+import { hashPassword } from '@/lib/crypto'
 
 export const dynamic = 'force-dynamic'
+
+// A dev/manager setting or resetting a student's PIN sends it as plain 4
+// digits (same as the student-facing first-time-setup flow) - hash it
+// before it touches the database, and clear any brute-force lockout state
+// so a fresh PIN isn't immediately unusable.
+function hashPinInBody(body: Record<string, unknown>) {
+  if (typeof body.pin === 'string' && body.pin) body.pin = hashPassword(body.pin)
+  if ('pin' in body) { body.pin_fail_count = 0; body.pin_locked_until = null }
+}
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
@@ -29,6 +39,7 @@ export async function POST(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
   const body = await req.json()
+  hashPinInBody(body)
   const { error } = await supabaseAdmin().from('students').insert(body)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
@@ -42,6 +53,7 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   const body = await req.json()
+  hashPinInBody(body)
   const { error } = await supabaseAdmin().from('students').update(body).eq('student_id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })

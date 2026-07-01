@@ -253,16 +253,18 @@ export default function StudentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ student_id: form.student_id, pin }),
       })
-      if (!res.ok) return false
-      const d = await res.json()
-      return !!d.ok
-    } catch { return false }
+      const d = await res.json().catch(() => ({ ok: false }))
+      return { ok: !!d.ok, locked: !!d.locked }
+    } catch { return { ok: false, locked: false } }
   }
 
   const handleCheckIn = async () => {
     if (checkInLock.current) return
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
-    if (hasPin && !(await verifyPin(pinInput))) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
+    if (hasPin) {
+      const { ok, locked } = await verifyPin(pinInput)
+      if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ผิด กรุณาลองใหม่')
+    }
     checkInLock.current = true
     setLoading(true)
     try {
@@ -393,7 +395,10 @@ export default function StudentPage() {
 
   const handleSelfReport = async () => {
     if (selfReportLock.current) return
-    if (hasPin && !(await verifyPin(pinInput))) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
+    if (hasPin) {
+      const { ok, locked } = await verifyPin(pinInput)
+      if (!ok) return showMsg('error', locked ? 'กรอก PIN ผิดหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่' : 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
+    }
     const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
     if (!work_summary.trim() || work_summary.trim().length < 5)

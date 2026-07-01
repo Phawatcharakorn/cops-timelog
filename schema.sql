@@ -172,3 +172,13 @@ CREATE POLICY "managers all access"          ON managers           FOR ALL USING
 CREATE POLICY "feedback_campaigns all access" ON feedback_campaigns FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "feedback_responses all access" ON feedback_responses FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "announcements all access"     ON announcements      FOR ALL USING (true) WITH CHECK (true);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- PIN brute-force lockout. A PIN is only 4 digits (10,000 combos), and
+-- /api/student-pin/verify now does the compare server-side with no throttle -
+-- someone could script through every combo for a given student_id in
+-- seconds. These columns let the API lock a student_id out after too many
+-- wrong guesses in a short window (see /api/student-pin/verify).
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE students ADD COLUMN IF NOT EXISTS pin_fail_count   INTEGER     NOT NULL DEFAULT 0;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS pin_locked_until TIMESTAMPTZ;

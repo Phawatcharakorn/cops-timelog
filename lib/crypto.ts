@@ -55,3 +55,15 @@ export function validateMgrToken(token: string | null): boolean {
 export function validateAnyToken(token: string | null): boolean {
   return validateDevToken(token) || validateMgrToken(token)
 }
+
+/**
+ * Compare a student PIN against the stored value, which may be a legacy
+ * plaintext 4-digit PIN or a hashed `salt:hash` (new PINs, and old ones
+ * lazily upgraded on next successful verify — see /api/student-pin/verify).
+ * A student with no PIN set at all is treated as "ok", matching the app's
+ * existing behavior of only gating check-in/self-report once a PIN exists.
+ */
+export function verifyPin(pin: string, stored: string | null): boolean {
+  if (!stored) return true
+  return stored.includes(':') ? verifyPassword(pin, stored) : stored === pin
+}

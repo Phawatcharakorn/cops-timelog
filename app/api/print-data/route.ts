@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth } from '@/lib/apiAuth'
+import { verifyPin } from '@/lib/crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
   // they are this student by supplying their own PIN (never sent back to the
   // client — only compared server-side). Students who never set a PIN keep
   // the old (studentId-only) access level rather than being locked out.
-  if (!checkAuth(req) && student.pin && student.pin !== pin) {
+  if (!checkAuth(req) && !verifyPin(pin ?? '', student.pin)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
