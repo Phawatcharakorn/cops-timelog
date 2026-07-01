@@ -390,8 +390,10 @@ export default function StudentPage() {
       .or(`check_out.is.null,check_out.gt.${inISO}`)
     if (editingLog) overlapQ = overlapQ.neq('id', editingLog.id)
     const { data: overlaps } = await overlapQ
-    if (overlaps && overlaps.length > 0)
-      return showMsg('error', 'ช่วงเวลานี้ซ้อนทับกับรายการที่มีอยู่แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
+    if (overlaps && overlaps.length > 0) {
+      window.alert('คุณเคยลงเวลานี้แล้ว กรุณาตรวจสอบประวัติการลงเวลา')
+      return
+    }
     selfReportLock.current = true
     setSelfReportSaving(true)
     try {
@@ -914,7 +916,7 @@ export default function StudentPage() {
                 onClick={handleSelfReport}
                 disabled={selfReportSaving}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-                {selfReportSaving ? 'กำลังส่ง...' : editingLog ? 'บันทึกการแก้ไข' : 'ส่งขออนุมัติ'}
+                {selfReportSaving ? 'กำลังส่ง...' : editingLog ? 'บันทึกการแก้ไข' : 'บันทึกเวลาย้อนหลัง'}
               </button>
             </div>
           </div>
