@@ -56,7 +56,7 @@ export default function StudentPage() {
   const [idLooking, setIdLooking]     = useState(false)
   const [message, setMessage]         = useState<{ type: 'success' | 'error' | 'warn'; text: string } | null>(null)
 
-  const [foundPin, setFoundPin]       = useState<string | null>(null)
+  const [hasPin, setHasPin]           = useState(false)
   const [pinInput, setPinInput]       = useState('')
   const [pinSetStep, setPinSetStep]   = useState(false)
   const [pinFirst, setPinFirst]       = useState('')
@@ -128,16 +128,18 @@ export default function StudentPage() {
     if (!form.student_id || studentLocked) return
     setIdLooking(true)
     try {
-      const [{ data: student }, { data: activeLogData }] = await Promise.all([
-        supabase.from('students').select('name, department, faculty, major, pin').eq('student_id', form.student_id).maybeSingle(),
+      const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
+        supabase.from('students').select('name, department, faculty, major').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
+        fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
       ])
       if (student) {
+        const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
         setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
         setStudentLocked(true)
         setStudentNotFound(false)
-        setFoundPin(student.pin ?? null)
-        if (!student.pin) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
+        setHasPin(hp)
+        if (!hp) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
         if (activeLogData) {
           if (isRecentCheckIn(activeLogData.check_in)) {
             setActiveLog(activeLogData)
@@ -231,19 +233,36 @@ export default function StudentPage() {
     }
     setPinSetting(true)
     try {
-      const { error } = await supabase.from('students').update({ pin: pinFirst }).eq('student_id', form.student_id)
-      if (error) throw error
-      setFoundPin(pinFirst); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
+      const res = await fetch('/api/student-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: form.student_id, pin: pinFirst }),
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
+      setHasPin(true); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       showMsg('success', 'ตั้ง PIN สำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
     } catch (e) {
       showMsg('error', 'ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
     } finally { setPinSetting(false) }
   }
 
+  const verifyPin = async (pin: string) => {
+    try {
+      const res = await fetch('/api/student-pin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: form.student_id, pin }),
+      })
+      if (!res.ok) return false
+      const d = await res.json()
+      return !!d.ok
+    } catch { return false }
+  }
+
   const handleCheckIn = async () => {
     if (checkInLock.current) return
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
-    if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
+    if (hasPin && !(await verifyPin(pinInput))) return showMsg('error', 'กรอก PIN ผิด กรุณาลองใหม่')
     checkInLock.current = true
     setLoading(true)
     try {
@@ -318,7 +337,7 @@ export default function StudentPage() {
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
       setActiveLog(null); setWorkSummary(''); setCheckOutProject(''); setCheckOutPhoto(null)
       setStudentLocked(false); setStudentNotFound(false)
-      setFoundPin(null); setPinInput(''); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
+      setHasPin(false); setPinInput(''); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
       setForm({ name: '', student_id: '', department: '', faculty: '', major: '' })
 
@@ -374,7 +393,7 @@ export default function StudentPage() {
 
   const handleSelfReport = async () => {
     if (selfReportLock.current) return
-    if (foundPin && pinInput !== foundPin) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
+    if (hasPin && !(await verifyPin(pinInput))) return showMsg('error', 'กรอก PIN ในช่องด้านบนให้ถูกต้องก่อนส่งคำขอ')
     const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
     if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
     if (!work_summary.trim() || work_summary.trim().length < 5)
@@ -509,7 +528,7 @@ export default function StudentPage() {
                     setForm(f => ({ ...f, student_id: val }))
                     setStudentLocked(false); setStudentNotFound(false)
                     setMessage(null)
-                    setFoundPin(null); setPinInput('')
+                    setHasPin(false); setPinInput('')
                   }}
                   onBlur={handleStudentIdBlur}
                 />
@@ -631,7 +650,7 @@ export default function StudentPage() {
             )}
 
             {/* PIN verify (has PIN) */}
-            {studentLocked && foundPin && !pinSetStep && !activeLog && (
+            {studentLocked && hasPin && !pinSetStep && !activeLog && (
               <div className="anim-slide-up">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
@@ -757,7 +776,7 @@ export default function StudentPage() {
                 <button
                   onClick={() => {
                     let pin = pinInput
-                    if (foundPin && pin.length !== 4) {
+                    if (hasPin && pin.length !== 4) {
                       const entered = window.prompt('กรอก PIN 4 หลัก เพื่อดูรายงาน')
                       if (entered === null) return
                       pin = entered.replace(/\D/g, '').slice(0, 4)
