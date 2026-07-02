@@ -84,9 +84,13 @@ export async function GET(req: NextRequest) {
       new Date(Date.UTC(ey, em - 1, 1)).toISOString(),
     )
     label = `${startMonth}_to_${endMonth}`
-  } else if (from && to) {
-    months = monthsBetween(from + 'T00:00:00', to + 'T00:00:00')
-    label = from === to ? from : `${from}_to_${to}`
+  } else if (to) {
+    // dev/manager's date-range picker often has an empty "from" (open-ended
+    // range) — treat that as "just the calendar month containing `to`"
+    // rather than 400ing, since the voucher is a single-month form anyway.
+    const effectiveFrom = from || to
+    months = monthsBetween(effectiveFrom + 'T00:00:00', to + 'T00:00:00')
+    label = effectiveFrom === to ? to : `${effectiveFrom}_to_${to}`
   } else {
     return NextResponse.json({ error: 'Missing date params' }, { status: 400 })
   }
