@@ -215,6 +215,7 @@ export default function ManagerPage() {
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': mgrToken } }),
         fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': mgrToken } }),
       ])
+      if (logsRes.status === 401 || studentRes.status === 401) { logout(); return }
       const logs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
@@ -224,7 +225,7 @@ export default function ManagerPage() {
       setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom, dateTo })
       setCurrentPage(1)
     } finally { if (reqId === summaryReqId.current) setLoading(false) }
-  }, [selectedStudentId, dateFrom, dateTo])
+  }, [selectedStudentId, dateFrom, dateTo, logout])
 
   const fetchOverview = useCallback(async () => {
     const reqId = ++overviewReqId.current
@@ -357,6 +358,7 @@ export default function ManagerPage() {
   const handleExportPDF = () => {
     if (!summary) return
     const token = localStorage.getItem('mgr_token') || ''
+    if (!token) { logout(); return }
     const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
     if (dateFrom) params.set('from', dateFrom)
     window.open(`/print?${params}`, '_blank')

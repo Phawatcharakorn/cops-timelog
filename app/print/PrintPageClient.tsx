@@ -81,7 +81,14 @@ export default function PrintPageClient() {
     fetch(`/api/print-data?${params}`)
       .then(async res => {
         const body = await res.json()
-        if (!res.ok) throw new Error(body?.error === 'Unauthorized' ? 'PIN ไม่ถูกต้อง — ไม่มีสิทธิ์ดูรายงานนี้' : 'ไม่พบข้อมูลนิสิต')
+        if (!res.ok) {
+          if (body?.error === 'Unauthorized') {
+            throw new Error(token
+              ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่แล้วลองอีกครั้ง'
+              : 'PIN ไม่ถูกต้อง — ไม่มีสิทธิ์ดูรายงานนี้')
+          }
+          throw new Error('ไม่พบข้อมูลนิสิต')
+        }
 
         const approvedLogs: TimeLog[] = body.logs ?? []
         const processed: ProcessedLog[] = approvedLogs.map(log => {

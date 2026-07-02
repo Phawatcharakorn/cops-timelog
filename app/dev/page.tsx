@@ -238,6 +238,7 @@ export default function DevPage() {
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': devToken } }),
         fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': devToken } }),
       ])
+      if (logsRes.status === 401 || studentRes.status === 401) { logout(); return }
       const logs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
@@ -258,7 +259,7 @@ export default function DevPage() {
       })
       setCurrentPage(1)
     } finally { if (reqId === summaryReqId.current) setLoading(false) }
-  }, [selectedStudentId, dateFrom, dateTo])
+  }, [selectedStudentId, dateFrom, dateTo, logout])
 
   const fetchOverview = useCallback(async () => {
     const reqId = ++overviewReqId.current
@@ -362,6 +363,7 @@ export default function DevPage() {
   const handleExportPDF = () => {
     if (!summary) return
     const token = localStorage.getItem('dev_token') || ''
+    if (!token) { logout(); return }
     const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
     if (dateFrom) params.set('from', dateFrom)
     const url = `/print?${params}`
