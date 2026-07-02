@@ -171,7 +171,7 @@ export default function DevPage() {
 
   // Edit Student modal
   const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
+  const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -360,10 +360,31 @@ export default function DevPage() {
     a.href = url; a.download = `timelog_${selectedStudentId}.xlsx`; a.click()
   }
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!summary) return
     const token = localStorage.getItem('dev_token') || ''
     if (!token) { logout(); return }
+
+    // Printing a report hands the student their pay slip, so treat it as
+    // the payment record: mark every approved-but-unpaid log in the report
+    // as paid at the same moment, instead of relying on staff to remember
+    // to click "บันทึกการจ่าย" per row afterward.
+    const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid)
+    if (unpaidApproved.length > 0) {
+      const confirmed = window.confirm(
+        `การพิมพ์ PDF จะบันทึกว่า "จ่ายแล้ว" ให้กับรายการที่อนุมัติแล้วทั้งหมด ${unpaidApproved.length} รายการในรายงานนี้ทันที\n\nต้องการดำเนินการต่อหรือไม่?`
+      )
+      if (!confirmed) return
+      const now = new Date().toISOString()
+      await Promise.all(unpaidApproved.map(async l => {
+        const patch = { paid: true, paid_at: now, ...(l.photo_url ? { photo_url: null } : {}) }
+        patchLog(l.id, patch)
+        await putTimeLog(l.id, patch)
+        if (l.photo_url) void deleteAttachment(l.photo_url)
+      }))
+      showToast(`บันทึกการจ่าย ${unpaidApproved.length} รายการเรียบร้อยแล้ว`, 'success')
+    }
+
     const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
     if (dateFrom) params.set('from', dateFrom)
     const url = `/print?${params}`
@@ -570,6 +591,7 @@ export default function DevPage() {
         body: JSON.stringify({
           student_id: editStudentForm.student_id.trim() || editStudentModal.student_id,
           name:       editStudentForm.name.trim(),
+          nickname:   editStudentForm.nickname.trim() || null,
           department: deptToSave,
           faculty:    editStudentForm.faculty,
           major:      editStudentForm.major.trim() || null,
@@ -1537,7 +1559,7 @@ export default function DevPage() {
                             <button onClick={() => {
                               const deptInList = DEPARTMENTS.includes(s.department)
                               setEditStudentModal(s)
-                              setEditStudentForm({ student_id: s.student_id, name: s.name, department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
+                              setEditStudentForm({ student_id: s.student_id, name: s.name, nickname: s.nickname ?? '', department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
                               setEditStudentCustomDept(deptInList ? '' : s.department)
                             }}
                               className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
@@ -2009,6 +2031,11 @@ export default function DevPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
               <input type="text" className={inputCls} value={editStudentForm.name}
                 onChange={e => setEditStudentForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อเล่น</label>
+              <input type="text" className={inputCls} placeholder="ชื่อเล่น..." value={editStudentForm.nickname}
+                onChange={e => setEditStudentForm(f => ({ ...f, nickname: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>

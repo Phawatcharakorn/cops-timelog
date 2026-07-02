@@ -9,7 +9,7 @@ export default function GuidePage() {
             📖 คู่มือการใช้งาน
           </div>
           <h1 className="text-3xl font-bold text-gray-900">ระบบลงเวลา CoPs</h1>
-          <p className="text-sm text-gray-400">เวอร์ชัน 2.0 · พัฒนาโดย Phawatcharakorn</p>
+          <p className="text-sm text-gray-400">เวอร์ชัน 3.0 · พัฒนาโดย Phawatcharakorn</p>
         </div>
 
         {/* Overview */}
@@ -20,10 +20,13 @@ export default function GuidePage() {
           <ul className="space-y-2 text-sm text-gray-600">
             {[
               'นิสิตบันทึกเวลาเข้า-ออกด้วยตัวเอง ตั้ง PIN ครั้งแรกเองได้เลย',
-              'ดูประวัติการลงเวลาย้อนหลังรายเดือน',
+              'นิสิตลงเวลาย้อนหลังเอง (self-report) ได้ถ้าลืมกดตอนนั้น รอ dev/manager อนุมัติ',
+              'ดูประวัติการลงเวลาย้อนหลังรายเดือน พร้อมพิมพ์/ดาวน์โหลดรายงาน PDF',
               'Manager ดูรายบุคคล / ภาพรวม / จัดการนิสิตในฝ่ายของตัวเอง',
-              'Manager อนุมัติชั่วโมง และส่งออก Excel / PDF',
-              'Manager เพิ่ม แก้ไข ลบนิสิต และรีเซ็ต PIN ได้',
+              'Manager/Dev อนุมัติหรือตีกลับ (reject) แต่ละรายการลงเวลาได้',
+              'Manager/Dev เพิ่ม แก้ไข (รวมชื่อเล่น) ลบนิสิต และรีเซ็ต PIN ได้',
+              'ส่งออกรายงานเป็น Excel หรือ PDF ได้ทั้งรายบุคคลและภาพรวม',
+              'Dev/Manager ประกาศข่าวสารถึงนิสิตได้ (แท็บ "ประกาศ")',
               'Dev เปิด Feedback campaign กำหนดหัวข้อ + ระยะเวลาได้',
               'นิสิตให้ Feedback ได้ครั้งเดียวต่อ campaign',
             ].map(t => (
@@ -65,8 +68,13 @@ export default function GuidePage() {
               },
               {
                 step: '5',
-                title: 'ดูประวัติ',
-                desc: 'กดปุ่ม "ดูประวัติเดือนนี้" ใต้ปุ่มบันทึก ดูย้อนหลังได้ทุกเดือน',
+                title: 'ดูประวัติ / พิมพ์รายงาน',
+                desc: 'กดปุ่ม "ดูประวัติเดือนนี้" ใต้ปุ่มบันทึก เลือกเดือนที่ต้องการ แล้วกด "พิมพ์รายงาน" เพื่อดาวน์โหลด/พิมพ์ PDF (ต้องกรอก PIN ถ้าตั้งไว้)',
+              },
+              {
+                step: '6',
+                title: 'ลืมกดตอนนั้น? ลงย้อนหลังเองได้',
+                desc: 'ถ้าลืมบันทึกเวลาจริง กดปุ่ม "ลงเวลาย้อนหลัง" กรอกวันที่/เวลาเข้า-ออกเอง รายการจะขึ้นสถานะ "รออนุมัติ" จนกว่า dev/manager จะอนุมัติ — แก้ไขหรือลบเองได้ตราบใดที่ยังไม่อนุมัติ',
               },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-4">
@@ -116,8 +124,8 @@ export default function GuidePage() {
               {
                 tab: 'แท็บ จัดการนิสิต',
                 items: [
-                  'เพิ่มนิสิตใหม่เข้าระบบ',
-                  'กด "แก้ไข" เพื่อเปลี่ยนชื่อหรือฝ่ายของนิสิต',
+                  'เพิ่มนิสิตใหม่เข้าระบบ (ดูตัวอย่างการกรอกด้านล่าง)',
+                  'กด "แก้ไข" เพื่อเปลี่ยนชื่อ ชื่อเล่น ฝ่าย คณะ หรือสาขาของนิสิต',
                   'กด "PIN" เพื่อรีเซ็ต PIN ให้นิสิตที่ลืม',
                   'กด "ลบ" เพื่อลบนิสิตออกจากระบบ',
                 ],
@@ -139,6 +147,32 @@ export default function GuidePage() {
 
           <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-xs text-purple-700 leading-relaxed">
             <strong>หมายเหตุ:</strong> Manager จะเห็นเฉพาะนิสิตในฝ่ายของตัวเอง (ถ้า Dev ตั้ง department ไว้) หากไม่ได้ตั้งจะเห็นนิสิตทั้งหมด
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-800">ตัวอย่างการกรอกข้อมูลตอนเพิ่มนิสิตใหม่</p>
+            <p className="text-xs text-gray-500">ช่อง "รหัสนิสิต" กับ "ชื่อ-นามสกุล" จำเป็นต้องกรอก ช่องที่เหลือเว้นว่างได้</p>
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+              <table className="w-full text-xs">
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    ['รหัสนิสิต', '6630101234', 'จำเป็น — เลขประจำตัวนิสิต ใช้ล็อกอินฝั่งนิสิตด้วย'],
+                    ['ชื่อ-นามสกุล', 'ณัฐชยา ใจดี', 'จำเป็น — ชื่อจริงเต็ม ใช้แสดงในรายงาน'],
+                    ['ชื่อเล่น', 'มิ้นท์', 'ไม่จำเป็น — โชว์เป็น badge สั้นๆ ในตารางให้หาไวขึ้น'],
+                    ['ฝ่าย', 'Marketing', 'จำเป็น — เลือกจากลิสต์ หรือพิมพ์เองถ้าเลือก "อื่นๆ"'],
+                    ['คณะ', 'คณะพาณิชยนาวีนานาชาติ', 'ไม่จำเป็น — เลือกจากลิสต์คณะของมหาวิทยาลัย'],
+                    ['สาขา', 'การจัดการโลจิสติกส์', 'ไม่จำเป็น — พิมพ์เอง'],
+                    ['PIN', '1234', 'ไม่จำเป็น — ถ้าเว้นว่าง นิสิตจะตั้งเองตอนล็อกอินครั้งแรก'],
+                  ].map(([label, example, note]) => (
+                    <tr key={label}>
+                      <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap align-top">{label}</td>
+                      <td className="px-3 py-2 font-mono text-indigo-600 whitespace-nowrap align-top">{example}</td>
+                      <td className="px-3 py-2 text-gray-500 align-top">{note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -192,11 +226,13 @@ export default function GuidePage() {
             <p className="text-xs font-semibold text-gray-700">ตาราง Supabase</p>
             <div className="bg-gray-900 rounded-xl p-4 text-xs font-mono text-gray-300 space-y-1 leading-relaxed">
               <p className="text-purple-400">students</p>
-              <p className="pl-4 text-gray-400">id, student_id, name, department, faculty, major, pin, created_at</p>
+              <p className="pl-4 text-gray-400">id, student_id, name, nickname, department, faculty, major, gen, pin (hashed), phone, email, gender, birthdate, national_id, nationality, religion, note, status, created_at</p>
               <p className="text-purple-400 mt-2">time_logs</p>
-              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, approved, approved_by, approved_at</p>
+              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, project_name, photo_url, status (pending/approved), approved_by, approved_at, is_self_reported, is_rejected, rejected_reason, rejected_at, paid, paid_at</p>
               <p className="text-purple-400 mt-2">managers</p>
-              <p className="pl-4 text-gray-400">id, username, password_hash, name, department, created_at</p>
+              <p className="pl-4 text-gray-400">id, username, password_hash, name, role, department, created_at</p>
+              <p className="text-purple-400 mt-2">announcements</p>
+              <p className="pl-4 text-gray-400">id, title, body, author, active, expires_at, created_at</p>
               <p className="text-purple-400 mt-2">feedback_campaigns</p>
               <p className="pl-4 text-gray-400">id, title, message, active, duration_days, end_date, created_at, ended_at</p>
               <p className="text-purple-400 mt-2">feedback_responses</p>
