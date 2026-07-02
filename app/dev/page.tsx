@@ -357,7 +357,12 @@ export default function DevPage() {
       : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
     const url = `${base}&token=${encodeURIComponent(token)}`
     const a = document.createElement('a')
-    a.href = url; a.download = `timelog_${selectedStudentId}.xlsx`; a.click()
+    // No static a.download here on purpose — the server already sends a
+    // Content-Disposition filename that includes the month/date-range
+    // label, which changes per export. A hardcoded name here (as before)
+    // made the browser silently overwrite/duplicate-suffix the same file
+    // on every export, so re-opening it could show stale data.
+    a.href = url; a.click()
   }
 
   const handleExportPDF = async () => {
