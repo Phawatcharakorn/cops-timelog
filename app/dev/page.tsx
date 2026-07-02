@@ -370,6 +370,13 @@ export default function DevPage() {
     a.href = url; a.click()
   }
 
+  const handleExportReceipt = () => {
+    const token = localStorage.getItem('dev_token') || ''
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
+    const a = document.createElement('a')
+    a.href = `/api/export-receipt?${params}`; a.click()
+  }
+
   const handleExportPDF = async () => {
     if (!summary) return
     const token = localStorage.getItem('dev_token') || ''
@@ -1132,6 +1139,13 @@ export default function DevPage() {
                   <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
                     title="เดือนที่จะ Export (CSV/PDF เป็นเอกสารรายเดือน ไม่มีวันเศษ)"
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  <button onClick={handleExportReceipt} disabled={!selectedStudentId}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    ใบสำคัญรับเงิน
+                  </button>
                   <button onClick={() => handleExportCSV(false)} disabled={!selectedStudentId}
                     className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -366,6 +366,14 @@ export default function ManagerPage() {
     // on every export, so re-opening it could show stale data.
     a.href = url; a.click()
   }
+
+  const handleExportReceipt = () => {
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
+    const a = document.createElement('a')
+    a.href = `/api/export-receipt?${params}`; a.click()
+  }
+
   const handleExportPDF = async () => {
     if (!summary) return
     const token = localStorage.getItem('mgr_token') || ''
@@ -848,6 +856,9 @@ export default function ManagerPage() {
                   <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
                     title="เดือนที่จะ Export (CSV/PDF เป็นเอกสารรายเดือน ไม่มีวันเศษ)"
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  <button onClick={handleExportReceipt} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>ใบสำคัญรับเงิน
+                  </button>
                   <button onClick={() => handleExportCSV(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export CSV
                   </button>
