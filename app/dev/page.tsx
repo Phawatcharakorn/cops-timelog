@@ -102,6 +102,11 @@ export default function DevPage() {
   const [selectedStudentId, setSelectedStudentId]   = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  // Export CSV/PDF always cover one full calendar month (the voucher/report
+  // formats are month-shaped documents) — a separate picker from the
+  // dateFrom/dateTo range filter above the log table avoids exporting a
+  // partial month with "leftover" days that don't belong on the form.
+  const [exportMonth, setExportMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [summary, setSummary]                       = useState<Summary | null>(null)
   const [loading, setLoading]                       = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -354,7 +359,7 @@ export default function DevPage() {
     const token = localStorage.getItem('dev_token') || ''
     const base  = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
-      : `/api/export-csv?studentId=${selectedStudentId}&from=${dateFrom}&to=${dateTo}`
+      : `/api/export-csv?studentId=${selectedStudentId}&month=${exportMonth}`
     const url = `${base}&token=${encodeURIComponent(token)}`
     const a = document.createElement('a')
     // No static a.download here on purpose — the server already sends a
@@ -370,11 +375,12 @@ export default function DevPage() {
     const token = localStorage.getItem('dev_token') || ''
     if (!token) { logout(); return }
 
-    // Printing a report hands the student their pay slip, so treat it as
-    // the payment record: mark every approved-but-unpaid log in the report
-    // as paid at the same moment, instead of relying on staff to remember
-    // to click "บันทึกการจ่าย" per row afterward.
-    const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid)
+    // The report is a whole-calendar-month document, so only mark-as-paid
+    // logs that actually fall in exportMonth — summary.logs reflects the
+    // dateFrom/dateTo range filter above, which may be wider or narrower.
+    const inExportMonth = (checkIn: string) =>
+      new Date(new Date(checkIn).getTime() + 7 * 3600000).toISOString().slice(0, 7) === exportMonth
+    const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid && inExportMonth(l.check_in))
     if (unpaidApproved.length > 0) {
       const confirmed = window.confirm(
         `การพิมพ์ PDF จะบันทึกว่า "จ่ายแล้ว" ให้กับรายการที่อนุมัติแล้วทั้งหมด ${unpaidApproved.length} รายการในรายงานนี้ทันที\n\nต้องการดำเนินการต่อหรือไม่?`
@@ -390,8 +396,7 @@ export default function DevPage() {
       showToast(`บันทึกการจ่าย ${unpaidApproved.length} รายการเรียบร้อยแล้ว`, 'success')
     }
 
-    const params = new URLSearchParams({ studentId: selectedStudentId, to: dateTo, token })
-    if (dateFrom) params.set('from', dateFrom)
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
     const url = `/print?${params}`
     window.open(url, '_blank')
   }
@@ -1123,7 +1128,10 @@ export default function DevPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end items-center gap-2">
+                  <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
+                    title="เดือนที่จะ Export (CSV/PDF เป็นเอกสารรายเดือน ไม่มีวันเศษ)"
+                    className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   <button onClick={() => handleExportCSV(false)} disabled={!selectedStudentId}
                     className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
