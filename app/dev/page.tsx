@@ -10,7 +10,7 @@ import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import { deleteAttachment } from '@/lib/upload'
-import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
+import RetentionBanner from '@/app/components/RetentionBanner'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -108,7 +108,6 @@ export default function DevPage() {
   // dateFrom/dateTo range filter above the log table avoids exporting a
   // partial month with "leftover" days that don't belong on the form.
   const [exportMonth, setExportMonth] = useState(() => format(new Date(), 'yyyy-MM'))
-  const [retentionSchedule, setRetentionSchedule] = useState<RetentionRow | null>(null)
   const [summary, setSummary]                       = useState<Summary | null>(null)
   const [loading, setLoading]                       = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -1010,10 +1009,7 @@ export default function DevPage() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-        <RetentionBanner onSchedule={row => {
-          setRetentionSchedule(row)
-          if (row) setBackupMonth(`${row.target_year}-${String(row.target_month).padStart(2, '0')}`)
-        }} showControls />
+        <RetentionBanner showControls />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
