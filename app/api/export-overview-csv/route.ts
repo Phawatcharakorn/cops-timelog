@@ -32,16 +32,17 @@ export async function GET(req: NextRequest) {
   if (studentsError) return NextResponse.json({ error: studentsError.message }, { status: 500 })
   if (!students || students.length === 0) return NextResponse.json({ error: 'No students found' }, { status: 404 })
 
-  // No .order() here — chaining .order() on the same column as the
-  // .gte()/.lte() range filters below has been observed to silently corrupt
-  // which row's data lands under which date. addCombinedVoucherSheet
+  // No .order() here, and status is filtered in JS rather than via a second
+  // .eq()/.in() alongside the .gte()/.lte() range filters below — stacking
+  // multiple equality filters ahead of a range filter has been observed on
+  // production to silently drop a matching row. addCombinedVoucherSheet
   // buckets by day itself, so query order doesn't matter.
-  const { data: logs, error: logsError } = await db.from('time_logs')
+  const { data: rawLogs, error: logsError } = await db.from('time_logs')
     .select('*')
     .in('student_id', students.map(s => s.student_id))
-    .eq('status', 'approved')
     .gte('check_in', startISO).lte('check_in', endISO)
   if (logsError) return NextResponse.json({ error: logsError.message }, { status: 500 })
+  const logs = (rawLogs ?? []).filter(l => l.status === 'approved')
 
   // Only students who actually worked (approved, checked out, not
   // auto-closed) this month belong on the payout sheet — everyone else

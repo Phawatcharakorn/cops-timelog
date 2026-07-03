@@ -52,37 +52,22 @@ export async function GET(req: NextRequest) {
   const overallStart = new Date(Date.UTC(months[0].year, months[0].month - 1, 1) - TZ_MS).toISOString()
   const last = months[months.length - 1]
   const overallEnd = new Date(Date.UTC(last.year, last.month, 1) - TZ_MS - 1).toISOString()
-  // No .order() here — chaining .order() on the same column as the
-  // .gte()/.lte() range filters below has been observed to silently corrupt
-  // which row's data lands under which date. addVoucherSheet buckets by day
-  // itself, so query order doesn't matter.
-  const { data: logs } = await db.from('time_logs').select('*')
+  // Filter to a single .eq() (student_id) plus the date range here, and
+  // filter status in JS afterward rather than adding a second .eq() to the
+  // query. Stacking .eq('student_id', ...).eq('status', 'approved') ahead of
+  // .gte()/.lte() has been observed on production to silently drop a
+  // matching row — reordering the .eq() calls avoided it in testing, but
+  // that felt like tickling an underlying client/PostgREST quirk rather than
+  // a real fix, so this avoids the combination entirely.
+  const { data: rawLogs } = await db.from('time_logs').select('*')
     .eq('student_id', studentId)
-    .eq('status', 'approved')
     .gte('check_in', overallStart).lte('check_in', overallEnd)
-
-  if (searchParams.get('debug') === '1') {
-    const noStatus = await db.from('time_logs').select('id, check_in, status')
-      .eq('student_id', studentId)
-      .gte('check_in', overallStart).lte('check_in', overallEnd)
-    const statusFirst = await db.from('time_logs').select('id, check_in, status')
-      .eq('status', 'approved')
-      .eq('student_id', studentId)
-      .gte('check_in', overallStart).lte('check_in', overallEnd)
-    const allForStudent = await db.from('time_logs').select('id, check_in, status').eq('student_id', studentId)
-    return NextResponse.json({
-      overallStart, overallEnd,
-      mainQueryCount: logs?.length, mainQuery: logs,
-      noStatusCount: noStatus.data?.length, noStatus: noStatus.data,
-      statusFirstCount: statusFirst.data?.length, statusFirst: statusFirst.data,
-      allForStudentCount: allForStudent.data?.length, allForStudent: allForStudent.data,
-    })
-  }
+  const logs = (rawLogs ?? []).filter(l => l.status === 'approved')
 
   const wb = new ExcelJS.Workbook()
 
   for (const { year, month: m } of months) {
-    addVoucherSheet(wb, `${THAI_MONTHS[m - 1]} ${year}`, student, year, m, logs ?? [])
+    addVoucherSheet(wb, `${THAI_MONTHS[m - 1]} ${year}`, student, year, m, logs)
   }
 
   const buffer = await wb.xlsx.writeBuffer()
