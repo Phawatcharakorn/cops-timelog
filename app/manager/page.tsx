@@ -73,12 +73,10 @@ export default function ManagerPage() {
 
   const [students, setStudents]                   = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  // Export CSV/PDF always cover one full calendar month (the voucher/report
-  // formats are month-shaped documents) — a separate picker from the
-  // dateFrom/dateTo range filter above the log table avoids exporting a
-  // partial month with "leftover" days that don't belong on the form.
+  // Individual tab is month-shaped throughout — the log summary, CSV/PDF
+  // export, and payment voucher all cover one full calendar month, so a
+  // single month field drives all of them instead of a separate date-range
+  // filter plus an export-only month picker.
   const [exportMonth, setExportMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [summary, setSummary]   = useState<Summary | null>(null)
   const [loading, setLoading]   = useState(false)
@@ -213,11 +211,12 @@ export default function ManagerPage() {
     const reqId = ++summaryReqId.current
     setLoading(true)
     try {
-      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
-      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      const [y, mo] = exportMonth.split('-').map(Number)
+      const TZ = 7 * 60 * 60 * 1000
+      const start = new Date(Date.UTC(y, mo - 1, 1) - TZ).toISOString()
+      const end   = new Date(Date.UTC(y, mo, 1) - TZ - 1).toISOString()
       const mgrToken = localStorage.getItem('mgr_token') || ''
-      const logsParams = new URLSearchParams({ studentId: sid, end })
-      if (start) logsParams.set('start', start)
+      const logsParams = new URLSearchParams({ studentId: sid, start, end })
       const [logsRes, studentRes] = await Promise.all([
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': mgrToken } }),
         fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': mgrToken } }),
@@ -229,22 +228,23 @@ export default function ManagerPage() {
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: (log.check_out && !log.is_auto_closed) ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
-      setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom, dateTo })
+      setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom: toThaiDate(start), dateTo: toThaiDate(end) })
       setCurrentPage(1)
     } finally { if (reqId === summaryReqId.current) setLoading(false) }
-  }, [selectedStudentId, dateFrom, dateTo, logout])
+  }, [selectedStudentId, exportMonth, logout])
 
   const fetchOverview = useCallback(async () => {
     const reqId = ++overviewReqId.current
     setOverviewLoading(true)
     try {
-      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
-      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      const [y, mo] = backupMonth.split('-').map(Number)
+      const TZ = 7 * 60 * 60 * 1000
+      const start = new Date(Date.UTC(y, mo - 1, 1) - TZ).toISOString()
+      const end   = new Date(Date.UTC(y, mo, 1) - TZ - 1).toISOString()
       const mgrToken = localStorage.getItem('mgr_token') || ''
       const params = new URLSearchParams()
       if (mgrDept) params.set('dept', mgrDept)
-      const logsParams = new URLSearchParams({ end })
-      if (start) logsParams.set('start', start)
+      const logsParams = new URLSearchParams({ start, end })
       const [studentsRes, logsRes] = await Promise.all([
         fetch(`/api/students?${params}`, { headers: { 'x-token': mgrToken } }),
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': mgrToken } }),
@@ -259,7 +259,7 @@ export default function ManagerPage() {
       })
       setOverview(result)
     } finally { if (reqId === overviewReqId.current) setOverviewLoading(false) }
-  }, [dateFrom, dateTo, mgrDept])
+  }, [backupMonth, mgrDept])
 
   // Live refresh: auto-refetch when time_logs changes anywhere (self-report
   // submitted, another manager/dev approves, edits, etc.) instead of needing
@@ -395,9 +395,9 @@ export default function ManagerPage() {
     const token = localStorage.getItem('mgr_token') || ''
     if (!token) { logout(); return }
 
-    // The report is a whole-calendar-month document, so only mark-as-paid
-    // logs that actually fall in exportMonth — summary.logs reflects the
-    // dateFrom/dateTo range filter above, which may be wider or narrower.
+    // summary.logs is already scoped to exportMonth (fetchSummary fetches
+    // exactly that month), but re-checking here is a cheap guard against
+    // marking the wrong rows paid if that ever changes.
     const inExportMonth = (checkIn: string) =>
       new Date(new Date(checkIn).getTime() + 7 * 3600000).toISOString().slice(0, 7) === exportMonth
     const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid && inExportMonth(l.check_in))
@@ -792,9 +792,9 @@ export default function ManagerPage() {
                   <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-400">ไม่พบนิสิต</div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label><input type="date" className={inputCls} value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
-                <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label><input type="date" className={inputCls} value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)} /></div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
+                <input type="month" className={inputCls} value={exportMonth} onChange={e => setExportMonth(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => fetchSummary()} disabled={!selectedStudentId || loading}
@@ -871,9 +871,6 @@ export default function ManagerPage() {
                   ))}
                 </div>
                 <div className="flex flex-wrap justify-end items-center gap-2">
-                  <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
-                    title="เดือนที่จะ Export (CSV/PDF เป็นเอกสารรายเดือน ไม่มีวันเศษ)"
-                    className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   <button onClick={handleExportReceipt} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>ใบสำคัญรับเงิน
                   </button>
@@ -1165,8 +1162,6 @@ export default function ManagerPage() {
           <div className="space-y-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end justify-between gap-3">
               <div className="flex flex-wrap items-end gap-3">
-                <div><label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label><input type="date" className={inputCls + ' w-auto'} value={dateFrom} onChange={e => setDateFrom(e.target.value)} /></div>
-                <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label><input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)} /></div>
                 <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
                   <select className={inputCls + ' w-auto'} value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
                     <option value="">ทุกฝ่าย</option>
@@ -1205,7 +1200,7 @@ export default function ManagerPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลา</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{dateFrom && dateTo && (dateFrom === dateTo ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th }) : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`)} — {filteredOverview.length} คน{overviewDept ? ` (ฝ่าย ${overviewDept})` : mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{format(new Date(`${backupMonth}-01`), 'MMMM yyyy', { locale: th })} — {filteredOverview.length} คน{overviewDept ? ` (ฝ่าย ${overviewDept})` : mgrDept ? ` (ฝ่าย ${mgrDept})` : ''}</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] text-sm">

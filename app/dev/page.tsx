@@ -101,12 +101,10 @@ export default function DevPage() {
   // Individual tab
   const [students, setStudents]                     = useState<Student[]>([])
   const [selectedStudentId, setSelectedStudentId]   = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo]     = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  // Export CSV/PDF always cover one full calendar month (the voucher/report
-  // formats are month-shaped documents) — a separate picker from the
-  // dateFrom/dateTo range filter above the log table avoids exporting a
-  // partial month with "leftover" days that don't belong on the form.
+  // Individual tab is month-shaped throughout — the log summary, CSV/PDF
+  // export, and payment voucher all cover one full calendar month, so a
+  // single month field drives all of them instead of a separate date-range
+  // filter plus an export-only month picker.
   const [exportMonth, setExportMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [summary, setSummary]                       = useState<Summary | null>(null)
   const [loading, setLoading]                       = useState(false)
@@ -236,11 +234,12 @@ export default function DevPage() {
     const reqId = ++summaryReqId.current
     setLoading(true)
     try {
-      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
-      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      const [y, mo] = exportMonth.split('-').map(Number)
+      const TZ = 7 * 60 * 60 * 1000
+      const start = new Date(Date.UTC(y, mo - 1, 1) - TZ).toISOString()
+      const end   = new Date(Date.UTC(y, mo, 1) - TZ - 1).toISOString()
       const devToken = localStorage.getItem('dev_token') || ''
-      const logsParams = new URLSearchParams({ studentId: sid, end })
-      if (start) logsParams.set('start', start)
+      const logsParams = new URLSearchParams({ studentId: sid, start, end })
       const [logsRes, studentRes] = await Promise.all([
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': devToken } }),
         fetch(`/api/students?id=${encodeURIComponent(sid)}`, { headers: { 'x-token': devToken } }),
@@ -265,21 +264,22 @@ export default function DevPage() {
         totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size,
         totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60,
         taskCount: processed.length,
-        logs: processed, student, dateFrom, dateTo,
+        logs: processed, student, dateFrom: toThaiDate(start), dateTo: toThaiDate(end),
       })
       setCurrentPage(1)
     } finally { if (reqId === summaryReqId.current) setLoading(false) }
-  }, [selectedStudentId, dateFrom, dateTo, logout])
+  }, [selectedStudentId, exportMonth, logout])
 
   const fetchOverview = useCallback(async () => {
     const reqId = ++overviewReqId.current
     setOverviewLoading(true)
     try {
-      const start = dateFrom ? new Date(dateFrom + 'T00:00:00+07:00').toISOString() : null
-      const end   = new Date(dateTo + 'T23:59:59+07:00').toISOString()
+      const [y, mo] = backupMonth.split('-').map(Number)
+      const TZ = 7 * 60 * 60 * 1000
+      const start = new Date(Date.UTC(y, mo - 1, 1) - TZ).toISOString()
+      const end   = new Date(Date.UTC(y, mo, 1) - TZ - 1).toISOString()
       const devToken = localStorage.getItem('dev_token') || ''
-      const logsParams = new URLSearchParams({ end })
-      if (start) logsParams.set('start', start)
+      const logsParams = new URLSearchParams({ start, end })
       const [studentsRes, logsRes] = await Promise.all([
         fetch('/api/students', { headers: { 'x-token': devToken } }),
         fetch(`/api/time-logs?${logsParams}`, { headers: { 'x-token': devToken } }),
@@ -303,7 +303,7 @@ export default function DevPage() {
       })
       setOverview(result)
     } finally { if (reqId === overviewReqId.current) setOverviewLoading(false) }
-  }, [dateFrom, dateTo])
+  }, [backupMonth])
 
   // Live refresh: auto-refetch when time_logs changes anywhere (self-report
   // submitted, another manager/dev approves, edits, etc.) instead of needing
@@ -387,9 +387,9 @@ export default function DevPage() {
     const token = localStorage.getItem('dev_token') || ''
     if (!token) { logout(); return }
 
-    // The report is a whole-calendar-month document, so only mark-as-paid
-    // logs that actually fall in exportMonth — summary.logs reflects the
-    // dateFrom/dateTo range filter above, which may be wider or narrower.
+    // summary.logs is already scoped to exportMonth (fetchSummary fetches
+    // exactly that month), but re-checking here is a cheap guard against
+    // marking the wrong rows paid if that ever changes.
     const inExportMonth = (checkIn: string) =>
       new Date(new Date(checkIn).getTime() + 7 * 3600000).toISOString().slice(0, 7) === exportMonth
     const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid && inExportMonth(l.check_in))
@@ -1085,19 +1085,11 @@ export default function DevPage() {
                 )}
               </div>
 
-              {/* 2. Date range */}
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
-                  <input type="date" className={inputCls} value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)} />
-                </div>
-                <span className="text-gray-400 pb-2.5 text-sm flex-shrink-0">—</span>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
-                  <input type="date" className={inputCls} value={dateTo} min={dateFrom}
-                    onChange={e => setDateTo(e.target.value)} />
-                </div>
+              {/* 2. Month */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือน</label>
+                <input type="month" className={inputCls} value={exportMonth}
+                  onChange={e => setExportMonth(e.target.value)} />
               </div>
 
               {/* 3. Action buttons */}
@@ -1182,9 +1174,6 @@ export default function DevPage() {
                 </div>
 
                 <div className="flex justify-end items-center gap-2">
-                  <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
-                    title="เดือนที่จะ Export (CSV/PDF เป็นเอกสารรายเดือน ไม่มีวันเศษ)"
-                    className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   <button onClick={handleExportReceipt} disabled={!selectedStudentId}
                     className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1462,16 +1451,6 @@ export default function DevPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end justify-between gap-3">
               <div className="flex flex-wrap items-end gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
-                  <input type="date" className={inputCls + ' w-auto'} value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
-                  <input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom}
-                    onChange={e => setDateTo(e.target.value)} />
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
                   <select className={inputCls + ' w-auto'}
                     value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
@@ -1522,10 +1501,7 @@ export default function DevPage() {
                 <div className="px-5 py-4 border-b border-gray-100">
                   <h2 className="font-semibold text-gray-700 text-sm">ภาพรวมการลงเวลาทุกคน</h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {dateFrom && dateTo && (dateFrom === dateTo
-                      ? format(new Date(dateFrom), 'd MMM yyyy', { locale: th })
-                      : `${format(new Date(dateFrom), 'd MMM yyyy', { locale: th })} – ${format(new Date(dateTo), 'd MMM yyyy', { locale: th })}`
-                    )} — {filteredOverview.length} คน
+                    {format(new Date(`${backupMonth}-01`), 'MMMM yyyy', { locale: th })} — {filteredOverview.length} คน
                     {overviewDept && ` (ฝ่าย ${overviewDept})`}
                   </p>
                 </div>
