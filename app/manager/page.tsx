@@ -354,43 +354,55 @@ export default function ManagerPage() {
     } finally { setRosterLoading(false) }
   }, [mgrDept])
 
+  // Anchor-click "navigation" downloads are silent on failure — a 400/404/500
+  // from the server (wrong filters, no matching data, expired token, etc.)
+  // just loads the raw JSON error in the tab or does nothing visible, which
+  // is indistinguishable from "the file didn't update." Fetching the blob
+  // ourselves lets us surface real errors via toast instead of guessing.
+  const downloadExport = async (url: string, token: string) => {
+    try {
+      const res = await fetch(url, { headers: { 'x-token': token }, cache: 'no-store' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as { error?: string }))
+        showToast(body.error || `Export ไม่สำเร็จ (${res.status})`, 'error')
+        return
+      }
+      const blob = await res.blob()
+      const disposition = res.headers.get('Content-Disposition') || ''
+      const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] || 'export.xlsx'
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl; a.download = filename; a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      showToast('Export ไม่สำเร็จ (เชื่อมต่อผิดพลาด)', 'error')
+    }
+  }
+
   const handleExportCSV = (useRange = false) => {
     const token = localStorage.getItem('mgr_token') || ''
     const base  = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
       : `/api/export-csv?studentId=${selectedStudentId}&month=${exportMonth}`
-    // `_` cache-busting param — same URL/params re-downloaded after a fresh
-    // approval should never risk a cached response getting served instead
-    // of hitting the route again.
-    const url = `${base}&token=${encodeURIComponent(token)}&_=${Date.now()}`
-    const a = document.createElement('a')
-    // No static a.download here on purpose — the server already sends a
-    // Content-Disposition filename that includes the month/date-range
-    // label, which changes per export. A hardcoded name here (as before)
-    // made the browser silently overwrite/duplicate-suffix the same file
-    // on every export, so re-opening it could show stale data.
-    a.href = url; a.click()
+    void downloadExport(base, token)
   }
 
   const handleExportReceipt = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token, _: String(Date.now()) })
-    const a = document.createElement('a')
-    a.href = `/api/export-receipt?${params}`; a.click()
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth })
+    void downloadExport(`/api/export-receipt?${params}`, token)
   }
 
   const handleExportBackup = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()) })
-    const a = document.createElement('a')
-    a.href = `/api/export-backup?${params}`; a.click()
+    const params = new URLSearchParams({ month: backupMonth })
+    void downloadExport(`/api/export-backup?${params}`, token)
   }
 
   const handleExportOverviewVouchers = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()), ...(overviewDept ? { dept: overviewDept } : {}) })
-    const a = document.createElement('a')
-    a.href = `/api/export-overview-csv?${params}`; a.click()
+    const params = new URLSearchParams({ month: backupMonth, ...(overviewDept ? { dept: overviewDept } : {}) })
+    void downloadExport(`/api/export-overview-csv?${params}`, token)
   }
 
   const handleExportPDF = async () => {
