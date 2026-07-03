@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="backup_time_logs_${month}.xlsx"`,
+      'Cache-Control': 'no-store, must-revalidate',
     },
   })
 }

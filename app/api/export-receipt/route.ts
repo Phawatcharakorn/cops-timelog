@@ -133,6 +133,7 @@ export async function GET(req: NextRequest) {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store, must-revalidate',
     },
   })
 }

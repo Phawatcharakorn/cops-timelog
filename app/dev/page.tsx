@@ -365,7 +365,10 @@ export default function DevPage() {
     const base  = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
       : `/api/export-csv?studentId=${selectedStudentId}&month=${exportMonth}`
-    const url = `${base}&token=${encodeURIComponent(token)}`
+    // `_` cache-busting param — same URL/params re-downloaded after a fresh
+    // approval should never risk a cached response getting served instead
+    // of hitting the route again.
+    const url = `${base}&token=${encodeURIComponent(token)}&_=${Date.now()}`
     const a = document.createElement('a')
     // No static a.download here on purpose — the server already sends a
     // Content-Disposition filename that includes the month/date-range
@@ -377,7 +380,7 @@ export default function DevPage() {
 
   const handleExportReceipt = () => {
     const token = localStorage.getItem('dev_token') || ''
-    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token, _: String(Date.now()) })
     const a = document.createElement('a')
     a.href = `/api/export-receipt?${params}`; a.click()
   }
@@ -415,14 +418,14 @@ export default function DevPage() {
 
   const handleExportBackup = () => {
     const token = localStorage.getItem('dev_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token })
+    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()) })
     const a = document.createElement('a')
     a.href = `/api/export-backup?${params}`; a.click()
   }
 
   const handleExportOverviewVouchers = () => {
     const token = localStorage.getItem('dev_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token, ...(overviewDept ? { dept: overviewDept } : {}) })
+    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()), ...(overviewDept ? { dept: overviewDept } : {}) })
     const a = document.createElement('a')
     a.href = `/api/export-overview-csv?${params}`; a.click()
   }
@@ -1017,6 +1020,7 @@ export default function DevPage() {
           {(['individual', 'overview', 'manage', 'feedback', 'managers', 'announce'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t)
+              if (t === 'overview') fetchOverview()
               if (t === 'feedback') loadFeedback()
               if (t === 'managers') loadManagers()
               if (t === 'announce') fetchAnnouncements()

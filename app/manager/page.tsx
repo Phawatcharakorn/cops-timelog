@@ -359,7 +359,10 @@ export default function ManagerPage() {
     const base  = useRange && rangeStart && rangeEnd
       ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
       : `/api/export-csv?studentId=${selectedStudentId}&month=${exportMonth}`
-    const url = `${base}&token=${encodeURIComponent(token)}`
+    // `_` cache-busting param — same URL/params re-downloaded after a fresh
+    // approval should never risk a cached response getting served instead
+    // of hitting the route again.
+    const url = `${base}&token=${encodeURIComponent(token)}&_=${Date.now()}`
     const a = document.createElement('a')
     // No static a.download here on purpose — the server already sends a
     // Content-Disposition filename that includes the month/date-range
@@ -371,21 +374,21 @@ export default function ManagerPage() {
 
   const handleExportReceipt = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
+    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token, _: String(Date.now()) })
     const a = document.createElement('a')
     a.href = `/api/export-receipt?${params}`; a.click()
   }
 
   const handleExportBackup = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token })
+    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()) })
     const a = document.createElement('a')
     a.href = `/api/export-backup?${params}`; a.click()
   }
 
   const handleExportOverviewVouchers = () => {
     const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, token, ...(overviewDept ? { dept: overviewDept } : {}) })
+    const params = new URLSearchParams({ month: backupMonth, token, _: String(Date.now()), ...(overviewDept ? { dept: overviewDept } : {}) })
     const a = document.createElement('a')
     a.href = `/api/export-overview-csv?${params}`; a.click()
   }
@@ -741,7 +744,7 @@ export default function ManagerPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           {/* 'roster' tab (รายละเอียด) ซ่อนชั่วคราว — ฟีเจอร์ยังไม่พร้อม */}
           {(['individual', 'overview', 'manage', 'announce'] as const).map(t => (
-            <button key={t} onClick={() => { setTab(t); if (t === 'announce') fetchAnnouncements() }}
+            <button key={t} onClick={() => { setTab(t); if (t === 'overview') fetchOverview(); if (t === 'announce') fetchAnnouncements() }}
               className={`flex-shrink-0 flex-1 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[64px] ${tab === t ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
               {t === 'individual' ? 'รายบุคคล' : t === 'overview' ? 'ภาพรวม' : t === 'manage' ? 'จัดการนิสิต' : t === 'announce' ? 'ประกาศ' : 'รายละเอียด'}
             </button>
