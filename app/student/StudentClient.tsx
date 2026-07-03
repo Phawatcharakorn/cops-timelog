@@ -227,6 +227,17 @@ export default function StudentPage() {
     return () => { supabase.removeChannel(channel) }
   }, [studentLocked, form.student_id, fetchHistory])
 
+  // Safety net: the Realtime websocket can silently drop (network blips,
+  // idle tab throttling, proxy timeouts) without the client ever firing an
+  // error, so postgres_changes above can go quiet with no visible sign.
+  // Poll on top of it so the summary still catches up within 20s even if
+  // the socket is dead.
+  useEffect(() => {
+    if (!studentLocked || !form.student_id) return
+    const id = setInterval(() => { void fetchHistory(historyMonthRef.current) }, 20000)
+    return () => clearInterval(id)
+  }, [studentLocked, form.student_id, fetchHistory])
+
   const handleToggleHistory = () => {
     if (!showHistory && historyMonth) fetchHistory(historyMonth)
     setShowHistory(h => !h)

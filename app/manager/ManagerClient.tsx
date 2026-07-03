@@ -282,6 +282,20 @@ export default function ManagerPage() {
     return () => { supabase.removeChannel(channel) }
   }, [authed, selectedStudentId, fetchSummary, fetchOverview])
 
+  // Safety net: the Realtime websocket can silently drop (network blips,
+  // idle tab throttling, proxy timeouts) without the client ever firing an
+  // error, so postgres_changes above can go quiet with no visible sign.
+  // Poll on top of it so data still catches up within 20s even if the
+  // socket is dead.
+  useEffect(() => {
+    if (!authed) return
+    const id = setInterval(() => {
+      void fetchSummary()
+      if (overviewRef.current.length > 0) void fetchOverview()
+    }, 20000)
+    return () => clearInterval(id)
+  }, [authed, fetchSummary, fetchOverview])
+
   const fetchMultiStats = useCallback(async () => {
     if (!selectedStudentId || !rangeStart || !rangeEnd) return
     setMultiLoading(true)
