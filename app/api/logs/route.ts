@@ -27,8 +27,10 @@ export async function GET(req: NextRequest) {
     .eq('student_id', studentId)
     .gte('check_in', start)
     .lte('check_in', end)
-    .order('check_in', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  // Sorted client-side, not via .order() in the query above — chaining
+  // .order() on the same column as the .gte()/.lte() range filters has been
+  // observed to silently corrupt which row's data lands under which date.
+  return NextResponse.json((data ?? []).sort((a, b) => a.check_in.localeCompare(b.check_in)))
 }

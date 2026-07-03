@@ -19,11 +19,14 @@ export async function GET(req: NextRequest) {
   const { startISO, endISO } = monthRangeISO({ year, month: m })
 
   const db = supabaseAdmin()
+  // No .order() here — chaining .order() on the same column as the
+  // .gte()/.lte() range filters has been observed to silently corrupt
+  // which row's data lands under which date. Sort client-side instead.
   const { data: logs, error } = await db.from('time_logs')
     .select('*, students(name, department)')
     .gte('check_in', startISO).lte('check_in', endISO)
-    .order('student_id', { ascending: true }).order('check_in', { ascending: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  logs?.sort((a, b) => a.student_id.localeCompare(b.student_id) || a.check_in.localeCompare(b.check_in))
 
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet(`backup_${month}`)

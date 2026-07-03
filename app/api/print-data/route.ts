@@ -50,14 +50,18 @@ export async function GET(req: NextRequest) {
     end   = new Date(Date.UTC(y, m, 1) - TZ - 1).toISOString()
   }
 
+  // No .order() here — chaining .order() on the same column as the
+  // .gte()/.lte() range filters below has been observed to silently corrupt
+  // which row's data lands under which date. Sort client-side instead.
   const { data: logs, error: lErr } = await db.from('time_logs').select('*')
     .eq('student_id', studentId)
     .gte('check_in', start).lte('check_in', end)
-    .order('check_in', { ascending: true })
 
   if (lErr) return NextResponse.json({ error: 'Failed to load logs' }, { status: 500 })
 
-  const approved = (logs ?? []).filter(l => l.status === 'approved')
+  const approved = (logs ?? [])
+    .filter(l => l.status === 'approved')
+    .sort((a, b) => a.check_in.localeCompare(b.check_in))
 
   return NextResponse.json({
     student: {

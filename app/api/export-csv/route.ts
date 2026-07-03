@@ -52,11 +52,14 @@ export async function GET(req: NextRequest) {
   const overallStart = new Date(Date.UTC(months[0].year, months[0].month - 1, 1) - TZ_MS).toISOString()
   const last = months[months.length - 1]
   const overallEnd = new Date(Date.UTC(last.year, last.month, 1) - TZ_MS - 1).toISOString()
+  // No .order() here — chaining .order() on the same column as the
+  // .gte()/.lte() range filters below has been observed to silently corrupt
+  // which row's data lands under which date. addVoucherSheet buckets by day
+  // itself, so query order doesn't matter.
   const { data: logs } = await db.from('time_logs').select('*')
     .eq('student_id', studentId)
     .eq('status', 'approved')
     .gte('check_in', overallStart).lte('check_in', overallEnd)
-    .order('check_in', { ascending: true })
 
   const wb = new ExcelJS.Workbook()
 

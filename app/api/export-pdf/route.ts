@@ -28,20 +28,23 @@ export async function GET(req: NextRequest) {
 
   const [{ data: student }, { data: logs }] = await Promise.all([
     db.from('students').select('*').eq('student_id', studentId).single(),
+    // No .order() here — chaining .order() on the same column as the
+    // .gte()/.lte() range filters has been observed to silently corrupt
+    // which row's data lands under which date. Sort client-side instead.
     db.from('time_logs')
       .select('*')
       .eq('student_id', studentId)
       .gte('check_in', start)
-      .lte('check_in', end)
-      .order('check_in', { ascending: true }),
+      .lte('check_in', end),
   ])
 
   if (!student) {
     return NextResponse.json({ error: 'Student not found' }, { status: 404 })
   }
 
+  const sortedLogs = (logs ?? []).slice().sort((a, b) => a.check_in.localeCompare(b.check_in))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const el = createElement(MonthlyReport as any, { student, logs: logs ?? [], month }) as any
+  const el = createElement(MonthlyReport as any, { student, logs: sortedLogs, month }) as any
   const buffer = await renderToBuffer(el)
 
   const filename = `report_${studentId}_${month}.pdf`

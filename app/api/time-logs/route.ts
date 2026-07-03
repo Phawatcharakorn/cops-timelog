@@ -45,11 +45,13 @@ export async function GET(req: NextRequest) {
   if (studentId) q = q.eq('student_id', studentId)
   if (start) q = q.gte('check_in', start)
   if (end) q = q.lte('check_in', end)
-  q = q.order('check_in', { ascending: true })
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  // Sorted client-side, not via .order() in the query above — chaining
+  // .order() on the same column as the .gte()/.lte() range filters has been
+  // observed to silently corrupt which row's data lands under which date.
+  return NextResponse.json((data ?? []).sort((a, b) => a.check_in.localeCompare(b.check_in)))
 }
 
 export async function POST(req: NextRequest) {
