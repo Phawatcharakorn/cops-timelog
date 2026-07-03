@@ -418,6 +418,31 @@ export default function DevPage() {
     a.href = `/api/export-backup?${params}`; a.click()
   }
 
+  const [deletingMonth, setDeletingMonth] = useState(false)
+  const handleManualDeleteMonth = async () => {
+    if (!confirm(
+      `ลบข้อมูลลงเวลาเดือน ${backupMonth} ทั้งหมดทันที (ทุกคน ทุกสถานะ)?\n\nการลบนี้ถาวรและกู้คืนไม่ได้ — แนะนำให้กด "สำรองข้อมูล" ไว้ก่อนหน้านี้แล้ว`
+    )) return
+    const typed = prompt(`พิมพ์ "${backupMonth}" เพื่อยืนยันการลบ`)
+    if (typed !== backupMonth) { if (typed !== null) alert('ข้อความไม่ตรงกัน ยกเลิกการลบ'); return }
+
+    setDeletingMonth(true)
+    try {
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/admin/delete-month', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ month: backupMonth }),
+      })
+      const data = await res.json()
+      if (!res.ok) { showToast(data.error || 'ลบไม่สำเร็จ', 'error'); return }
+      showToast(`ลบข้อมูลเดือน ${backupMonth} แล้ว (${data.rows} รายการ)`, 'success')
+      if (overview.length > 0) void fetchOverview()
+    } finally {
+      setDeletingMonth(false)
+    }
+  }
+
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
     const token = localStorage.getItem('dev_token') || ''
@@ -1460,6 +1485,14 @@ export default function DevPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   สำรองข้อมูล
+                </button>
+                <button onClick={handleManualDeleteMonth} disabled={deletingMonth}
+                  title="ลบข้อมูลเดือนนี้ทันที ข้ามคูลดาวน์ 3 วัน (เฉพาะ dev)"
+                  className="bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
+                  </svg>
+                  {deletingMonth ? 'กำลังลบ...' : 'ลบเดือนนี้ (Manual)'}
                 </button>
                 <button onClick={fetchOverview} disabled={overviewLoading}
                   className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">
