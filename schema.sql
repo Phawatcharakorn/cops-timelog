@@ -215,3 +215,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_retention_one_pending_per_month
 ALTER TABLE retention_schedule ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "retention_schedule all access" ON retention_schedule;
 CREATE POLICY "retention_schedule all access" ON retention_schedule FOR ALL USING (true) WITH CHECK (true);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Distinguish a real check-out from the system force-closing a stale open
+-- log (student forgot to check out, then looked themselves up again later —
+-- see app/student/page.tsx). Before this column, that case was only
+-- detectable by matching work_summary === '(ปิดอัตโนมัติ — ลืม check-out)',
+-- which breaks the moment that text is edited and was already producing
+-- bogus multi-hour durations in payroll/report totals since the auto-filled
+-- check_out isn't a real work end time.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_auto_closed BOOLEAN NOT NULL DEFAULT false;
+
+-- Backfill existing rows that were already force-closed under the old
+-- text-only marker, before this column existed.
+UPDATE time_logs SET is_auto_closed = true
+WHERE work_summary = '(ปิดอัตโนมัติ — ลืม check-out)' AND is_auto_closed = false;

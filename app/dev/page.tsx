@@ -252,7 +252,10 @@ export default function DevPage() {
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
       const processed: LogWithDuration[] = (logs ?? []).map(log => ({
         ...log,
-        durationMinutes: log.check_out
+        // An auto-closed check_out is a system placeholder, not a real work
+        // end time — treat it like "hasn't checked out" so it doesn't
+        // inflate totals with a bogus multi-hour duration.
+        durationMinutes: (log.check_out && !log.is_auto_closed)
           ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in))
           : 0,
       }))
@@ -288,7 +291,7 @@ export default function DevPage() {
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
         const totalMin = logs.reduce((sum, l) =>
-          sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
+          sum + ((l.check_out && !l.is_auto_closed) ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return {
           student: s,
           totalDays: new Set(logs.map(l =>
@@ -1255,7 +1258,9 @@ export default function DevPage() {
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
-                              {log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
+                              {log.is_auto_closed
+                                ? <span className="text-yellow-500">ยังไม่กดเวลาออก</span>
+                                : log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}
                             </td>
                             <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.durationMinutes < 0

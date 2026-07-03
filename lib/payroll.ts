@@ -52,12 +52,14 @@ export function monthsBetween(startISO: string, endISO: string): MonthKey[] {
 
 // Total approved hours a student worked in a given calendar month (Thai local time).
 export function hoursInMonth(
-  logs: { check_in: string; check_out: string | null }[],
+  logs: { check_in: string; check_out: string | null; is_auto_closed?: boolean }[],
   year: number, month1to12: number,
 ): number {
   let total = 0
   for (const log of logs) {
-    if (!log.check_out) continue
+    // An auto-closed check_out is a system-picked placeholder, not a real
+    // work end time — it would otherwise inflate paid hours.
+    if (!log.check_out || log.is_auto_closed) continue
     const thaiIn = new Date(new Date(log.check_in).getTime() + TZ_MS)
     if (thaiIn.getUTCFullYear() !== year || thaiIn.getUTCMonth() + 1 !== month1to12) continue
     const hrs = (new Date(log.check_out).getTime() - new Date(log.check_in).getTime()) / 3_600_000

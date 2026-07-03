@@ -15,6 +15,7 @@ type HistoryLog = {
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'; isSelfReported: boolean
   isRejected: boolean; rejectedReason: string | null
+  isAutoClosed: boolean
 }
 type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
@@ -159,8 +160,9 @@ export default function StudentPage() {
             // 18:00 the next day instead so check_out is always after check_in.
             if (endOfDay <= checkInThai) endOfDay.setDate(endOfDay.getDate() + 1)
             await supabase.from('time_logs').update({
-              check_out:    new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
-              work_summary: '(ปิดอัตโนมัติ — ลืม check-out)',
+              check_out:      new Date(endOfDay.getTime() - 7 * 60 * 60 * 1000).toISOString(),
+              work_summary:   '(ปิดอัตโนมัติ — ลืม check-out)',
+              is_auto_closed: true,
             }).eq('id', activeLogData.id)
             showMsg('warn', `พบการลงเวลาค้างจากวันก่อน ระบบปิดให้อัตโนมัติแล้ว — ${student.name}`, 8000)
           }
@@ -183,17 +185,23 @@ export default function StudentPage() {
       .gte('check_in', start).lte('check_in', end)
       .order('check_in', { ascending: true })
     setHistoryLogs((data ?? []).map(log => {
-      const dur = log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
+      // An auto-closed log's check_out is a system-picked placeholder (see
+      // the force-close above), not a real work end time — showing its
+      // "duration" would be misleading, so treat it the same as "hasn't
+      // checked out yet" for display purposes.
+      const isAutoClosed = !!log.is_auto_closed
+      const dur = (!isAutoClosed && log.check_out) ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
       return {
         id: log.id, check_in: log.check_in, check_out: log.check_out,
         work_summary: log.work_summary, project_name: log.project_name, photo_url: log.photo_url,
         dateStr:     fmtShortDate(log.check_in),
         checkInStr:  fmtHHMM(log.check_in),
-        checkOutStr: log.check_out ? fmtHHMM(log.check_out) : '-',
+        checkOutStr: isAutoClosed ? 'ยังไม่กดเวลาออก' : log.check_out ? fmtHHMM(log.check_out) : '-',
         durationStr: dur > 0 ? `${Math.floor(dur / 60)}h ${dur % 60}m` : '-',
         status: (log.status ?? 'pending') as 'pending' | 'approved',
         isSelfReported: !!log.is_self_reported,
         isRejected: !!log.is_rejected, rejectedReason: log.rejected_reason,
+        isAutoClosed,
       }
     }))
     setHistoryLoading(false)
@@ -860,7 +868,7 @@ export default function StudentPage() {
                           {log.isSelfReported && <span className="block text-[10px] text-blue-500 font-medium whitespace-nowrap">ลงเองย้อนหลัง</span>}
                         </td>
                         <td className="px-3 py-2 text-green-600 font-medium" style={{ lineHeight: 1.8 }}>{log.checkInStr}</td>
-                        <td className="px-3 py-2 text-rose-500 font-medium" style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
+                        <td className={`px-3 py-2 font-medium ${log.isAutoClosed ? 'text-yellow-500' : 'text-rose-500'}`} style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>{log.durationStr}</td>
                         <td className="px-3 py-2 text-gray-400 max-w-[100px]" style={{ lineHeight: 1.8 }}>
                           {log.project_name && <div className="truncate font-medium text-gray-600">{log.project_name}</div>}

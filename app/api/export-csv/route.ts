@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
 
     const hoursByDay: Record<number, number> = {}
     for (const log of logs ?? []) {
-      if (!log.check_out) continue
+      if (!log.check_out || log.is_auto_closed) continue
       const inThaiYear = new Date(new Date(log.check_in).getTime() + TZ_MS).getUTCFullYear()
       const inThaiMonth = new Date(new Date(log.check_in).getTime() + TZ_MS).getUTCMonth() + 1
       if (inThaiYear !== year || inThaiMonth !== m) continue

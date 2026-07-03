@@ -40,6 +40,7 @@ export type TimeLog = {
   is_rejected: boolean
   rejected_reason: string | null
   rejected_at: string | null
+  is_auto_closed: boolean
 }
 
 export type Manager = {

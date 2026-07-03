@@ -226,7 +226,7 @@ export default function ManagerPage() {
       const logs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       const student = studentRes.ok ? await studentRes.json() : null
       if (reqId !== summaryReqId.current) return // a newer fetch superseded this one
-      const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: log.check_out ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
+      const processed: LogWithDuration[] = (logs ?? []).map(log => ({ ...log, durationMinutes: (log.check_out && !log.is_auto_closed) ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0 }))
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
       setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom, dateTo })
@@ -254,7 +254,7 @@ export default function ManagerPage() {
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
         const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
-        const totalMin = logs.reduce((sum, l) => sum + (l.check_out ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
+        const totalMin = logs.reduce((sum, l) => sum + ((l.check_out && !l.is_auto_closed) ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return { student: s, totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7 * 3600000).toISOString().slice(0, 10))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: logs.length }
       })
       setOverview(result)
@@ -905,9 +905,11 @@ export default function ManagerPage() {
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className="text-sm font-semibold text-green-600">{fmtTime(log.check_in)}</span>
                               <span className="text-gray-300 text-xs">→</span>
-                              {log.check_out
-                                ? <span className="text-sm font-semibold text-rose-500">{fmtTime(log.check_out)}</span>
-                                : <span className="text-sm text-yellow-500">ยังไม่ออก</span>}
+                              {log.is_auto_closed
+                                ? <span className="text-sm text-yellow-500">ยังไม่กดเวลาออก</span>
+                                : log.check_out
+                                  ? <span className="text-sm font-semibold text-rose-500">{fmtTime(log.check_out)}</span>
+                                  : <span className="text-sm text-yellow-500">ยังไม่ออก</span>}
                               <span className="text-xs text-gray-400">
                                 {log.durationMinutes < 0
                                   ? <span className="text-red-500">⚠ ข้อมูลผิด</span>
@@ -1015,7 +1017,7 @@ export default function ManagerPage() {
                               {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
-                            <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}</td>
+                            <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{log.is_auto_closed ? <span className="text-yellow-500">ยังไม่กดเวลาออก</span> : log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}</td>
                             <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.durationMinutes < 0 ? <span className="text-red-500 text-xs font-medium">⚠ ข้อมูลผิด</span> : log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
