@@ -61,6 +61,10 @@ export async function GET(req: NextRequest) {
     .eq('status', 'approved')
     .gte('check_in', overallStart).lte('check_in', overallEnd)
 
+  if (searchParams.get('debug') === '1') {
+    return NextResponse.json({ overallStart, overallEnd, count: logs?.length, logs })
+  }
+
   const wb = new ExcelJS.Workbook()
 
   for (const { year, month: m } of months) {
