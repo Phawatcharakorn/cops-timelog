@@ -334,6 +334,10 @@ export default function DevPage() {
   useEffect(() => {
     if (!authed) return
     const id = setInterval(() => {
+      // Skip while an approve/reject/edit PATCH is still in flight — a poll
+      // landing before that write commits would refetch pre-write data and
+      // clobber the optimistic update right back to the old status.
+      if (busyLogIdRef.current) return
       void fetchSummary()
       if (overviewRef.current.length > 0) void fetchOverview()
     }, 5000)
