@@ -62,7 +62,21 @@ export async function GET(req: NextRequest) {
     .gte('check_in', overallStart).lte('check_in', overallEnd)
 
   if (searchParams.get('debug') === '1') {
-    return NextResponse.json({ overallStart, overallEnd, count: logs?.length, logs })
+    const noStatus = await db.from('time_logs').select('id, check_in, status')
+      .eq('student_id', studentId)
+      .gte('check_in', overallStart).lte('check_in', overallEnd)
+    const statusFirst = await db.from('time_logs').select('id, check_in, status')
+      .eq('status', 'approved')
+      .eq('student_id', studentId)
+      .gte('check_in', overallStart).lte('check_in', overallEnd)
+    const allForStudent = await db.from('time_logs').select('id, check_in, status').eq('student_id', studentId)
+    return NextResponse.json({
+      overallStart, overallEnd,
+      mainQueryCount: logs?.length, mainQuery: logs,
+      noStatusCount: noStatus.data?.length, noStatus: noStatus.data,
+      statusFirstCount: statusFirst.data?.length, statusFirst: statusFirst.data,
+      allForStudentCount: allForStudent.data?.length, allForStudent: allForStudent.data,
+    })
   }
 
   const wb = new ExcelJS.Workbook()
