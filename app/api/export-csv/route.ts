@@ -64,14 +64,6 @@ export async function GET(req: NextRequest) {
     .gte('check_in', overallStart).lte('check_in', overallEnd)
   const logs = (rawLogs ?? []).filter(l => l.status === 'approved')
 
-  if (searchParams.get('debug') === '1') {
-    return NextResponse.json({
-      rawCount: rawLogs?.length,
-      rawStatuses: (rawLogs ?? []).map(l => ({ id: l.id, status: l.status, check_in: l.check_in })),
-      filteredCount: logs.length,
-    })
-  }
-
   const wb = new ExcelJS.Workbook()
 
   for (const { year, month: m } of months) {
