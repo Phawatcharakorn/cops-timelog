@@ -182,3 +182,36 @@ CREATE POLICY "announcements all access"     ON announcements      FOR ALL USING
 -- ──────────────────────────────────────────────────────────────────────────────
 ALTER TABLE students ADD COLUMN IF NOT EXISTS pin_fail_count   INTEGER     NOT NULL DEFAULT 0;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS pin_locked_until TIMESTAMPTZ;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Data retention ("recycle bin"): keep a rolling 3-month window of time_logs.
+-- A daily cron (/api/cron/retention) flags the oldest out-of-window month,
+-- waits 3 days (cooldown) so admins/students can react (backup, finish
+-- pending self-reports), then hard-deletes that month's rows. This table is
+-- the single source of truth for that state so the cron is idempotent (won't
+-- re-flag or double-delete) and both the student and dev pages can read
+-- "what's about to be deleted" via /api/retention-status.
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS retention_schedule (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  target_year  INTEGER     NOT NULL,
+  target_month INTEGER     NOT NULL CHECK (target_month BETWEEN 1 AND 12),
+  flagged_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  delete_at    TIMESTAMPTZ NOT NULL,          -- flagged_at + 3 days
+  status       TEXT        NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'deleted', 'cancelled')),
+  deleted_at   TIMESTAMPTZ,
+  deleted_rows INTEGER,                        -- audit: how many time_logs rows were removed
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Only one row can be "pending" for a given target month at a time — the
+-- cron relies on this instead of a SELECT-then-INSERT race. A partial unique
+-- index (not a plain UNIQUE) so 'deleted'/'cancelled' history for the same
+-- month can coexist for audit purposes.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_retention_one_pending_per_month
+  ON retention_schedule(target_year, target_month) WHERE status = 'pending';
+
+ALTER TABLE retention_schedule ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "retention_schedule all access" ON retention_schedule;
+CREATE POLICY "retention_schedule all access" ON retention_schedule FOR ALL USING (true) WITH CHECK (true);

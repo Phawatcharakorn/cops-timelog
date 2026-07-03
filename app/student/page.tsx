@@ -6,6 +6,7 @@ import { differenceInMinutes } from 'date-fns'
 import SdecHeader from '@/app/components/SdecHeader'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import AttachmentInput from '@/app/components/AttachmentInput'
+import RetentionBanner from '@/app/components/RetentionBanner'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
@@ -492,6 +493,8 @@ export default function StudentPage() {
       /></div>
 
       <div className="w-full max-w-sm space-y-4 p-4 pt-6">
+
+        <RetentionBanner />
 
         {/* Live clock */}
         <div className="text-center py-2 anim-fade-in">
