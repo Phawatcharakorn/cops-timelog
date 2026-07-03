@@ -977,7 +977,7 @@ export default function DevPage() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-        <RetentionBanner onSchedule={setRetentionSchedule} />
+        <RetentionBanner onSchedule={setRetentionSchedule} showControls />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>

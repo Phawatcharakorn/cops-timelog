@@ -12,22 +12,29 @@ export type RetentionRow = {
   status: 'pending' | 'deleted' | 'cancelled'
 }
 
-export default function RetentionBanner({ onSchedule, className = '' }: { onSchedule?: (row: RetentionRow | null) => void; className?: string }) {
+// `showControls` renders the cancel/postpone buttons — only pass this on the
+// dev page (it needs a dev/manager token in localStorage to call the
+// auth-protected POST endpoint). The student page just shows the warning.
+export default function RetentionBanner({ onSchedule, className = '', showControls = false }: {
+  onSchedule?: (row: RetentionRow | null) => void
+  className?: string
+  showControls?: boolean
+}) {
   const [schedule, setSchedule] = useState<RetentionRow | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const load = () => fetch('/api/retention-status')
+    .then(r => r.ok ? r.json() : null)
+    .then((d: RetentionRow | null) => {
+      setSchedule(d)
+      onSchedule?.(d)
+    })
+    .catch(() => {})
 
   useEffect(() => {
-    let cancelled = false
-    const load = () => fetch('/api/retention-status')
-      .then(r => r.ok ? r.json() : null)
-      .then((d: RetentionRow | null) => {
-        if (cancelled) return
-        setSchedule(d)
-        onSchedule?.(d)
-      })
-      .catch(() => {})
     load()
     const interval = setInterval(load, 5 * 60_000)
-    return () => { cancelled = true; clearInterval(interval) }
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -37,9 +44,40 @@ export default function RetentionBanner({ onSchedule, className = '' }: { onSche
   const d = new Date(schedule.delete_at)
   const dateLabel = `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`
 
+  const act = async (action: 'cancel' | 'postpone') => {
+    if (action === 'cancel' && !confirm(
+      `หยุดการลบข้อมูลเดือน${monthLabel}ชั่วคราว?\n\nระบบจะตรวจสอบใหม่อีกครั้งในการรันครั้งถัดไป (พรุ่งนี้) — ถ้าข้อมูลยังเก่าเกิน 3 เดือนอยู่ จะถูกตั้งกำหนดลบใหม่อีกครั้ง`
+    )) return
+    setBusy(true)
+    try {
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/retention-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        body: JSON.stringify({ id: schedule.id, action }),
+      })
+      if (res.ok) await load()
+      else alert('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className={`w-full rounded-xl px-4 py-3 text-sm font-medium border shadow-sm bg-red-50 text-red-700 border-red-200 ${className}`}>
-      ⚠️ กรุณาเคลียร์ข้อมูลการลงเวลา เนื่องจากระบบกำลังจะทำการลบข้อมูลเดือน{monthLabel} ในวันที่ {dateLabel}
+      <div>⚠️ กรุณาเคลียร์ข้อมูลการลงเวลา เนื่องจากระบบกำลังจะทำการลบข้อมูลเดือน{monthLabel} ในวันที่ {dateLabel}</div>
+      {showControls && (
+        <div className="flex gap-2 mt-2">
+          <button onClick={() => act('postpone')} disabled={busy}
+            className="text-xs font-medium bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-40 rounded-lg px-3 py-1.5 transition-colors">
+            เลื่อนออกไปอีก 3 วัน
+          </button>
+          <button onClick={() => act('cancel')} disabled={busy}
+            className="text-xs font-medium bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-40 rounded-lg px-3 py-1.5 transition-colors">
+            หยุดชั่วคราว
+          </button>
+        </div>
+      )}
     </div>
   )
 }
