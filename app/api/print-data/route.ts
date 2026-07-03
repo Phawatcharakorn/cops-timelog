@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
     start = from ? new Date(from + 'T00:00:00+07:00').toISOString() : '2000-01-01T00:00:00.000Z'
   } else if (date) {
     const d = new Date(date + 'T00:00:00+07:00')
-    start = new Date(d.getTime() - TZ).toISOString()
-    end   = new Date(d.getTime() - TZ + 86400000 - 1).toISOString()
+    start = d.toISOString()
+    end   = new Date(d.getTime() + 86400000 - 1).toISOString()
   } else {
     const [y, m] = month!.split('-').map(Number)
     start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()

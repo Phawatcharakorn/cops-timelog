@@ -253,7 +253,7 @@ export default function ManagerPage() {
       const allLogs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
-        const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
+        const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id && l.status === 'approved')
         const totalMin = logs.reduce((sum, l) => sum + ((l.check_out && !l.is_auto_closed) ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return { student: s, totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7 * 3600000).toISOString().slice(0, 10))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: logs.length }
       })
