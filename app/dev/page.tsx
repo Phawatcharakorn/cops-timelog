@@ -117,6 +117,7 @@ export default function DevPage() {
   const [overview, setOverview]             = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [overviewDept, setOverviewDept]     = useState('')   // filter
+  const [backupMonth, setBackupMonth]       = useState(() => format(new Date(), 'yyyy-MM'))
 
   // Multi-month stats
   const [rangeStart, setRangeStart]   = useState('')
@@ -412,10 +413,7 @@ export default function DevPage() {
 
   const handleExportBackup = () => {
     const token = localStorage.getItem('dev_token') || ''
-    const month = retentionSchedule
-      ? `${retentionSchedule.target_year}-${String(retentionSchedule.target_month).padStart(2, '0')}`
-      : exportMonth
-    const params = new URLSearchParams({ month, token })
+    const params = new URLSearchParams({ month: backupMonth, token })
     const a = document.createElement('a')
     a.href = `/api/export-backup?${params}`; a.click()
   }
@@ -977,7 +975,10 @@ export default function DevPage() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-        <RetentionBanner onSchedule={setRetentionSchedule} showControls />
+        <RetentionBanner onSchedule={row => {
+          setRetentionSchedule(row)
+          if (row) setBackupMonth(`${row.target_year}-${String(row.target_month).padStart(2, '0')}`)
+        }} showControls />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
@@ -1174,14 +1175,6 @@ export default function DevPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Export PDF
-                  </button>
-                  <button onClick={handleExportBackup}
-                    title="สำรองข้อมูลดิบทั้งหมดของเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    สำรองข้อมูล
                   </button>
                 </div>
 
@@ -1455,6 +1448,19 @@ export default function DevPage() {
               <button onClick={fetchOverview} disabled={overviewLoading}
                 className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
                 {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
+              </button>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่สำรอง</label>
+                <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+              </div>
+              <button onClick={handleExportBackup}
+                title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
+                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                สำรองข้อมูล
               </button>
             </div>
 
