@@ -10,6 +10,7 @@ import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import { deleteAttachment } from '@/lib/upload'
+import RetentionBanner from '@/app/components/RetentionBanner'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -86,6 +87,7 @@ export default function ManagerPage() {
   const [overview, setOverview]               = useState<StudentOverview[]>([])
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [overviewDept, setOverviewDept]       = useState('')
+  const [backupMonth, setBackupMonth]         = useState(() => format(new Date(), 'yyyy-MM'))
 
   const [rangeStart, setRangeStart]   = useState('')
   const [rangeEnd, setRangeEnd]       = useState('')
@@ -372,6 +374,13 @@ export default function ManagerPage() {
     const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
     const a = document.createElement('a')
     a.href = `/api/export-receipt?${params}`; a.click()
+  }
+
+  const handleExportBackup = () => {
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams({ month: backupMonth, token })
+    const a = document.createElement('a')
+    a.href = `/api/export-backup?${params}`; a.click()
   }
 
   const handleExportPDF = async () => {
@@ -718,6 +727,8 @@ export default function ManagerPage() {
       />
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+
+        <RetentionBanner showControls tokenKey="mgr_token" />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
@@ -1152,6 +1163,19 @@ export default function ManagerPage() {
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่สำรอง</label>
+                <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+              </div>
+              <button onClick={handleExportBackup}
+                title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
+                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                สำรองข้อมูล
+              </button>
               <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
             </div>
             {overview.length > 0 && (() => {

@@ -13,12 +13,15 @@ export type RetentionRow = {
 }
 
 // `showControls` renders the cancel/postpone buttons — only pass this on the
-// dev page (it needs a dev/manager token in localStorage to call the
-// auth-protected POST endpoint). The student page just shows the warning.
-export default function RetentionBanner({ onSchedule, className = '', showControls = false }: {
+// dev/manager pages (they have an auth token in localStorage to call the
+// protected POST endpoint). The student page just shows the warning.
+// `tokenKey` picks which localStorage key holds that token — dev and
+// manager pages store their session tokens under different keys.
+export default function RetentionBanner({ onSchedule, className = '', showControls = false, tokenKey = 'dev_token' }: {
   onSchedule?: (row: RetentionRow | null) => void
   className?: string
   showControls?: boolean
+  tokenKey?: string
 }) {
   const [schedule, setSchedule] = useState<RetentionRow | null>(null)
   const [busy, setBusy] = useState(false)
@@ -50,7 +53,7 @@ export default function RetentionBanner({ onSchedule, className = '', showContro
     )) return
     setBusy(true)
     try {
-      const token = localStorage.getItem('dev_token') || ''
+      const token = localStorage.getItem(tokenKey) || ''
       const res = await fetch('/api/retention-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-token': token },

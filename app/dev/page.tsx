@@ -1445,10 +1445,6 @@ export default function DevPage() {
                   {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <button onClick={fetchOverview} disabled={overviewLoading}
-                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
-                {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
-              </button>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่สำรอง</label>
                 <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
@@ -1461,6 +1457,10 @@ export default function DevPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 สำรองข้อมูล
+              </button>
+              <button onClick={fetchOverview} disabled={overviewLoading}
+                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
+                {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
               </button>
             </div>
 
