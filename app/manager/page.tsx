@@ -1181,12 +1181,12 @@ export default function ManagerPage() {
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
                 <button onClick={handleExportOverviewVouchers}
-                  title="Export ใบสำคัญรับเงินของทุกคน (ตามตัวกรองฝ่ายด้านซ้าย) รวมเป็นไฟล์เดียว คนละชีท"
+                  title="Export ใบสำคัญรับเงินรวมเป็นไฟล์เดียว คนละชีท เฉพาะคนที่มีชั่วโมงอนุมัติแล้วในเดือนนี้ (ตามตัวกรองฝ่ายด้านซ้าย)"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Export Excel รายบุคคล
+                  Export Excel ทุกคน
                 </button>
                 <button onClick={handleExportBackup}
                   title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"

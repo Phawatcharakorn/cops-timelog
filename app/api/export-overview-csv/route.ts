@@ -47,11 +47,20 @@ export async function GET(req: NextRequest) {
 
   for (const student of sorted) {
     const studentLogs = (logs ?? []).filter(l => l.student_id === student.student_id)
+    // Skip students with no approved, actually-worked hours this month —
+    // only those who logged and got approved time belong in the payout file.
+    const hasApprovedHours = studentLogs.some(l => l.check_out && !l.is_auto_closed)
+    if (!hasApprovedHours) continue
+
     // Excel sheet names: max 31 chars, no \ / ? * [ ] : and must be unique.
     let sheetName = student.name.replace(/[\\/?*[\]:]/g, ' ').trim().slice(0, 28) || student.student_id
     if (usedNames.has(sheetName)) sheetName = `${sheetName.slice(0, 20)} ${student.student_id}`.slice(0, 31)
     usedNames.add(sheetName)
     addVoucherSheet(wb, sheetName, student, year, m, studentLogs)
+  }
+
+  if (wb.worksheets.length === 0) {
+    return NextResponse.json({ error: 'ไม่มีใครมีชั่วโมงที่อนุมัติแล้วในเดือนนี้' }, { status: 404 })
   }
 
   const buffer = await wb.xlsx.writeBuffer()
