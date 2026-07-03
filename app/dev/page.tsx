@@ -1426,42 +1426,46 @@ export default function DevPage() {
         {/* ── Tab: Overview ───────────────────────────────────────────────── */}
         {tab === 'overview' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
-                <input type="date" className={inputCls + ' w-auto'} value={dateFrom}
-                  onChange={e => setDateFrom(e.target.value)} />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end justify-between gap-3">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">จากวันที่</label>
+                  <input type="date" className={inputCls + ' w-auto'} value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
+                  <input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom}
+                    onChange={e => setDateTo(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
+                  <select className={inputCls + ' w-auto'}
+                    value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
+                    <option value="">ทุกฝ่าย</option>
+                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">ถึงวันที่</label>
-                <input type="date" className={inputCls + ' w-auto'} value={dateTo} min={dateFrom}
-                  onChange={e => setDateTo(e.target.value)} />
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่สำรอง</label>
+                  <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                </div>
+                <button onClick={handleExportBackup}
+                  title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  สำรองข้อมูล
+                </button>
+                <button onClick={fetchOverview} disabled={overviewLoading}
+                  className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">
+                  {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
+                </button>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
-                <select className={inputCls + ' w-auto'}
-                  value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
-                  <option value="">ทุกฝ่าย</option>
-                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่สำรอง</label>
-                <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-              </div>
-              <button onClick={handleExportBackup}
-                title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
-                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                สำรองข้อมูล
-              </button>
-              <button onClick={fetchOverview} disabled={overviewLoading}
-                className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors ml-auto">
-                {overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}
-              </button>
             </div>
 
             {filteredOverview.length > 0 && (
