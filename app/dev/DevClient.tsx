@@ -42,7 +42,7 @@ type Summary = {
   logs: LogWithDuration[]; student: Student | null; dateFrom: string; dateTo: string
 }
 type StudentOverview = {
-  student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number
+  student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number; pendingCount: number
 }
 type EditForm     = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
@@ -288,7 +288,8 @@ export default function DevPage() {
       const allLogs: TimeLog[] = logsRes.ok ? await logsRes.json() : []
       if (reqId !== overviewReqId.current) return // a newer fetch superseded this one
       const result: StudentOverview[] = (allStudents ?? []).map(s => {
-        const logs = (allLogs ?? []).filter(l => l.student_id === s.student_id && l.status === 'approved')
+        const studentLogs = (allLogs ?? []).filter(l => l.student_id === s.student_id)
+        const logs = studentLogs.filter(l => l.status === 'approved')
         const totalMin = logs.reduce((sum, l) =>
           sum + ((l.check_out && !l.is_auto_closed) ? differenceInMinutes(new Date(l.check_out), new Date(l.check_in)) : 0), 0)
         return {
@@ -299,6 +300,7 @@ export default function DevPage() {
           totalHours: Math.floor(totalMin / 60),
           totalMinutes: totalMin % 60,
           taskCount: logs.length,
+          pendingCount: studentLogs.filter(l => l.status === 'pending').length,
         }
       })
       setOverview(result)
@@ -1549,11 +1551,12 @@ export default function DevPage() {
                         <th className="px-4 py-3 text-center font-medium">วันทำงาน</th>
                         <th className="px-4 py-3 text-center font-medium">ชั่วโมงรวม</th>
                         <th className="px-4 py-3 text-center font-medium">งาน</th>
+                        <th className="px-4 py-3 text-center font-medium">รออนุมัติ</th>
                         <th className="px-4 py-3 text-left font-medium"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount }) => (
+                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount, pendingCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -1574,6 +1577,9 @@ export default function DevPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center text-purple-600 font-semibold">{taskCount}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`font-semibold ${pendingCount === 0 ? 'text-gray-300' : 'text-amber-600'}`}>{pendingCount}</span>
+                          </td>
                           <td className="px-4 py-3">
                             <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }}
                               className="text-xs text-blue-700 hover:text-blue-800 font-medium whitespace-nowrap">
