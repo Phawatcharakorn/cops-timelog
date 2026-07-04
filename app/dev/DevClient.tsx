@@ -324,6 +324,11 @@ export default function DevPage() {
     const channel = supabase
       .channel('dev-time-logs')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'time_logs' }, payload => {
+        // Skip realtime-triggered refetches while an action PATCH is still in
+        // flight — the action holds the lock and will call fetchSummary() itself
+        // after confirming the write succeeded. Letting this run concurrently
+        // risks a stale read landing on top of the optimistic update.
+        if (busyLogIdsRef.current.size > 0) return
         const changedId = (payload.new as { student_id?: string } | null)?.student_id
           ?? (payload.old as { student_id?: string } | null)?.student_id
         if (changedId && changedId === selectedStudentId) void fetchSummary()
@@ -732,6 +737,7 @@ export default function DevPage() {
       const err = await putTimeLog(logId, { status: 'approved', approved_by: adminUsername, approved_at: now })
       if (err) { showToast('อนุมัติไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('อนุมัติเรียบร้อยแล้ว', 'success')
+      await fetchSummary()
     } finally { endBusy(logId) }
   }
 
@@ -743,6 +749,7 @@ export default function DevPage() {
       const err = await putTimeLog(logId, { status: 'pending', approved_by: null, approved_at: null, paid: false, paid_at: null })
       if (err) { showToast('ยกเลิกอนุมัติไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกอนุมัติแล้ว', 'info')
+      await fetchSummary()
     } finally { endBusy(logId) }
   }
 
@@ -773,6 +780,7 @@ export default function DevPage() {
       const err = await putTimeLog(logId, patch)
       if (err) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการตีกลับแล้ว', 'info')
+      await fetchSummary()
     } finally { endBusy(logId) }
   }
 
@@ -787,11 +795,9 @@ export default function DevPage() {
       patchLog(logId, patch)
       const err = await putTimeLog(logId, patch)
       if (err) { showToast('บันทึกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
-      // Staff have already reviewed the attachment by the time payment is
-      // recorded — delete it from Storage to keep usage down. Best-effort:
-      // the payment itself already succeeded regardless of this outcome.
       if (photoUrl) void deleteAttachment(photoUrl)
       showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
+      await fetchSummary()
     } finally { endBusy(logId) }
   }
 
@@ -803,6 +809,7 @@ export default function DevPage() {
       const err = await putTimeLog(logId, { paid: false, paid_at: null })
       if (err) { showToast('ยกเลิกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการจ่ายแล้ว', 'info')
+      await fetchSummary()
     } finally { endBusy(logId) }
   }
 
