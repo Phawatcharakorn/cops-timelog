@@ -302,7 +302,7 @@ export default function ManagerPage() {
       if (busyLogIdRef.current) return
       void fetchSummary()
       if (overviewRef.current.length > 0) void fetchOverview()
-    }, 5000)
+    }, 20000)
     return () => clearInterval(id)
   }, [authed, fetchSummary, fetchOverview])
 
