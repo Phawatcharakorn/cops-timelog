@@ -57,10 +57,21 @@ export async function GET(req: NextRequest) {
   // ahead of .gte()/.lte() has been observed on production to silently drop
   // a matching row — and even .eq() + .gte()/.lte() alone can still drop
   // rows, so this avoids chaining any range/equality filters together.
-  const { data: rawLogs } = await db.from('time_logs').select('*')
+  const { data: rawLogs, error: rawErr } = await db.from('time_logs').select('*')
     .eq('student_id', studentId)
   const logs = (rawLogs ?? []).filter(l =>
     l.status === 'approved' && l.check_in >= overallStart && l.check_in <= overallEnd)
+
+  if (searchParams.get('debug') === '1') {
+    return NextResponse.json({
+      overallStart, overallEnd,
+      rawCount: rawLogs?.length ?? 0,
+      rawErr: rawErr?.message ?? null,
+      rawLogs: (rawLogs ?? []).map(l => ({ id: l.id, check_in: l.check_in, status: l.status, is_auto_closed: l.is_auto_closed })),
+      filteredCount: logs.length,
+      filtered: logs.map(l => ({ id: l.id, check_in: l.check_in, check_out: l.check_out, is_auto_closed: l.is_auto_closed })),
+    })
+  }
 
   const wb = new ExcelJS.Workbook()
 
