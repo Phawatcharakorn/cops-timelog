@@ -26,23 +26,24 @@ export async function GET(req: NextRequest) {
   const start = new Date(Date.UTC(y, m - 1, 1) - TZ_OFFSET_MS).toISOString()  // Thai Jun 1 00:00 = UTC May 31 17:00
   const end   = new Date(Date.UTC(y, m, 1) - TZ_OFFSET_MS - 1).toISOString()   // Thai Jul 1 00:00 - 1ms = UTC Jun 30 16:59:59.999
 
-  const [{ data: student }, { data: logs }] = await Promise.all([
+  const [{ data: student }, { data: rawLogs }] = await Promise.all([
     db.from('students').select('*').eq('student_id', studentId).single(),
-    // No .order() here — chaining .order() on the same column as the
-    // .gte()/.lte() range filters has been observed to silently corrupt
-    // which row's data lands under which date. Sort client-side instead.
+    // Fetch by student_id only and filter status + date range in JS —
+    // chaining .eq()/.gte()/.lte()/.order() together on time_logs has been
+    // observed to silently drop or corrupt which row lands under which
+    // date, so this avoids combining filters in the query entirely.
     db.from('time_logs')
       .select('*')
-      .eq('student_id', studentId)
-      .gte('check_in', start)
-      .lte('check_in', end),
+      .eq('student_id', studentId),
   ])
 
   if (!student) {
     return NextResponse.json({ error: 'Student not found' }, { status: 404 })
   }
 
-  const sortedLogs = (logs ?? []).slice().sort((a, b) => a.check_in.localeCompare(b.check_in))
+  const logs = (rawLogs ?? []).filter(l =>
+    l.status === 'approved' && l.check_in >= start && l.check_in <= end)
+  const sortedLogs = logs.slice().sort((a, b) => a.check_in.localeCompare(b.check_in))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const el = createElement(MonthlyReport as any, { student, logs: sortedLogs, month }) as any
   const buffer = await renderToBuffer(el)

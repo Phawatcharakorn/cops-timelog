@@ -21,16 +21,16 @@ export async function GET(req: NextRequest) {
   const start = new Date(Date.UTC(y, m - 1, 1) - TZ).toISOString()
   const end   = new Date(Date.UTC(y, m,     1) - TZ - 1).toISOString()
 
+  // Fetch by student_id only and filter the date range in JS — chaining
+  // .gte()/.lte() range filters after .eq() on time_logs has been observed
+  // to silently drop matching rows on production (same underlying quirk
+  // that made us move status filtering to JS in export-csv).
   const { data, error } = await supabaseAdmin()
     .from('time_logs')
     .select('*')
     .eq('student_id', studentId)
-    .gte('check_in', start)
-    .lte('check_in', end)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Sorted client-side, not via .order() in the query above — chaining
-  // .order() on the same column as the .gte()/.lte() range filters has been
-  // observed to silently corrupt which row's data lands under which date.
-  return NextResponse.json((data ?? []).sort((a, b) => a.check_in.localeCompare(b.check_in)))
+  const inRange = (data ?? []).filter(l => l.check_in >= start && l.check_in <= end)
+  return NextResponse.json(inRange.sort((a, b) => a.check_in.localeCompare(b.check_in)))
 }

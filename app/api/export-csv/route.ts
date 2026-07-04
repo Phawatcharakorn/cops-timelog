@@ -52,17 +52,15 @@ export async function GET(req: NextRequest) {
   const overallStart = new Date(Date.UTC(months[0].year, months[0].month - 1, 1) - TZ_MS).toISOString()
   const last = months[months.length - 1]
   const overallEnd = new Date(Date.UTC(last.year, last.month, 1) - TZ_MS - 1).toISOString()
-  // Filter to a single .eq() (student_id) plus the date range here, and
-  // filter status in JS afterward rather than adding a second .eq() to the
-  // query. Stacking .eq('student_id', ...).eq('status', 'approved') ahead of
-  // .gte()/.lte() has been observed on production to silently drop a
-  // matching row — reordering the .eq() calls avoided it in testing, but
-  // that felt like tickling an underlying client/PostgREST quirk rather than
-  // a real fix, so this avoids the combination entirely.
+  // Fetch by student_id only, and filter both status and date range in JS
+  // afterward. Stacking .eq('student_id', ...).eq('status', 'approved')
+  // ahead of .gte()/.lte() has been observed on production to silently drop
+  // a matching row — and even .eq() + .gte()/.lte() alone can still drop
+  // rows, so this avoids chaining any range/equality filters together.
   const { data: rawLogs } = await db.from('time_logs').select('*')
     .eq('student_id', studentId)
-    .gte('check_in', overallStart).lte('check_in', overallEnd)
-  const logs = (rawLogs ?? []).filter(l => l.status === 'approved')
+  const logs = (rawLogs ?? []).filter(l =>
+    l.status === 'approved' && l.check_in >= overallStart && l.check_in <= overallEnd)
 
   const wb = new ExcelJS.Workbook()
 
