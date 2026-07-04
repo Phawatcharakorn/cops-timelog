@@ -388,11 +388,6 @@ export default function ManagerPage() {
     } finally { setRosterLoading(false) }
   }, [mgrDept])
 
-  // Anchor-click "navigation" downloads are silent on failure — a 400/404/500
-  // from the server (wrong filters, no matching data, expired token, etc.)
-  // just loads the raw JSON error in the tab or does nothing visible, which
-  // is indistinguishable from "the file didn't update." Fetching the blob
-  // ourselves lets us surface real errors via toast instead of guessing.
   const downloadExport = async (url: string, token: string) => {
     try {
       const res = await fetch(url, { headers: { 'x-token': token }, cache: 'no-store' })
@@ -413,60 +408,10 @@ export default function ManagerPage() {
     }
   }
 
-  const handleExportCSV = (useRange = false) => {
-    const token = localStorage.getItem('mgr_token') || ''
-    const base  = useRange && rangeStart && rangeEnd
-      ? `/api/export-csv?studentId=${selectedStudentId}&startMonth=${rangeStart}&endMonth=${rangeEnd}`
-      : `/api/export-csv?studentId=${selectedStudentId}&month=${exportMonth}`
-    void downloadExport(base, token)
-  }
-
-  const handleExportReceipt = () => {
-    const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth })
-    void downloadExport(`/api/export-receipt?${params}`, token)
-  }
-
   const handleExportBackup = () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams({ month: backupMonth })
     void downloadExport(`/api/export-backup?${params}`, token)
-  }
-
-  const handleExportOverviewVouchers = () => {
-    const token = localStorage.getItem('mgr_token') || ''
-    const params = new URLSearchParams({ month: backupMonth, ...(overviewDept ? { dept: overviewDept } : {}) })
-    void downloadExport(`/api/export-overview-csv?${params}`, token)
-  }
-
-  const handleExportPDF = async () => {
-    if (!summary) return
-    const token = localStorage.getItem('mgr_token') || ''
-    if (!token) { logout(); return }
-
-    // summary.logs is already scoped to exportMonth (fetchSummary fetches
-    // exactly that month), but re-checking here is a cheap guard against
-    // marking the wrong rows paid if that ever changes.
-    const inExportMonth = (checkIn: string) =>
-      new Date(new Date(checkIn).getTime() + 7 * 3600000).toISOString().slice(0, 7) === exportMonth
-    const unpaidApproved = summary.logs.filter(l => l.status === 'approved' && !l.paid && inExportMonth(l.check_in))
-    if (unpaidApproved.length > 0) {
-      const confirmed = window.confirm(
-        `การพิมพ์ PDF จะบันทึกว่า "จ่ายแล้ว" ให้กับรายการที่อนุมัติแล้วทั้งหมด ${unpaidApproved.length} รายการในรายงานนี้ทันที\n\nต้องการดำเนินการต่อหรือไม่?`
-      )
-      if (!confirmed) return
-      const now = new Date().toISOString()
-      await Promise.all(unpaidApproved.map(async l => {
-        const patch = { paid: true, paid_at: now, ...(l.photo_url ? { photo_url: null } : {}) }
-        patchLog(l.id, patch)
-        await putTimeLog(l.id, patch)
-        if (l.photo_url) void deleteAttachment(l.photo_url)
-      }))
-      showToast(`บันทึกการจ่าย ${unpaidApproved.length} รายการเรียบร้อยแล้ว`, 'success')
-    }
-
-    const params = new URLSearchParams({ studentId: selectedStudentId, month: exportMonth, token })
-    window.open(`/print?${params}`, '_blank')
   }
 
   const handleDeleteStudent = async (student: Student) => {
@@ -917,15 +862,6 @@ export default function ManagerPage() {
                   ))}
                 </div>
                 <div className="flex flex-wrap justify-end items-center gap-2">
-                  <button onClick={handleExportReceipt} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>ใบสำคัญรับเงิน
-                  </button>
-                  <button onClick={() => handleExportCSV(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export CSV
-                  </button>
-                  <button onClick={handleExportPDF} className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export PDF
-                  </button>
                 </div>
                 {undoAction && (
                   <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
@@ -1166,7 +1102,6 @@ export default function ManagerPage() {
                   <div><label className="block text-xs text-gray-500 mb-1">จากเดือน</label><input type="month" className={inputCls + ' w-auto'} value={rangeStart} onChange={e => { setRangeStart(e.target.value); setMultiStats(null) }} /></div>
                   <div><label className="block text-xs text-gray-500 mb-1">ถึงเดือน</label><input type="month" className={inputCls + ' w-auto'} value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMultiStats(null) }} /></div>
                   <button onClick={fetchMultiStats} disabled={!rangeStart || !rangeEnd || multiLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">{multiLoading ? 'กำลังโหลด...' : 'ดูสถิติ'}</button>
-                  {multiStats && <button onClick={() => handleExportCSV(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export CSV ช่วงนี้</button>}
                 </div>
                 {multiStats && (
                   <div className="overflow-x-auto rounded-lg border border-gray-100">
@@ -1221,14 +1156,6 @@ export default function ManagerPage() {
                   <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
-                <button onClick={handleExportOverviewVouchers}
-                  title="Export ใบสำคัญรับเงินแบบตารางรวม คนละชีทต่อฝ่าย เฉพาะคนที่มีชั่วโมงอนุมัติแล้วในเดือนนี้ (ตามตัวกรองฝ่ายด้านซ้าย)"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Export Excel ทุกคน
-                </button>
                 <button onClick={handleExportBackup}
                   title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
                   className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
