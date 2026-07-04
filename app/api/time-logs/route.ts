@@ -41,17 +41,17 @@ export async function GET(req: NextRequest) {
 
   if (studentId && await forbiddenForStudent(req, studentId)) return NextResponse.json([])
 
+  // Only apply .eq('student_id') at the query level; filter start/end in JS
+  // — chaining .eq()/.gte()/.lte()/.order() together on time_logs has been
+  // observed to silently drop or corrupt which row lands under which date.
   let q = db.from('time_logs').select('*')
   if (studentId) q = q.eq('student_id', studentId)
-  if (start) q = q.gte('check_in', start)
-  if (end) q = q.lte('check_in', end)
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Sorted client-side, not via .order() in the query above — chaining
-  // .order() on the same column as the .gte()/.lte() range filters has been
-  // observed to silently corrupt which row's data lands under which date.
-  return NextResponse.json((data ?? []).sort((a, b) => a.check_in.localeCompare(b.check_in)))
+  const filtered = (data ?? []).filter(l =>
+    (!start || l.check_in >= start) && (!end || l.check_in <= end))
+  return NextResponse.json(filtered.sort((a, b) => a.check_in.localeCompare(b.check_in)))
 }
 
 export async function POST(req: NextRequest) {

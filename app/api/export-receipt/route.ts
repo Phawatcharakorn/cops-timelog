@@ -50,13 +50,17 @@ export async function GET(req: NextRequest) {
   const end   = new Date(Date.UTC(year, m, 1) - 7 * 3600000 - 1).toISOString()
 
   const db = supabaseAdmin()
-  const [{ data: student }, { data: logs }] = await Promise.all([
+  // Fetch by student_id only and filter status + date range in JS —
+  // stacking equality/range filters together on time_logs has been observed
+  // on production to silently drop a matching row.
+  const [{ data: student }, { data: rawLogs }] = await Promise.all([
     db.from('students').select('*').eq('student_id', studentId).single(),
-    db.from('time_logs').select('check_in, check_out')
-      .eq('student_id', studentId).eq('status', 'approved')
-      .gte('check_in', start).lte('check_in', end),
+    db.from('time_logs').select('check_in, check_out, status').eq('student_id', studentId),
   ])
   if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+
+  const logs = (rawLogs ?? []).filter(l =>
+    l.status === 'approved' && l.check_in >= start && l.check_in <= end)
 
   const hours  = hoursInMonth(logs ?? [], year, m)
   const amount = Math.round(hours * HOURLY_RATE)

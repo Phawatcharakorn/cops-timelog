@@ -22,10 +22,15 @@ export async function POST(req: NextRequest) {
   const { startISO, endISO } = monthRangeISO({ year, month: m })
 
   const db = supabaseAdmin()
-  const { data: deleted, error } = await db.from('time_logs')
-    .delete()
-    .gte('check_in', startISO).lte('check_in', endISO)
-    .select('id')
+  // Find matching ids by filtering the range in JS, then delete by id —
+  // chaining .gte()/.lte() directly on a .delete() has been observed
+  // elsewhere to silently drop/corrupt which row matches which date.
+  const { data: rows, error: findError } = await db.from('time_logs').select('id, check_in')
+  if (findError) return NextResponse.json({ error: findError.message }, { status: 500 })
+  const ids = (rows ?? []).filter(r => r.check_in >= startISO && r.check_in <= endISO).map(r => r.id)
+  const { data: deleted, error } = ids.length
+    ? await db.from('time_logs').delete().in('id', ids).select('id')
+    : { data: [], error: null }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // If the cron had already flagged this month, close that record out too
