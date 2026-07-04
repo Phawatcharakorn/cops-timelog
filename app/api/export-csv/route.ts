@@ -63,13 +63,29 @@ export async function GET(req: NextRequest) {
     l.status === 'approved' && l.check_in >= overallStart && l.check_in <= overallEnd)
 
   if (searchParams.get('debug') === '1') {
+    const dbgHoursByDay: Record<number, number> = {}
+    for (const log of logs) {
+      if (!log.check_out || log.is_auto_closed) continue
+      const ti = new Date(new Date(log.check_in).getTime() + TZ_MS)
+      const inThaiYear = ti.getUTCFullYear(), inThaiMonth = ti.getUTCMonth() + 1
+      const { year: yr, month: mo } = months[0]
+      if (inThaiYear !== yr || inThaiMonth !== mo) continue
+      const day = ti.getUTCDate()
+      const hrs = (new Date(log.check_out).getTime() - new Date(log.check_in).getTime()) / 3_600_000
+      dbgHoursByDay[day] = (dbgHoursByDay[day] ?? 0) + Math.max(0, hrs)
+    }
     return NextResponse.json({
-      overallStart, overallEnd,
+      overallStart, overallEnd, months,
       rawCount: rawLogs?.length ?? 0,
       rawErr: rawErr?.message ?? null,
       rawLogs: (rawLogs ?? []).map(l => ({ id: l.id, check_in: l.check_in, status: l.status, is_auto_closed: l.is_auto_closed })),
       filteredCount: logs.length,
-      filtered: logs.map(l => ({ id: l.id, check_in: l.check_in, check_out: l.check_out, is_auto_closed: l.is_auto_closed })),
+      filtered: logs.map(l => {
+        const ti = new Date(new Date(l.check_in).getTime() + TZ_MS)
+        return { id: l.id, check_in: l.check_in, check_out: l.check_out, is_auto_closed: l.is_auto_closed,
+          thaiDay: ti.getUTCDate(), thaiMonth: ti.getUTCMonth() + 1, thaiYear: ti.getUTCFullYear() }
+      }),
+      hoursByDay: dbgHoursByDay,
     })
   }
 
