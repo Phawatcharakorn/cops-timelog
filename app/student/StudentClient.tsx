@@ -65,6 +65,11 @@ export default function StudentPage() {
   const [pinConfirm, setPinConfirm]   = useState('')
   const [pinSetting, setPinSetting]   = useState(false)
 
+  const [hasBankInfo, setHasBankInfo] = useState(false)
+  const [bankSetStep, setBankSetStep] = useState(false)
+  const [bankForm, setBankForm]       = useState({ bank_account_number: '', bank_account_name: '', bank_book_url: null as string | null })
+  const [bankSaving, setBankSaving]   = useState(false)
+
   const [now, setNow] = useState<Date | null>(null)
 
   const [showHistory, setShowHistory]       = useState(false)
@@ -135,18 +140,23 @@ export default function StudentPage() {
       // follow-up fetch afterward — the badges used to visibly pop in a
       // beat later than the rest of the student info for no real reason.
       const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
-        supabase.from('students').select('name, department, faculty, major').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
         fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
         historyMonth ? fetchHistory(historyMonth) : Promise.resolve(),
       ])
       if (student) {
         const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
+        const hasBank = !!(student.bank_account_number && student.bank_account_name && student.bank_book_url)
         setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
         setStudentLocked(true)
         setStudentNotFound(false)
         setHasPin(hp)
+        setHasBankInfo(hasBank)
+        setBankSetStep(false)
+        setBankForm({ bank_account_number: '', bank_account_name: '', bank_book_url: null })
         if (!hp) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
+        else if (!hasBank) { setBankSetStep(true) }
         if (activeLogData) {
           if (isRecentCheckIn(activeLogData.check_in)) {
             setActiveLog(activeLogData)
@@ -259,10 +269,35 @@ export default function StudentPage() {
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       setHasPin(true); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
-      showMsg('success', 'ตั้ง PIN สำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
+      if (!hasBankInfo) {
+        setBankSetStep(true)
+        showMsg('success', 'ตั้ง PIN สำเร็จ! กรุณากรอกข้อมูลบัญชีธนาคารก่อนบันทึกเวลาเข้า')
+      } else {
+        showMsg('success', 'ตั้ง PIN สำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
+      }
     } catch (e) {
       showMsg('error', 'ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
     } finally { setPinSetting(false) }
+  }
+
+  const handleSaveBankInfo = async () => {
+    if (!bankForm.bank_account_number.trim() || !bankForm.bank_account_name.trim())
+      return showMsg('error', 'กรุณากรอกเลขบัญชีและชื่อบัญชีธนาคาร')
+    if (!bankForm.bank_book_url)
+      return showMsg('error', 'กรุณาแนบไฟล์หน้าสมุดบัญชี (bookbank)')
+    setBankSaving(true)
+    try {
+      const { error } = await supabase.from('students').update({
+        bank_account_number: bankForm.bank_account_number.trim(),
+        bank_account_name:   bankForm.bank_account_name.trim(),
+        bank_book_url:       bankForm.bank_book_url,
+      }).eq('student_id', form.student_id)
+      if (error) throw error
+      setHasBankInfo(true); setBankSetStep(false)
+      showMsg('success', 'บันทึกข้อมูลบัญชีธนาคารสำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
+    } catch (e) {
+      showMsg('error', 'บันทึกไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setBankSaving(false) }
   }
 
   const verifyPin = async (pin: string) => {
@@ -649,7 +684,7 @@ export default function StudentPage() {
             )}
 
             {/* Month summary + status breakdown */}
-            {studentLocked && !pinSetStep && (
+            {studentLocked && !pinSetStep && !bankSetStep && (
               <div className="anim-slide-up space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">สรุปเดือน</p>
@@ -723,8 +758,52 @@ export default function StudentPage() {
               </div>
             )}
 
+            {/* Bank info (required once, before check-in is allowed) */}
+            {studentLocked && !pinSetStep && bankSetStep && (
+              <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">ข้อมูลบัญชีธนาคาร 🏦</p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  กรุณากรอกข้อมูลบัญชีธนาคารสำหรับรับเงิน (กรอกครั้งเดียว) ก่อนบันทึกเวลาเข้า
+                </p>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">เลขที่บัญชี</label>
+                  <input
+                    inputMode="numeric"
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    placeholder="เลขที่บัญชีธนาคาร"
+                    value={bankForm.bank_account_number}
+                    onChange={e => setBankForm(f => ({ ...f, bank_account_number: e.target.value.replace(/[^\d-]/g, '') }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">ชื่อบัญชี</label>
+                  <input
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    placeholder="ชื่อ-นามสกุลเจ้าของบัญชี"
+                    value={bankForm.bank_account_name}
+                    onChange={e => setBankForm(f => ({ ...f, bank_account_name: e.target.value }))}
+                  />
+                  <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                    ⚠️ ชื่อบัญชีต้องตรงกับชื่อที่ใช้ในการทำงาน ({form.name})
+                  </p>
+                </div>
+                <AttachmentInput
+                  value={bankForm.bank_book_url}
+                  onChange={url => setBankForm(f => ({ ...f, bank_book_url: url }))}
+                  studentId={form.student_id}
+                  label="แนบหน้าสมุดบัญชี (Bookbank) — PDF หรือ PNG"
+                />
+                <button
+                  onClick={handleSaveBankInfo}
+                  disabled={bankSaving}
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                  {bankSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลบัญชี'}
+                </button>
+              </div>
+            )}
+
             {/* PIN verify (has PIN) */}
-            {studentLocked && hasPin && !pinSetStep && !activeLog && (
+            {studentLocked && hasPin && !pinSetStep && !bankSetStep && !activeLog && (
               <div className="anim-slide-up">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
@@ -764,7 +843,7 @@ export default function StudentPage() {
             )}
 
             {/* Action button */}
-            {!pinSetStep && (!activeLog ? (
+            {!pinSetStep && !(bankSetStep && !activeLog) && (!activeLog ? (
               <button
                 onClick={handleCheckIn}
                 disabled={loading || studentNotFound || cooldown > 0 || !studentLocked}
@@ -783,7 +862,7 @@ export default function StudentPage() {
             ))}
 
             {/* Self-report backdated log */}
-            {studentLocked && !activeLog && !pinSetStep && (
+            {studentLocked && !activeLog && !pinSetStep && !bankSetStep && (
               <button onClick={openSelfReport}
                 className="w-full text-xs text-gray-400 hover:text-blue-600 font-medium py-1 transition-colors flex items-center justify-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

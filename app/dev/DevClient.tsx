@@ -184,6 +184,9 @@ export default function DevPage() {
   const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
+  // View-details modal (read-only — full student record, incl. bank info)
+  const [detailStudentModal, setDetailStudentModal] = useState<Student | null>(null)
+
   // ── Effects ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1554,8 +1557,8 @@ export default function DevPage() {
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
                       <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
-                      <th className="px-4 py-3 text-left font-medium">ฝ่าย</th>
-                      <th className="px-4 py-3 text-left font-medium">คณะ / สาขา</th>
+                      <th className="px-4 py-3 text-left font-medium">ฝ่าย / คณะ-สาขา</th>
+                      <th className="px-4 py-3 text-center font-medium">รายละเอียด</th>
                       <th className="px-4 py-3 text-center font-medium">PIN</th>
                       <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                     </tr>
@@ -1570,12 +1573,16 @@ export default function DevPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{s.department}</span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px]">
-                          <div className="truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
+                        <td className="px-4 py-3 text-xs max-w-[180px]">
+                          <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{s.department}</span>
+                          <div className="mt-1 text-gray-600 truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
                           {s.major && <div className="text-gray-400 truncate">{s.major}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button onClick={() => setDetailStudentModal(s)}
+                            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded-lg font-medium transition-colors">
+                            ดู
+                          </button>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {s.pin ? (
@@ -2124,6 +2131,67 @@ export default function DevPage() {
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                 {editStudentSaving ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: View Student Details (read-only) ─────────────────────────── */}
+      {detailStudentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDetailStudentModal(null)}>
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">{detailStudentModal.name}</h3>
+                <p className="text-xs text-gray-400 font-mono mt-0.5">{detailStudentModal.student_id}</p>
+              </div>
+              <button onClick={() => setDetailStudentModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { label: 'ชื่อเล่น',            value: detailStudentModal.nickname },
+                { label: 'ฝ่าย',               value: detailStudentModal.department },
+                { label: 'คณะ',                value: detailStudentModal.faculty },
+                { label: 'สาขาวิชา',           value: detailStudentModal.major },
+                { label: 'รุ่น (Gen)',         value: detailStudentModal.gen ? `Gen ${detailStudentModal.gen}` : null },
+                { label: 'เพศ',                value: detailStudentModal.gender },
+                { label: 'วันเกิด',            value: detailStudentModal.birthdate ? new Date(detailStudentModal.birthdate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : null },
+                { label: 'ศาสนา',              value: detailStudentModal.religion },
+                { label: 'สัญชาติ',            value: detailStudentModal.nationality },
+                { label: 'เบอร์โทร',           value: detailStudentModal.phone },
+                { label: 'E-mail',              value: detailStudentModal.email },
+                { label: 'เลขบัตรประชาชน',     value: detailStudentModal.national_id },
+                { label: 'สถานะ',              value: detailStudentModal.status },
+                { label: 'หมายเหตุ',           value: detailStudentModal.note },
+              ].map(r => (
+                <div key={r.label} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
+                  <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">{r.label}</span>
+                  <span className="text-sm text-gray-800 font-medium break-all">{r.value || <span className="text-gray-400 font-normal">-</span>}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-100 pt-2 mt-2">
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-1.5 px-1">ข้อมูลบัญชีธนาคาร</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
+                    <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">เลขบัญชี</span>
+                    <span className="text-sm text-gray-800 font-medium break-all">{detailStudentModal.bank_account_number || <span className="text-gray-400 font-normal">ยังไม่ได้กรอก</span>}</span>
+                  </div>
+                  <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
+                    <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">ชื่อบัญชี</span>
+                    <span className="text-sm text-gray-800 font-medium break-all">{detailStudentModal.bank_account_name || <span className="text-gray-400 font-normal">ยังไม่ได้กรอก</span>}</span>
+                  </div>
+                  <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
+                    <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">Bookbank</span>
+                    {detailStudentModal.bank_book_url
+                      ? <a href={detailStudentModal.bank_book_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline font-medium">📎 ดูไฟล์ที่แนบ</a>
+                      : <span className="text-sm text-gray-400 font-normal">ยังไม่ได้แนบ</span>}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

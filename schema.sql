@@ -231,3 +231,15 @@ ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_auto_closed BOOLEAN NOT NULL D
 -- text-only marker, before this column existed.
 UPDATE time_logs SET is_auto_closed = true
 WHERE work_summary = '(ปิดอัตโนมัติ — ลืม check-out)' AND is_auto_closed = false;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Bank account info for payroll. Collected once from the student on the
+-- check-in page (after PIN is set, before check-in is allowed — see
+-- app/student/StudentClient.tsx) instead of via dev/manager data entry,
+-- since only the student reliably knows their own account details. The
+-- bookbank attachment reuses the existing public "work-photos" bucket/policies
+-- above (no new bucket needed).
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_account_name   TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_book_url       TEXT;
