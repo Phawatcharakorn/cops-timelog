@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, unauthorized } from '@/lib/apiAuth'
-import { COOLDOWN_DAYS } from '@/lib/retention'
+import { POSTPONE_DAYS } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ action: 'cancelled' })
   }
 
-  // postpone: push delete_at back by another full cooldown window from now
-  const newDeleteAt = new Date(Date.now() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  // postpone: push delete_at back by another full window from now
+  const newDeleteAt = new Date(Date.now() + POSTPONE_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const { error } = await db.from('retention_schedule').update({ delete_at: newDeleteAt }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ action: 'postponed', delete_at: newDeleteAt })

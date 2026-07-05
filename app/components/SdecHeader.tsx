@@ -2,13 +2,14 @@
 
 interface SdecHeaderProps {
   subtitle?: string
+  center?: React.ReactNode
   right?: React.ReactNode
 }
 
-export default function SdecHeader({ subtitle, right }: SdecHeaderProps) {
+export default function SdecHeader({ subtitle, center, right }: SdecHeaderProps) {
   return (
     <header
-      className="px-4 py-3 flex items-center justify-between gap-3"
+      className={`px-4 py-3 items-center gap-3 ${center ? 'grid grid-cols-[1fr_auto_1fr]' : 'flex justify-between'}`}
       style={{ background: 'linear-gradient(135deg, #0d2f6e 0%, #1565c0 100%)' }}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -28,7 +29,8 @@ export default function SdecHeader({ subtitle, right }: SdecHeaderProps) {
           )}
         </div>
       </div>
-      {right && <div className="flex-shrink-0 flex items-center gap-3">{right}</div>}
+      {center && <div className="flex justify-center">{center}</div>}
+      {right && <div className="flex-shrink-0 flex items-center justify-end gap-3">{right}</div>}
     </header>
   )
 }

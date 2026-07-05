@@ -10,7 +10,8 @@ import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import { deleteAttachment } from '@/lib/upload'
-import RetentionBanner from '@/app/components/RetentionBanner'
+import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
+import RetentionCountdown from '@/app/components/RetentionCountdown'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -149,6 +150,8 @@ export default function ManagerPage() {
   const [feedbackSaving, setFeedbackSaving]   = useState(false)
 
   const [settingsOpen, setSettingsOpen]       = useState(false)
+
+  const [retentionSchedule, setRetentionSchedule] = useState<RetentionRow | null>(null)
   const [settingsTab, setSettingsTab]         = useState<'info' | 'password'>('info')
   const [pwCurrent, setPwCurrent]             = useState('')
   const [pwNew, setPwNew]                     = useState('')
@@ -714,6 +717,7 @@ export default function ManagerPage() {
     <div className="min-h-screen bg-gray-50">
       <SdecHeader
         subtitle={`${mgrName}${mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}`}
+        center={<RetentionCountdown schedule={retentionSchedule} />}
         right={<>
           <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
             className="w-8 h-8 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="ตั้งค่า">
@@ -729,7 +733,7 @@ export default function ManagerPage() {
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-        <RetentionBanner showControls tokenKey="mgr_token" />
+        <RetentionBanner showControls tokenKey="mgr_token" onSchedule={setRetentionSchedule} />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 flex gap-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>

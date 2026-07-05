@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { COOLDOWN_DAYS, currentThaiMonth, isMonthOutsideWindow, monthRangeISO, thaiMonthOf } from '@/lib/retention'
+import { deleteAt, monthRangeISO, notifyAt, thaiMonthOf } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,22 +43,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ action: 'none', reason: 'cooldown in progress', delete_at: pending.delete_at })
   }
 
-  // Step B: nothing pending — check if the oldest month on record has aged out of the keep-window.
+  // Step B: nothing pending — check if the oldest month on record has
+  // entered its own notify window (a fixed number of days before that
+  // month itself ends, not a rolling multi-month keep window).
   const { data: oldest } = await db.from('time_logs')
     .select('check_in').order('check_in', { ascending: true }).limit(1).maybeSingle()
   if (!oldest) return NextResponse.json({ action: 'none', reason: 'no data' })
 
   const oldestMonth = thaiMonthOf(oldest.check_in)
-  if (!isMonthOutsideWindow(oldestMonth, currentThaiMonth())) {
-    return NextResponse.json({ action: 'none', reason: 'within window' })
+  if (now < notifyAt(oldestMonth)) {
+    return NextResponse.json({ action: 'none', reason: 'not yet in notify window' })
   }
 
-  const deleteAt = new Date(now.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000)
+  const targetDeleteAt = deleteAt(oldestMonth)
   const { error: insertError } = await db.from('retention_schedule').insert({
     target_year: oldestMonth.year,
     target_month: oldestMonth.month,
     flagged_at: now.toISOString(),
-    delete_at: deleteAt.toISOString(),
+    delete_at: targetDeleteAt.toISOString(),
     status: 'pending',
   })
   // A unique-violation here means a concurrent run already flagged this
@@ -67,5 +69,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ action: 'flagged', month: `${oldestMonth.year}-${oldestMonth.month}`, delete_at: deleteAt.toISOString() })
+  return NextResponse.json({ action: 'flagged', month: `${oldestMonth.year}-${oldestMonth.month}`, delete_at: targetDeleteAt.toISOString() })
 }

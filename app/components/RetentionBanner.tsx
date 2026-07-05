@@ -49,7 +49,7 @@ export default function RetentionBanner({ onSchedule, className = '', showContro
 
   const act = async (action: 'cancel' | 'postpone') => {
     if (action === 'cancel' && !confirm(
-      `หยุดการลบข้อมูลเดือน${monthLabel}ชั่วคราว?\n\nระบบจะตรวจสอบใหม่อีกครั้งในการรันครั้งถัดไป (พรุ่งนี้) — ถ้าข้อมูลยังเก่าเกิน 3 เดือนอยู่ จะถูกตั้งกำหนดลบใหม่อีกครั้ง`
+      `หยุดการลบข้อมูลเดือน${monthLabel}ชั่วคราว?\n\nระบบจะตรวจสอบใหม่อีกครั้งในการรันครั้งถัดไป (พรุ่งนี้) — ถ้ายังอยู่ในช่วงใกล้ครบกำหนดลบ จะถูกตั้งกำหนดลบใหม่อีกครั้ง`
     )) return
     setBusy(true)
     try {
@@ -73,7 +73,7 @@ export default function RetentionBanner({ onSchedule, className = '', showContro
         <div className="flex gap-2 mt-2">
           <button onClick={() => act('postpone')} disabled={busy}
             className="text-xs font-medium bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-40 rounded-lg px-3 py-1.5 transition-colors">
-            เลื่อนออกไปอีก 3 วัน
+            เลื่อนออกไปอีก 5 วัน
           </button>
           <button onClick={() => act('cancel')} disabled={busy}
             className="text-xs font-medium bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-40 rounded-lg px-3 py-1.5 transition-colors">
