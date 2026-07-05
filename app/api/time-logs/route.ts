@@ -44,7 +44,12 @@ export async function GET(req: NextRequest) {
   // Only apply .eq('student_id') at the query level; filter start/end in JS
   // — chaining .eq()/.gte()/.lte()/.order() together on time_logs has been
   // observed to silently drop or corrupt which row lands under which date.
-  let q = db.from('time_logs').select('*')
+  // Also cap with an explicit high .limit(): PostgREST truncates an
+  // unbounded select at the project's "Max Rows" setting (1000 by default)
+  // with no error, which silently drops the newest rows once the table
+  // (especially the no-studentId "overview" case, which scans everyone)
+  // grows past that — indistinguishable from the chaining bug above.
+  let q = db.from('time_logs').select('*').limit(50_000)
   if (studentId) q = q.eq('student_id', studentId)
 
   const { data, error } = await q

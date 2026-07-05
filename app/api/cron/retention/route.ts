@@ -25,8 +25,11 @@ export async function GET(req: NextRequest) {
       const { startISO, endISO } = monthRangeISO({ year: pending.target_year, month: pending.target_month })
       // Find matching ids by filtering the range in JS, then delete by id —
       // chaining .gte()/.lte() directly on a .delete() has been observed
-      // elsewhere to silently drop/corrupt which row matches which date.
-      const { data: rows, error: findError } = await db.from('time_logs').select('id, check_in')
+      // elsewhere to silently drop/corrupt which row matches which date. Also
+      // set an explicit high .limit(): an unbounded select silently truncates
+      // at PostgREST's "Max Rows" setting once the table grows past it, which
+      // would otherwise leave the newest rows of the target month undeleted.
+      const { data: rows, error: findError } = await db.from('time_logs').select('id, check_in').limit(50_000)
       if (findError) return NextResponse.json({ error: findError.message }, { status: 500 })
       const ids = (rows ?? []).filter(r => r.check_in >= startISO && r.check_in <= endISO).map(r => r.id)
       const { data: deleted, error } = ids.length

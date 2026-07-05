@@ -12,13 +12,19 @@ export default function RetentionCountdown({ schedule }: { schedule: RetentionRo
 
   const monthLabel = `${THAI_MONTHS[schedule.target_month - 1]} ${schedule.target_year + 543}`
   const daysLeft = Math.max(0, Math.ceil((new Date(schedule.delete_at).getTime() - Date.now()) / 86_400_000))
+  // Not yet officially flagged (still just a live projection) — show it
+  // calmly. Once the cron actually flags it (within 5 days of month-end),
+  // this switches to the same urgent red tint as the warning banner.
+  const urgent = !schedule.virtual
 
   return (
     <div
-      className="flex items-center gap-1.5 bg-white/10 text-white text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap ${
+        urgent ? 'bg-red-500/25 text-red-50' : 'bg-white/10 text-white'
+      }`}
       title={`ข้อมูลเดือน${monthLabel} จะถูกลบถาวรในวันที่ ${new Date(schedule.delete_at).getDate()} ${THAI_MONTHS[new Date(schedule.delete_at).getMonth()]} ${new Date(schedule.delete_at).getFullYear() + 543}`}
     >
-      <span>⏳</span>
+      <span>{urgent ? '⚠️' : '⏳'}</span>
       <span className="hidden md:inline">ลบข้อมูลเดือน{monthLabel} ใน</span>
       <span className="font-bold">{daysLeft} วัน</span>
     </div>

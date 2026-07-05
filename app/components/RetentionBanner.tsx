@@ -4,12 +4,17 @@ import { useEffect, useState } from 'react'
 import { THAI_MONTHS } from '@/lib/payroll'
 
 export type RetentionRow = {
-  id: string
+  id: string | null
   target_year: number
   target_month: number
-  flagged_at: string
+  flagged_at: string | null
   delete_at: string
   status: 'pending' | 'deleted' | 'cancelled'
+  // true when this is a live-projected estimate (no real retention_schedule
+  // row yet — see /api/retention-status) rather than an actual flagged
+  // deletion. Used to keep the loud warning banner + controls hidden until
+  // it's real, while still letting the header countdown show early.
+  virtual?: boolean
 }
 
 // `showControls` renders the cancel/postpone buttons — only pass this on the
@@ -41,7 +46,11 @@ export default function RetentionBanner({ onSchedule, className = '', showContro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (!schedule) return null
+  // Nothing actually flagged yet — the header RetentionCountdown already
+  // shows a calmer heads-up from this same data; don't show the urgent
+  // warning banner (or controls for a row that doesn't exist yet) until
+  // the cron has actually flagged it for real.
+  if (!schedule || schedule.virtual) return null
 
   const monthLabel = `${THAI_MONTHS[schedule.target_month - 1]} ${schedule.target_year + 543}`
   const d = new Date(schedule.delete_at)

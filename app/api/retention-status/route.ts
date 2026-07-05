@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, unauthorized } from '@/lib/apiAuth'
-import { POSTPONE_DAYS } from '@/lib/retention'
+import { POSTPONE_DAYS, deleteAt, thaiMonthOf } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +9,29 @@ export const dynamic = 'force-dynamic'
 // too, and it only exposes a target month/deletion date, nothing sensitive.
 export async function GET() {
   const db = supabaseAdmin()
-  const { data } = await db.from('retention_schedule')
+  const { data: pending } = await db.from('retention_schedule')
     .select('*').eq('status', 'pending').order('flagged_at', { ascending: false }).limit(1).maybeSingle()
-  return NextResponse.json(data ?? null)
+  if (pending) return NextResponse.json({ ...pending, virtual: false })
+
+  // Nothing actually flagged yet (the cron only inserts a row once we're
+  // within the notify window, 5 days before the target month ends) — but
+  // the dev/manager header countdown wants to show a heads-up well before
+  // that, so project the next deletion date live from the oldest month
+  // currently on record. Not persisted, and has no id to cancel/postpone.
+  const { data: oldest } = await db.from('time_logs')
+    .select('check_in').order('check_in', { ascending: true }).limit(1).maybeSingle()
+  if (!oldest) return NextResponse.json(null)
+
+  const oldestMonth = thaiMonthOf(oldest.check_in)
+  return NextResponse.json({
+    id: null,
+    target_year: oldestMonth.year,
+    target_month: oldestMonth.month,
+    flagged_at: null,
+    delete_at: deleteAt(oldestMonth).toISOString(),
+    status: 'pending',
+    virtual: true,
+  })
 }
 
 // Manual safety valve for the dev page: cancel a pending deletion outright,

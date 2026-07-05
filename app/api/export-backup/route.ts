@@ -21,9 +21,15 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   // Fetch everything and filter the date range in JS — chaining
   // .gte()/.lte()/.order() on time_logs has been observed to silently
-  // corrupt or drop which row lands under which date.
+  // corrupt or drop which row lands under which date. Also set an explicit
+  // .limit() well above the real row count: Supabase's PostgREST API caps
+  // an unbounded select at a project-configured "Max Rows" (1000 by
+  // default) and truncates silently past that — as this table grows, a
+  // plain .select() with no limit would eventually start dropping the
+  // newest rows with no error, indistinguishable from the query-chaining bug.
   const { data: rawLogs, error } = await db.from('time_logs')
     .select('*, students(name, department)')
+    .limit(50_000)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   const logs = (rawLogs ?? []).filter(l => l.check_in >= startISO && l.check_in <= endISO)
   logs.sort((a, b) => a.student_id.localeCompare(b.student_id) || a.check_in.localeCompare(b.check_in))
