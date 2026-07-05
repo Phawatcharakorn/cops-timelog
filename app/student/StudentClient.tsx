@@ -324,7 +324,21 @@ export default function StudentPage() {
     checkOutLock.current = true
     try {
       const rawMinutes = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
-      const remainder  = rawMinutes % 30
+
+      // > 8h30m: refuse — staff must handle it manually
+      if (rawMinutes > 510) {
+        showMsg('error', 'ไม่สามารถบันทึกเวลาออกได้ เนื่องจากทำงานเกิน 8 ชั่วโมงครึ่งแล้ว กรุณาติดต่อผู้ดูแลระบบ', 0)
+        return
+      }
+
+      // 8h–8h30m grace window: cap silently to 8h
+      if (rawMinutes > 480) {
+        await finishCheckOut(480)
+        return
+      }
+
+      // ≤ 8h: round to nearest 30 min
+      const remainder = rawMinutes % 30
       let duration = rawMinutes
       if (remainder > 0) {
         if (remainder > 25) {
