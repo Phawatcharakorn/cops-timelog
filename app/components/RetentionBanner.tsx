@@ -77,7 +77,7 @@ export default function RetentionBanner({ onSchedule, className = '', showContro
 
   return (
     <div className={`w-full rounded-xl px-4 py-3 text-sm font-medium border shadow-sm bg-red-50 text-red-700 border-red-200 ${className}`}>
-      <div>⚠️ กรุณาเคลียร์ข้อมูลการลงเวลา เนื่องจากระบบกำลังจะทำการลบข้อมูลเดือน{monthLabel} ในวันที่ {dateLabel}</div>
+      <div>กรุณาเคลียร์ข้อมูลการลงเวลา เนื่องจากระบบกำลังจะทำการลบข้อมูลเดือน{monthLabel} ในวันที่ {dateLabel}</div>
       {showControls && (
         <div className="flex gap-2 mt-2">
           <button onClick={() => act('postpone')} disabled={busy}

@@ -761,7 +761,7 @@ export default function StudentPage() {
             {/* Bank info (required once, before check-in is allowed) */}
             {studentLocked && !pinSetStep && bankSetStep && (
               <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
-                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">ข้อมูลบัญชีธนาคาร 🏦</p>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">ข้อมูลบัญชีธนาคาร</p>
                 <p className="text-xs text-gray-400 leading-relaxed">
                   กรุณากรอกข้อมูลบัญชีธนาคารสำหรับรับเงิน (กรอกครั้งเดียว) ก่อนบันทึกเวลาเข้า
                 </p>
@@ -784,7 +784,7 @@ export default function StudentPage() {
                     onChange={e => setBankForm(f => ({ ...f, bank_account_name: e.target.value }))}
                   />
                   <p className="text-[10px] text-amber-600 mt-1 font-medium">
-                    ⚠️ ชื่อบัญชีต้องตรงกับชื่อที่ใช้ในการทำงาน ({form.name})
+                    ชื่อบัญชีต้องตรงกับชื่อที่ใช้ในการทำงาน ({form.name})
                   </p>
                 </div>
                 <AttachmentInput

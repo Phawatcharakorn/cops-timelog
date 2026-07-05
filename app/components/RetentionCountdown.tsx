@@ -24,7 +24,6 @@ export default function RetentionCountdown({ schedule }: { schedule: RetentionRo
       }`}
       title={`ข้อมูลเดือน${monthLabel} จะถูกลบถาวรในวันที่ ${new Date(schedule.delete_at).getDate()} ${THAI_MONTHS[new Date(schedule.delete_at).getMonth()]} ${new Date(schedule.delete_at).getFullYear() + 543}`}
     >
-      <span>{urgent ? '⚠️' : '⏳'}</span>
       <span className="hidden md:inline">ลบข้อมูลเดือน{monthLabel} ใน</span>
       <span className="font-bold">{daysLeft} วัน</span>
     </div>
