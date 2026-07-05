@@ -15,12 +15,6 @@ export const DELETE_DAY_OF_NEXT_MONTH = 15
 // this many days from the moment it's clicked.
 export const POSTPONE_DAYS = 5
 
-/** The current calendar month in Thai local time (UTC+7). */
-export function currentThaiMonth(): MonthKey {
-  const thaiNow = new Date(Date.now() + TZ_MS)
-  return { year: thaiNow.getUTCFullYear(), month: thaiNow.getUTCMonth() + 1 }
-}
-
 /** Thai calendar month of an ISO timestamp. */
 export function thaiMonthOf(iso: string): MonthKey {
   const thai = new Date(new Date(iso).getTime() + TZ_MS)
