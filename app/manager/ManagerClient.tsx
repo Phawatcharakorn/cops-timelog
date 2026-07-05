@@ -94,6 +94,7 @@ export default function ManagerPage() {
   const [multiLoading, setMultiLoading] = useState(false)
 
   const [editingLog, setEditingLog] = useState<TimeLog | null>(null)
+  const [logDetailModal, setLogDetailModal] = useState<LogWithDuration | null>(null)
   const [editForm, setEditForm]     = useState<EditForm>({ check_in: '', check_out: '', project_name: '', work_summary: '' })
   const [editSaving, setEditSaving] = useState(false)
 
@@ -918,7 +919,8 @@ export default function ManagerPage() {
                           </div>
                         </div>
                         {(log.project_name || log.work_summary) && (
-                          <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                          <div className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-100"
+                            onClick={() => setLogDetailModal(log)} title="แตะเพื่อดูรายละเอียดเต็ม">
                             {log.project_name && <div className="font-semibold text-gray-700">{log.project_name}</div>}
                             {log.work_summary && <div className="line-clamp-2">{log.work_summary}</div>}
                           </div>
@@ -1014,11 +1016,12 @@ export default function ManagerPage() {
                             <td className="text-gray-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {log.durationMinutes < 0 ? <span className="text-red-500 text-xs font-medium">⚠ ข้อมูลผิด</span> : log.durationMinutes > 0 ? `${Math.floor(log.durationMinutes / 60)}h ${log.durationMinutes % 60}m` : '-'}
                             </td>
-                            <td className="text-gray-600 max-w-xs" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
+                            <td className="text-gray-600 max-w-xs cursor-pointer hover:bg-gray-50" style={{ padding: '12px 16px', lineHeight: 1.8 }}
+                              onClick={() => setLogDetailModal(log)} title="คลิกเพื่อดูรายละเอียดเต็ม">
                               {log.project_name && <div className="truncate font-semibold text-gray-700">{log.project_name}</div>}
                               <div className="truncate">{log.work_summary || '-'}</div>
                               {log.photo_url && (
-                                <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
+                                <a href={log.photo_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
                               )}
                             </td>
                             <td style={{ padding: '10px 16px', minWidth: '180px' }}>
@@ -1310,6 +1313,44 @@ export default function ManagerPage() {
         )}
         </div>{/* end tab-content */}
       </main>
+
+      {/* ── Modal: View Log Detail (full สรุปงาน text, no truncation) ───────── */}
+      {logDetailModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setLogDetailModal(null)}>
+          <div className="anim-pop-in bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">รายละเอียดงาน</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {fmtDate(logDetailModal.check_in)} · {fmtTime(logDetailModal.check_in)}
+                  {logDetailModal.check_out && !logDetailModal.is_auto_closed && ` – ${fmtTime(logDetailModal.check_out)}`}
+                </p>
+              </div>
+              <button onClick={() => setLogDetailModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {logDetailModal.project_name && (
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-1">ชื่อโครงงาน</p>
+                <p className="text-sm text-gray-800 font-semibold bg-gray-50 rounded-lg px-4 py-2.5">{logDetailModal.project_name}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-gray-400 font-medium mb-1">สรุปงาน</p>
+              <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-4 py-3 whitespace-pre-wrap break-words">{logDetailModal.work_summary || '-'}</p>
+            </div>
+            {logDetailModal.photo_url && (
+              <a href={logDetailModal.photo_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline font-medium">
+                📎 ดูไฟล์ที่แนบ
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Edit Log Modal ──────────────────────────────────────────────────── */}
       {editingLog && (
