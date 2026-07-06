@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin()
   let sq = db.from('students').select('student_id, name, department').order('name')
   if (dept) sq = sq.eq('department', dept)
-  const { data: students, error: sErr } = await sq
+  const { data: allStudents, error: sErr } = await sq
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 })
 
   const { startISO, endISO } = monthRangeISO({ year, month: m })
@@ -36,6 +36,11 @@ export async function GET(req: NextRequest) {
   // Only approved hours are payable — pending/unreviewed logs don't belong
   // in a disbursement voucher yet.
   const logs = (rawLogs ?? []).filter(l => l.check_in >= startISO && l.check_in <= endISO && l.status === 'approved')
+
+  // Skip students with zero approved hours this month — the voucher is
+  // meant to list who to pay, not the entire roster padded with "x" rows.
+  const loggedIds = new Set(logs.map(l => l.student_id))
+  const students = (allStudents ?? []).filter(s => loggedIds.has(s.student_id))
 
   const days = daysInMonth(year, m)
   const dayCols = Array.from({ length: days }, (_, i) => i + 1)
@@ -84,7 +89,7 @@ export async function GET(req: NextRequest) {
   }
 
   let r = headerRow2 + 1
-  ;(students ?? []).forEach((s, idx) => {
+  students.forEach((s, idx) => {
     const byDay = hoursByDay(logs.filter(l => l.student_id === s.student_id), year, m)
     let totalHours = 0
     ws.getCell(r, 1).value = idx + 1
