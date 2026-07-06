@@ -1471,7 +1471,7 @@ export default function DevPage() {
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
                 <button onClick={handleGitImport} disabled={importingGit}
-                  title="ดึง commit ใหม่จาก GitHub มาสร้าง log รอการอนุมัติ (1 ชม./commit)"
+                  title="ดึง commit ใหม่จาก GitHub มาสร้าง log รอการอนุมัติ (ประมาณเวลาจากช่วงห่างจริงระหว่าง commit)"
                   className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

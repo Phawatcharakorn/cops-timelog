@@ -29,23 +29,31 @@ async function fetchCommitsSince(author: string, sinceISO: string | null): Promi
   return commits.reverse()
 }
 
-// Each commit nominally covers 1h of work. Fold a chronological commit list
-// into sessions by extending the previous commit's 1h window to cover the
-// next commit if it falls inside that window, instead of stacking separate
-// +1h blocks — otherwise 3 commits 10 minutes apart would wrongly total 3h.
+// Assumed work time before a session's first commit (we don't know when
+// they actually sat down, so guess a modest head start instead of a full hour).
+const PREP_MS = 30 * 60 * 1000
+// Commits more than this far apart start a new session (long gap = took a break).
+const SESSION_GAP_MS = 2 * HOUR_MS
+
+// Fold a chronological commit list into work sessions: within a session, the
+// end time tracks the real gap between commits (not a flat +1h per commit),
+// so 3 commits 10 minutes apart total ~10 minutes of measured time, not 3h.
+// Only the session's start is a guess (PREP_MS before the first commit).
 function groupIntoSessions(commits: GhCommit[]) {
-  const sessions: { checkIn: string; checkOut: string; lastSha: string; messages: string[] }[] = []
+  const sessions: { checkIn: string; checkOut: string; lastCommitMs: number; lastSha: string; messages: string[] }[] = []
   for (const c of commits) {
     const t = new Date(c.commit.author.date).getTime()
     const last = sessions[sessions.length - 1]
-    if (last && t <= new Date(last.checkOut).getTime()) {
-      last.checkOut = new Date(t + HOUR_MS).toISOString()
+    if (last && t - last.lastCommitMs <= SESSION_GAP_MS) {
+      last.checkOut = new Date(t).toISOString()
+      last.lastCommitMs = t
       last.lastSha = c.sha
       last.messages.push(c.commit.message.split('\n')[0])
     } else {
       sessions.push({
-        checkIn: new Date(t).toISOString(),
-        checkOut: new Date(t + HOUR_MS).toISOString(),
+        checkIn: new Date(t - PREP_MS).toISOString(),
+        checkOut: new Date(t).toISOString(),
+        lastCommitMs: t,
         lastSha: c.sha,
         messages: [c.commit.message.split('\n')[0]],
       })
@@ -77,10 +85,11 @@ export async function POST(req: NextRequest) {
         .eq('student_id', student.student_id).eq('is_git_derived', true)
         .order('check_out', { ascending: false }).limit(1).maybeSingle()
 
-      // check_out is always (last folded commit's time + 1h) — subtract that
-      // back out, then nudge forward 1s so "since" excludes that commit.
+      // Stored check_out is always >= the last imported commit's real time
+      // (it's that commit's time, ceil-rounded up) — nudge 1s past it so
+      // "since" excludes that commit without risking skipping the next one.
       const since = lastLog?.check_out
-        ? new Date(new Date(lastLog.check_out).getTime() - HOUR_MS + 1000).toISOString()
+        ? new Date(new Date(lastLog.check_out).getTime() + 1000).toISOString()
         : null
       const commits = await fetchCommitsSince(student.github_username!, since)
       const sessions = groupIntoSessions(commits)
