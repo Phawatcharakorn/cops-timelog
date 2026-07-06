@@ -2,7 +2,7 @@
 // code elsewhere never triggers an update on its own — bump this string
 // whenever you need every already-visited browser to drop its cache and
 // pick up a fresh deploy (e.g. reports of "still seeing the old site").
-const CACHE = 'sdec-v2'
+const CACHE = 'sdec-v3'
 
 self.addEventListener('install', e => {
   self.skipWaiting()
@@ -22,6 +22,13 @@ self.addEventListener('fetch', e => {
   if (!url.protocol.startsWith('http')) return
 
   if (url.pathname.startsWith('/api/')) return
+
+  // Cross-origin calls (Supabase REST, etc.) are live data, not the
+  // fonts/icons this SW is meant to cache — without this check they fell
+  // through to the stale-while-revalidate branch below and got served a
+  // cached response indefinitely, no matter what cache options the caller
+  // requested, which is why time_logs reads could look stuck on old data.
+  if (url.origin !== self.location.origin) return
 
   function cacheable(res) {
     return res.ok && res.status !== 206

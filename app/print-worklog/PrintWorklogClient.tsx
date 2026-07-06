@@ -42,7 +42,9 @@ export default function PrintWorklogClient() {
           .gte('check_in', startISO).lte('check_in', endISO).order('check_in', { ascending: true }),
       ])
       setStudent(s ?? null)
-      setLogs(((l ?? []) as TimeLog[]).filter(log => log.check_out && !log.is_rejected))
+      // Only approved logs count toward a payroll-facing report — pending
+      // or rejected entries haven't been signed off yet.
+      setLogs(((l ?? []) as TimeLog[]).filter(log => log.check_out && !log.is_rejected && log.status === 'approved'))
       setLoading(false)
     }
     void fetchData()
@@ -84,6 +86,31 @@ export default function PrintWorklogClient() {
   }, 0)
   const totalDays = new Set(logs.map(l => toThaiDate(l.check_in))).size
   const avgMinutesPerDay = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
+
+  // A morning shift and an afternoon shift on the same day are two separate
+  // logs but one day of work for a payroll report — collapse same-day logs
+  // into a single row with hours summed, instead of listing each visit.
+  type DayRow = { date: string; firstIn: string; lastOut: string; minutes: number; items: TimeLog[] }
+  const dayRows: DayRow[] = []
+  {
+    const byDate = new Map<string, DayRow>()
+    for (const log of logs) {
+      const date = toThaiDate(log.check_in)
+      const mins = (log.check_out && !log.is_auto_closed)
+        ? Math.max(0, Math.round((new Date(log.check_out).getTime() - new Date(log.check_in).getTime()) / 60000))
+        : 0
+      const existing = byDate.get(date)
+      if (!existing) {
+        byDate.set(date, { date, firstIn: log.check_in, lastOut: log.check_out ?? log.check_in, minutes: mins, items: [log] })
+      } else {
+        existing.minutes += mins
+        if (log.check_in < existing.firstIn) existing.firstIn = log.check_in
+        if (log.check_out && log.check_out > existing.lastOut) existing.lastOut = log.check_out
+        existing.items.push(log)
+      }
+    }
+    dayRows.push(...Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date)))
+  }
 
   return (
     <div style={{ fontFamily: 'Sarabun, sans-serif' }}>
@@ -171,27 +198,26 @@ export default function PrintWorklogClient() {
             </tr>
           </thead>
           <tbody>
-            {logs.length === 0 && (
+            {dayRows.length === 0 && (
               <tr><td colSpan={6} style={{ ...tdS, textAlign: 'center', color: '#9ca3af' }}>ไม่มีข้อมูลการลงเวลาในเดือนนี้</td></tr>
             )}
-            {logs.map((log, i) => {
-              const mins = (log.check_out && !log.is_auto_closed)
-                ? Math.max(0, Math.round((new Date(log.check_out).getTime() - new Date(log.check_in).getTime()) / 60000))
-                : 0
-              return (
-                <tr key={log.id} style={{ background: i % 2 === 1 ? '#e8edf5' : 'white' }}>
-                  <td style={{ ...tdS, textAlign: 'center', color: '#9ca3af' }}>{i + 1}</td>
-                  <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{format(new Date(log.check_in), 'd MMM yy', { locale: th })}</td>
-                  <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{format(new Date(log.check_in), 'HH:mm')}</td>
-                  <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{log.check_out ? format(new Date(log.check_out), 'HH:mm') : '-'}</td>
-                  <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{Math.floor(mins / 60)}h {mins % 60}m</td>
-                  <td style={tdS}>
-                    {log.project_name && <div style={{ fontWeight: 700 }}>{log.project_name}</div>}
-                    <div style={{ color: '#6b7280' }}>{log.work_summary || '-'}</div>
-                  </td>
-                </tr>
-              )
-            })}
+            {dayRows.map((row, i) => (
+              <tr key={row.date} style={{ background: i % 2 === 1 ? '#e8edf5' : 'white' }}>
+                <td style={{ ...tdS, textAlign: 'center', color: '#9ca3af' }}>{i + 1}</td>
+                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{format(new Date(row.firstIn), 'd MMM yy', { locale: th })}</td>
+                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{format(new Date(row.firstIn), 'HH:mm')}</td>
+                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{format(new Date(row.lastOut), 'HH:mm')}</td>
+                <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{Math.floor(row.minutes / 60)}h {row.minutes % 60}m</td>
+                <td style={tdS}>
+                  {row.items.map((log, j) => (
+                    <div key={log.id} style={{ marginTop: j > 0 ? 6 : 0, paddingTop: j > 0 ? 6 : 0, borderTop: j > 0 ? '1px dashed #d1d5db' : undefined }}>
+                      {log.project_name && <div style={{ fontWeight: 700 }}>{log.project_name}</div>}
+                      <div style={{ color: '#6b7280' }}>{log.work_summary || '-'}</div>
+                    </div>
+                  ))}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 

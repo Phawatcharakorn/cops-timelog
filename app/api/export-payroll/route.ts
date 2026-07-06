@@ -30,10 +30,12 @@ export async function GET(req: NextRequest) {
 
   const { startISO, endISO } = monthRangeISO({ year, month: m })
   const { data: rawLogs, error: lErr } = await db.from('time_logs')
-    .select('student_id, check_in, check_out, is_auto_closed, is_rejected')
+    .select('student_id, check_in, check_out, is_auto_closed, is_rejected, status')
     .limit(50_000)
   if (lErr) return NextResponse.json({ error: lErr.message }, { status: 500 })
-  const logs = (rawLogs ?? []).filter(l => l.check_in >= startISO && l.check_in <= endISO)
+  // Only approved hours are payable — pending/unreviewed logs don't belong
+  // in a disbursement voucher yet.
+  const logs = (rawLogs ?? []).filter(l => l.check_in >= startISO && l.check_in <= endISO && l.status === 'approved')
 
   const days = daysInMonth(year, m)
   const dayCols = Array.from({ length: days }, (_, i) => i + 1)
