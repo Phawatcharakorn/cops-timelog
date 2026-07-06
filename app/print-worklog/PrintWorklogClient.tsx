@@ -85,7 +85,6 @@ export default function PrintWorklogClient() {
     return sum + Math.max(0, Math.round((new Date(l.check_out).getTime() - new Date(l.check_in).getTime()) / 60000))
   }, 0)
   const totalDays = new Set(logs.map(l => toThaiDate(l.check_in))).size
-  const avgMinutesPerDay = totalDays > 0 ? Math.round(totalMinutes / totalDays) : 0
 
   // A morning shift and an afternoon shift on the same day are two separate
   // logs but one day of work for a payroll report — collapse same-day logs
@@ -174,11 +173,10 @@ export default function PrintWorklogClient() {
         </div>
 
         {/* Stat cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
           {[
             { label: 'จำนวนวันที่ปฏิบัติงาน', value: `${totalDays} วัน`, color: '#7c3aed' },
             { label: 'ชั่วโมงทำงานทั้งหมด',   value: fmtHM(totalMinutes), color: '#16a34a' },
-            { label: 'เฉลี่ยต่อวัน',           value: fmtHM(avgMinutesPerDay), color: '#2563eb' },
           ].map(c => (
             <div key={c.label} style={{ border: `1px solid ${c.color}33`, background: `${c.color}0d`, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: c.color, margin: 0 }}>{c.value}</p>

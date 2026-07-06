@@ -918,10 +918,19 @@ export default function StudentPage() {
             <div className="px-5 py-3 border-b border-gray-100 space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-700">ประวัติการลงเวลา</p>
-                <button onClick={() => fetchHistory(historyMonth)} disabled={historyLoading}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                  {historyLoading ? '...' : 'รีเฟรช'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => window.open(`/print-worklog?studentId=${encodeURIComponent(form.student_id)}&month=${historyMonth}`, '_blank')}
+                    disabled={!historyLogs.some(l => l.status === 'approved')}
+                    title={historyLogs.some(l => l.status === 'approved') ? 'พิมพ์รายงาน PDF' : 'ต้องมีรายการที่อนุมัติแล้วอย่างน้อย 1 รายการถึงจะพิมพ์ได้'}
+                    className="text-xs text-green-600 hover:text-green-800 font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-green-600">
+                    ปริ้น PDF
+                  </button>
+                  <button onClick={() => fetchHistory(historyMonth)} disabled={historyLoading}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                    {historyLoading ? '...' : 'รีเฟรช'}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <input
