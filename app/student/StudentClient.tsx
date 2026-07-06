@@ -82,6 +82,7 @@ export default function StudentPage() {
   const [selfReportOpen, setSelfReportOpen]     = useState(false)
   const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
+  const [selfReportUsedCount, setSelfReportUsedCount] = useState<number | null>(null)
   const [editingLog, setEditingLog]             = useState<HistoryLog | null>(null)
 
   const [playing, setPlaying] = useState(false)
@@ -434,10 +435,19 @@ export default function StudentPage() {
     } finally { setLoading(false) }
   }
 
+  const fetchSelfReportUsedCount = async () => {
+    const { startISO, endISO } = monthRangeISO(thaiMonthOf(new Date().toISOString()))
+    const { count } = await supabase.from('time_logs').select('id', { count: 'exact', head: true })
+      .eq('student_id', form.student_id).eq('is_self_reported', true)
+      .gte('created_at', startISO).lte('created_at', endISO)
+    setSelfReportUsedCount(count ?? 0)
+  }
+
   const openSelfReport = () => {
     setEditingLog(null)
     setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
     setSelfReportOpen(true)
+    void fetchSelfReportUsedCount()
   }
 
   const openEditSelfReport = (log: HistoryLog) => {
@@ -453,6 +463,7 @@ export default function StudentPage() {
     setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, project_name: log.project_name || '', work_summary: log.work_summary || '', photo_url: log.photo_url })
     setEditingLog(log)
     setSelfReportOpen(true)
+    void fetchSelfReportUsedCount()
   }
 
   const handleDeleteSelfReport = async (log: HistoryLog) => {
@@ -1096,6 +1107,11 @@ export default function StudentPage() {
                       ? 'แก้ไขได้เฉพาะรายการที่ยังรออนุมัติอยู่'
                       : 'สำหรับวันที่ทำงานไปแล้วแต่ลืมลงเวลา — รายการนี้จะถูกส่งไปรออนุมัติจากผู้ดูแล'}
                   </p>
+                  {!editingLog && (
+                    <p className="text-xs text-blue-100/90 mt-1">
+                      ใช้ไปแล้ว {selfReportUsedCount ?? '...'}/{SELF_REPORT_MONTHLY_LIMIT} ครั้งเดือนนี้
+                    </p>
+                  )}
                 </div>
               </div>
               <button onClick={() => { setSelfReportOpen(false); setEditingLog(null) }}

@@ -36,7 +36,7 @@ const FACULTIES = [
 type LogWithDuration = TimeLog & { durationMinutes: number }
 type UndoAction = { type: 'delete'; log: TimeLog } | { type: 'edit'; log: TimeLog } | { type: 'add'; id: string }
 type Summary = { totalDays: number; totalHours: number; totalMinutes: number; taskCount: number; logs: LogWithDuration[]; student: Student | null; dateFrom: string; dateTo: string }
-type StudentOverview = { student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number; pendingCount: number }
+type StudentOverview = { student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number; pendingCount: number; selfReportCount: number }
 type EditForm = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat = { month: string; days: number; hours: number; minutes: number; tasks: number }
 type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
@@ -273,6 +273,7 @@ export default function ManagerPage() {
           totalDays: new Set(logs.map(l => new Date(new Date(l.check_in).getTime() + 7 * 3600000).toISOString().slice(0, 10))).size,
           totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: logs.length,
           pendingCount: studentLogs.filter(l => l.status === 'pending').length,
+          selfReportCount: studentLogs.filter(l => l.is_self_reported).length,
         }
       })
       setOverview(result)
@@ -1218,11 +1219,12 @@ export default function ManagerPage() {
                         <th className="px-4 py-3 text-center font-medium whitespace-nowrap">ชั่วโมงรวม</th>
                         <th className="px-4 py-3 text-center font-medium whitespace-nowrap">งาน</th>
                         <th className="px-4 py-3 text-center font-medium whitespace-nowrap">รออนุมัติ</th>
+                        <th className="px-4 py-3 text-center font-medium whitespace-nowrap">ย้อนหลัง (เดือนนี้)</th>
                         <th className="px-4 py-3"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount, pendingCount }) => (
+                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount, pendingCount, selfReportCount }) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -1236,6 +1238,10 @@ export default function ManagerPage() {
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalHours === 0 && totalMinutes === 0 ? 'text-gray-300' : 'text-green-600'}`}>{totalHours}h {totalMinutes}m</span></td>
                           <td className="px-4 py-3 text-center text-blue-700 font-semibold">{taskCount}</td>
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${pendingCount === 0 ? 'text-gray-300' : 'text-amber-600'}`}>{pendingCount}</span></td>
+                          <td className="px-4 py-3 text-center">
+                            {/* Cap is 3/month — see SELF_REPORT_MONTHLY_LIMIT in app/student/StudentClient.tsx */}
+                            <span className={`font-semibold ${selfReportCount === 0 ? 'text-gray-300' : selfReportCount >= 3 ? 'text-red-500' : 'text-blue-500'}`}>{selfReportCount}/3</span>
+                          </td>
                           <td className="px-4 py-3">
                             <button onClick={() => { setTab('individual'); setSelectedStudentId(student.student_id); setSearchIndividual(`${student.name} (${student.student_id})`); setSummary(null); fetchSummary(student.student_id) }} className="text-xs text-blue-700 hover:text-blue-800 font-medium whitespace-nowrap">ดูรายละเอียด</button>
                           </td>
