@@ -67,3 +67,21 @@ export function hoursInMonth(
   }
   return Math.round(total * 100) / 100
 }
+
+// Hours worked per calendar day (1..31, Thai local time) in a given month —
+// the per-day grid the payroll voucher form (excell_backup layout) needs.
+export function hoursByDay(
+  logs: { check_in: string; check_out: string | null; is_auto_closed?: boolean; is_rejected?: boolean }[],
+  year: number, month1to12: number,
+): Record<number, number> {
+  const byDay: Record<number, number> = {}
+  for (const log of logs) {
+    if (!log.check_out || log.is_auto_closed || log.is_rejected) continue
+    const thaiIn = new Date(new Date(log.check_in).getTime() + TZ_MS)
+    if (thaiIn.getUTCFullYear() !== year || thaiIn.getUTCMonth() + 1 !== month1to12) continue
+    const day = thaiIn.getUTCDate()
+    const hrs = Math.max(0, (new Date(log.check_out).getTime() - new Date(log.check_in).getTime()) / 3_600_000)
+    byDay[day] = (byDay[day] ?? 0) + hrs
+  }
+  return byDay
+}

@@ -415,6 +415,12 @@ export default function ManagerPage() {
     }
   }
 
+  const handleExportPayroll = () => {
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams({ month: backupMonth })
+    void downloadExport(`/api/export-payroll?${params}`, token)
+  }
+
   const handleExportBackup = () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams({ month: backupMonth })
@@ -807,6 +813,12 @@ export default function ManagerPage() {
                   เพิ่ม Log
                 </button>
               </div>
+              <button onClick={() => window.open(`/print-worklog?studentId=${encodeURIComponent(selectedStudentId)}&month=${exportMonth}`, '_blank')}
+                disabled={!summary}
+                className="w-full py-2.5 border-2 border-green-300 text-green-700 hover:bg-green-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                พิมพ์รายงาน PDF
+              </button>
             </div>
 
             {summary && (
@@ -1173,6 +1185,14 @@ export default function ManagerPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   สำรองข้อมูล
+                </button>
+                <button onClick={handleExportPayroll}
+                  title="ใบเบิกจ่ายเงินนิสิตช่วยปฏิบัติงาน (Excel) ตามฝ่ายของคุณ"
+                  className="bg-green-700 hover:bg-green-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  ใบเบิกจ่ายเงิน
                 </button>
                 <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
               </div>

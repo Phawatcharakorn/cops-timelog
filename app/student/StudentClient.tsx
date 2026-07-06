@@ -686,14 +686,23 @@ export default function StudentPage() {
             {/* Month summary + status breakdown */}
             {studentLocked && !pinSetStep && !bankSetStep && (
               <div className="anim-slide-up space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">สรุปเดือน</p>
-                  <input
-                    type="month"
-                    value={historyMonth}
-                    onChange={e => { setHistoryMonth(e.target.value); fetchHistory(e.target.value) }}
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="month"
+                      value={historyMonth}
+                      onChange={e => { setHistoryMonth(e.target.value); fetchHistory(e.target.value) }}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    />
+                    <button
+                      onClick={() => window.open(`/print-worklog?studentId=${encodeURIComponent(form.student_id)}&month=${historyMonth}`, '_blank')}
+                      disabled={!historyMonth}
+                      title="พิมพ์รายงาน PDF"
+                      className="text-xs border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-40 rounded-lg px-2 py-1 font-medium">
+                      PDF
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-center">
