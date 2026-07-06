@@ -124,18 +124,28 @@ export default function PrintWorklogClient() {
           .page-body { padding: 0 !important; box-shadow: none !important; margin: 0 !important; max-width: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
+        .print-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .print-toolbar-label { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+        .print-toolbar-input { flex: 1 1 160px; min-width: 0; max-width: 480px; }
+        @media (max-width: 640px) {
+          .print-toolbar-label { flex: 1 1 100%; white-space: normal; }
+          .print-toolbar-input { flex: 1 1 auto; max-width: none; order: 1; }
+          .print-toolbar-btn { order: 2; }
+          .page-body { padding: 20px 16px !important; }
+        }
       `}</style>
 
-      <div className="no-print" style={{ background: '#1a3a5c', color: 'white', padding: '8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>{student?.name ?? studentId} — {monthLabel}</span>
+      <div className="no-print print-toolbar" style={{ background: '#1a3a5c', color: 'white', padding: '8px 20px' }}>
+        <span className="print-toolbar-label">{student?.name ?? studentId} — {monthLabel}</span>
         <input
+          className="print-toolbar-input"
           value={projectName}
           onChange={e => setProjectName(e.target.value)}
           placeholder="ชื่อโครงการ"
-          style={{ flex: 1, maxWidth: 480, background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'white', fontFamily: 'inherit' }}
+          style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', borderRadius: 6, padding: '6px 12px', fontSize: 13, color: 'white', fontFamily: 'inherit' }}
         />
-        <button onClick={() => window.print()}
-          style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <button onClick={() => window.print()} className="print-toolbar-btn"
+          style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', flexShrink: 0 }}>
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           ดาวน์โหลด PDF
         </button>
@@ -187,7 +197,8 @@ export default function PrintWorklogClient() {
 
         {/* Detail table */}
         <p style={{ fontSize: 12, fontWeight: 700, color: '#1a3a5c', margin: '0 0 6px' }}>รายละเอียดการลงเวลาปฏิบัติงาน</p>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11, marginBottom: 16 }}>
+        <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 11 }}>
           <thead>
             <tr>
               {['ลำดับ', 'วันที่', 'เวลาเข้า', 'เวลาออก', 'ชั่วโมง', 'สรุปงานที่ปฏิบัติ'].map(h => (
@@ -218,6 +229,7 @@ export default function PrintWorklogClient() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* Footer totals */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 40, fontSize: 12, marginBottom: 30 }}>
