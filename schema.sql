@@ -233,6 +233,20 @@ UPDATE time_logs SET is_auto_closed = true
 WHERE work_summary = '(ปิดอัตโนมัติ — ลืม check-out)' AND is_auto_closed = false;
 
 -- ──────────────────────────────────────────────────────────────────────────────
+-- Git-derived time logs: entries auto-generated from commit/push activity
+-- rather than a student check-in or self-report. Distinct from
+-- is_self_reported so reports can tell "student typed this" apart from
+-- "system inferred this from git history". Still goes through the normal
+-- pending/approved review flow.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_git_derived BOOLEAN NOT NULL DEFAULT false;
+
+-- SHA of the last commit folded into a git-derived log (see
+-- app/api/git-import/route.ts). Used only as the "how far have we imported"
+-- cursor together with check_in — not a foreign key to anything.
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS git_commit_sha TEXT;
+
+-- ──────────────────────────────────────────────────────────────────────────────
 -- Bank account info for payroll. Collected once from the student on the
 -- check-in page (after PIN is set, before check-in is allowed — see
 -- app/student/StudentClient.tsx) instead of via dev/manager data entry,
@@ -243,3 +257,12 @@ WHERE work_summary = '(ปิดอัตโนมัติ — ลืม check-
 ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_account_name   TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_book_url       TEXT;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- GitHub username, used to match commit authors to a student when pulling
+-- git-derived time logs (see is_git_derived above). Nullable — only students
+-- who actually commit to a tracked repo need this set.
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE students ADD COLUMN IF NOT EXISTS github_username TEXT;
+
+UPDATE students SET github_username = 'Phawatcharakorn' WHERE student_id = '6630202571';

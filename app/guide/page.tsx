@@ -228,7 +228,7 @@ export default function GuidePage() {
               <p className="text-purple-400">students</p>
               <p className="pl-4 text-gray-400">id, student_id, name, nickname, department, faculty, major, gen, pin (hashed), phone, email, gender, birthdate, national_id, nationality, religion, note, status, created_at</p>
               <p className="text-purple-400 mt-2">time_logs</p>
-              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, project_name, photo_url, status (pending/approved), approved_by, approved_at, is_self_reported, is_rejected, rejected_reason, rejected_at, paid, paid_at</p>
+              <p className="pl-4 text-gray-400">id, student_id, check_in, check_out, work_summary, project_name, photo_url, status (pending/approved), approved_by, approved_at, is_self_reported, is_git_derived, is_rejected, rejected_reason, rejected_at, paid, paid_at</p>
               <p className="text-purple-400 mt-2">managers</p>
               <p className="pl-4 text-gray-400">id, username, password_hash, name, role, department, created_at</p>
               <p className="text-purple-400 mt-2">announcements</p>

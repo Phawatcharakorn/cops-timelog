@@ -907,6 +907,7 @@ export default function ManagerPage() {
                             <div className="text-xs text-gray-400">
                               #{globalIdx + 1} · {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="ml-1.5 text-blue-500 font-medium">· นิสิตลงเอง</span>}
+                              {log.is_git_derived && <span className="ml-1.5 text-purple-500 font-medium">· จาก Git</span>}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className="text-sm font-semibold text-green-600">{fmtTime(log.check_in)}</span>
@@ -1022,6 +1023,7 @@ export default function ManagerPage() {
                             <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
+                              {log.is_git_derived && <span className="block text-[10px] text-purple-500 font-medium">จาก Git</span>}
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{log.is_auto_closed ? <span className="text-yellow-500">ยังไม่กดเวลาออก</span> : log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}</td>

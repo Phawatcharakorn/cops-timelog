@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     { header: 'work_summary',     key: 'work_summary',     width: 30 },
     { header: 'photo_url',        key: 'photo_url',        width: 30 },
     { header: 'is_self_reported', key: 'is_self_reported', width: 12 },
+    { header: 'is_git_derived',   key: 'is_git_derived',   width: 12 },
     { header: 'is_rejected',      key: 'is_rejected',      width: 10 },
     { header: 'rejected_reason',  key: 'rejected_reason',  width: 24 },
     { header: 'rejected_at',      key: 'rejected_at',      width: 22 },

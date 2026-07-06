@@ -435,6 +435,27 @@ export default function DevPage() {
     void downloadExport(`/api/export-payroll?${params}`, token)
   }
 
+  const [importingGit, setImportingGit] = useState(false)
+  const handleGitImport = async () => {
+    setImportingGit(true)
+    try {
+      const token = localStorage.getItem('dev_token') || ''
+      const res = await fetch('/api/git-import', { method: 'POST', headers: { 'x-token': token } })
+      const data = await res.json()
+      if (!res.ok) { showToast(data.error || 'ดึงจาก Git ไม่สำเร็จ', 'error'); return }
+      showToast(
+        data.imported > 0 ? `ดึงจาก Git แล้ว ${data.imported} รายการ (รออนุมัติ)` : 'ไม่มี commit ใหม่',
+        data.errors?.length ? 'warning' : 'success'
+      )
+      if (data.errors?.length) console.error('Git import errors:', data.errors)
+      if (overview.length > 0) void fetchOverview()
+    } catch {
+      showToast('ดึงจาก Git ไม่สำเร็จ (เชื่อมต่อผิดพลาด)', 'error')
+    } finally {
+      setImportingGit(false)
+    }
+  }
+
   const [deletingMonth, setDeletingMonth] = useState(false)
   const handleManualDeleteMonth = async () => {
     if (!confirm(
@@ -1238,6 +1259,7 @@ export default function DevPage() {
                             <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
+                              {log.is_git_derived && <span className="block text-[10px] text-purple-500 font-medium">จาก Git</span>}
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
@@ -1448,6 +1470,14 @@ export default function DevPage() {
                   <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
                     className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
+                <button onClick={handleGitImport} disabled={importingGit}
+                  title="ดึง commit ใหม่จาก GitHub มาสร้าง log รอการอนุมัติ (1 ชม./commit)"
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  {importingGit ? 'กำลังดึง...' : 'ดึงจาก Git'}
+                </button>
                 <button onClick={handleExportBackup}
                   title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
                   className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">

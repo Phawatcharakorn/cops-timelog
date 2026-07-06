@@ -22,6 +22,7 @@ export type Student = {
   bank_account_number: string | null
   bank_account_name: string | null
   bank_book_url: string | null
+  github_username: string | null
   created_at: string
 }
 
@@ -44,6 +45,8 @@ export type TimeLog = {
   rejected_reason: string | null
   rejected_at: string | null
   is_auto_closed: boolean
+  is_git_derived: boolean
+  git_commit_sha: string | null
 }
 
 export type Manager = {
