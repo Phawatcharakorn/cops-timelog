@@ -9,6 +9,13 @@ const HOUR_MS = 60 * 60 * 1000
 
 type GhCommit = { sha: string; commit: { author: { date: string }; message: string } }
 
+const HALF_HOUR_MS = 30 * 60 * 1000
+// Reports only ever show :00/:30 minute marks — round the session's start
+// down and end up to the nearest half hour so times never land on odd
+// minutes like 14:07 or 15:42.
+function floorToHalfHour(ms: number): number { return Math.floor(ms / HALF_HOUR_MS) * HALF_HOUR_MS }
+function ceilToHalfHour(ms: number): number { return Math.ceil(ms / HALF_HOUR_MS) * HALF_HOUR_MS }
+
 async function fetchCommitsSince(author: string, sinceISO: string | null): Promise<GhCommit[]> {
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
@@ -81,8 +88,8 @@ export async function POST(req: NextRequest) {
 
       const rows = sessions.map(s => ({
         student_id: student.student_id,
-        check_in: s.checkIn,
-        check_out: s.checkOut,
+        check_in: new Date(floorToHalfHour(new Date(s.checkIn).getTime())).toISOString(),
+        check_out: new Date(ceilToHalfHour(new Date(s.checkOut).getTime())).toISOString(),
         work_summary: s.messages.join(' / '),
         status: 'pending' as const,
         is_git_derived: true,
