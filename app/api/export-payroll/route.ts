@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
 import { monthRangeISO } from '@/lib/retention'
-import { HOURLY_RATE, THAI_MONTHS, daysInMonth, hoursByDay } from '@/lib/payroll'
+import { HOURLY_RATE, THAI_MONTHS, daysInMonth, hoursByDay, thaiBahtText } from '@/lib/payroll'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +59,12 @@ export async function GET(req: NextRequest) {
   ws.getCell(2, 1).alignment = { horizontal: 'center' }
   ws.getCell(2, 1).font = { size: 11 }
 
-  const headerRow1 = 4, headerRow2 = 5
+  ws.mergeCells(3, 1, 3, totalCols)
+  ws.getCell(3, 1).value = `เบิกตามบันทึก อว. ......................................../               ลงวันที่        ${THAI_MONTHS[m - 1]}  พ.ศ. ${year + 543}`
+  ws.getCell(3, 1).alignment = { horizontal: 'center' }
+  ws.getCell(3, 1).font = { size: 11 }
+
+  const headerRow1 = 5, headerRow2 = 6
   ws.mergeCells(headerRow1, 1, headerRow2, 1)
   ws.getCell(headerRow1, 1).value = 'ลำดับที่'
   ws.mergeCells(headerRow1, 2, headerRow2, 2)
@@ -89,6 +94,7 @@ export async function GET(req: NextRequest) {
   }
 
   let r = headerRow2 + 1
+  let grandTotalHours = 0, grandTotalAmount = 0
   students.forEach((s, idx) => {
     const byDay = hoursByDay(logs.filter(l => l.student_id === s.student_id), year, m)
     let totalHours = 0
@@ -102,14 +108,67 @@ export async function GET(req: NextRequest) {
       ws.getCell(r, 4 + i).alignment = { horizontal: 'center' }
     })
     totalHours = Math.round(totalHours * 100) / 100
+    const amount = Math.round(totalHours * HOURLY_RATE)
     ws.getCell(r, totalHoursCol).value = totalHours
-    ws.getCell(r, amountCol).value = Math.round(totalHours * HOURLY_RATE)
+    ws.getCell(r, amountCol).value = amount
+    grandTotalHours += totalHours
+    grandTotalAmount += amount
     for (let c = 1; c <= totalCols; c++) {
       ws.getCell(r, c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
       ws.getCell(r, c).font = { size: 10 }
     }
     r++
   })
+  grandTotalHours = Math.round(grandTotalHours * 100) / 100
+
+  // Grand total row — amount spelled out in Thai words, matching the paper
+  // voucher's "รวมเงินจ่ายทั้งสิ้น (ตัวอักษร)" line.
+  ws.mergeCells(r, 1, r, 3)
+  ws.getCell(r, 1).value = 'รวมเงินจ่ายทั้งสิ้น (ตัวอักษร)'
+  ws.getCell(r, 1).font = { bold: true, size: 10 }
+  ws.mergeCells(r, 4, r, 3 + days)
+  ws.getCell(r, 4).value = thaiBahtText(grandTotalAmount)
+  ws.getCell(r, 4).alignment = { horizontal: 'center' }
+  ws.getCell(r, 4).font = { bold: true, size: 10 }
+  ws.getCell(r, totalHoursCol).value = grandTotalHours
+  ws.getCell(r, amountCol).value = grandTotalAmount
+  for (let c = 1; c <= totalCols; c++) {
+    ws.getCell(r, c).font = { bold: true, size: 10 }
+    ws.getCell(r, c).border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } }
+  }
+  r += 2
+
+  ws.mergeCells(r, 1, r, totalCols)
+  ws.getCell(r, 1).value = 'ขอรับรองว่าผู้มีรายชื่อข้างต้นปฏิบัติงานตามเวลาจริง'
+  ws.getCell(r, 1).font = { size: 10 }
+  r += 2
+
+  const leftEnd = Math.floor(totalCols / 2)
+  ws.mergeCells(r, 1, r, leftEnd)
+  ws.getCell(r, 1).value = 'ลงชื่อ......................................................  ผู้จัดทำ'
+  ws.getCell(r, 1).alignment = { horizontal: 'center' }
+  ws.mergeCells(r, leftEnd + 1, r, totalCols)
+  ws.getCell(r, leftEnd + 1).value = 'ลงชื่อ......................................................  ผู้รับรอง'
+  ws.getCell(r, leftEnd + 1).alignment = { horizontal: 'center' }
+  ws.getRow(r).font = { size: 10 }
+  r++
+
+  ws.mergeCells(r, 1, r, leftEnd)
+  ws.getCell(r, 1).value = '(..........................................................)'
+  ws.getCell(r, 1).alignment = { horizontal: 'center' }
+  ws.mergeCells(r, leftEnd + 1, r, totalCols)
+  ws.getCell(r, leftEnd + 1).value = '(..........................................................)'
+  ws.getCell(r, leftEnd + 1).alignment = { horizontal: 'center' }
+  ws.getRow(r).font = { size: 10 }
+  r++
+
+  ws.mergeCells(r, 1, r, leftEnd)
+  ws.getCell(r, 1).value = 'ตำแหน่ง ..................................................'
+  ws.getCell(r, 1).alignment = { horizontal: 'center' }
+  ws.mergeCells(r, leftEnd + 1, r, totalCols)
+  ws.getCell(r, leftEnd + 1).value = 'ตำแหน่ง ..................................................'
+  ws.getCell(r, leftEnd + 1).alignment = { horizontal: 'center' }
+  ws.getRow(r).font = { size: 10 }
 
   ws.getColumn(1).width = 6
   ws.getColumn(2).width = 24
