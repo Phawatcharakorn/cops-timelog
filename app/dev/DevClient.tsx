@@ -2128,6 +2128,15 @@ export default function DevPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
               <select className={inputCls} value={editStudentForm.faculty}
                 onChange={e => setEditStudentForm(f => ({ ...f, faculty: e.target.value }))}>
+                {/* A stored faculty that predates this fixed list (or was
+                    typed differently) won't match any <option> below — the
+                    browser would then silently render the FIRST option as
+                    "selected" instead, making it look like that's the
+                    student's real faculty when it isn't. Inject it as an
+                    extra option so what's shown always matches what's saved. */}
+                {editStudentForm.faculty && !FACULTIES.includes(editStudentForm.faculty) && (
+                  <option value={editStudentForm.faculty}>{editStudentForm.faculty}</option>
+                )}
                 {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>

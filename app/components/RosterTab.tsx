@@ -375,6 +375,15 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">คณะ</label>
                   <select className={inputCls} value={editForm.faculty} onChange={set('faculty')}>
+                    {/* A stored faculty that predates this fixed list (or was
+                        typed differently) won't match any <option> below — the
+                        browser would then silently render the FIRST option as
+                        "selected" instead, making it look like that's the
+                        student's real faculty when it isn't. Inject it as an
+                        extra option so what's shown always matches what's saved. */}
+                    {editForm.faculty && !FACULTIES.includes(editForm.faculty) && (
+                      <option value={editForm.faculty}>{editForm.faculty}</option>
+                    )}
                     {FACULTIES.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </div>
