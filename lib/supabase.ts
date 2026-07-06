@@ -97,6 +97,16 @@ export const supabase = createClient(url, anonKey, {
   global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
 })
 
+// `export const dynamic = 'force-dynamic'` on a route only opts the route
+// itself out of the Full Route Cache — it does NOT disable Next's Data
+// Cache for individual fetch() calls made inside, which supabase-js makes
+// under the hood. Without cache: 'no-store' here, a query's first result
+// gets memoized and every route using supabaseAdmin() keeps serving that
+// same frozen snapshot indefinitely, confirmed by a stuck row count that
+// never changed across many minutes and a server restart while raw curl
+// requests to the same Supabase endpoint kept returning fresh data.
 export function supabaseAdmin() {
-  return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+  })
 }
