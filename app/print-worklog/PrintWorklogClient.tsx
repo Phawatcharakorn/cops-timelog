@@ -33,7 +33,7 @@ export default function PrintWorklogClient() {
 
   useEffect(() => {
     if (!studentId) { setLoading(false); return }
-    ;(async () => {
+    const fetchData = async () => {
       const [year, m] = month.split('-').map(Number)
       const { startISO, endISO } = monthRangeISO({ year, month: m })
       const [{ data: s }, { data: l }] = await Promise.all([
@@ -44,7 +44,31 @@ export default function PrintWorklogClient() {
       setStudent(s ?? null)
       setLogs(((l ?? []) as TimeLog[]).filter(log => log.check_out && !log.is_rejected))
       setLoading(false)
-    })()
+    }
+    void fetchData()
+    // A log added/edited a moment ago can still read back as its pre-write
+    // value for a second or two (Supabase-side read consistency lag, seen
+    // even querying PostgREST directly right after a write) — one quiet
+    // re-fetch shortly after mount self-heals a report opened immediately
+    // after saving a log, without the visible flash of a manual reload.
+    const settleTimer = setTimeout(() => void fetchData(), 1500)
+
+    // A tab left open from an earlier click (or restored via the browser's
+    // back/forward cache) doesn't remount, so its one-time effect above
+    // never runs again — the printed numbers silently go stale the moment
+    // any log for this student changes elsewhere. Re-fetch whenever this
+    // tab is actually looked at again instead of relying on a manual reload.
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) void fetchData() }
+    const onVisible = () => { if (document.visibilityState === 'visible') void fetchData() }
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      clearTimeout(settleTimer)
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, [studentId, month])
 
   if (!studentId) return <div style={{ padding: 40, color: '#999', fontFamily: 'Sarabun, sans-serif' }}>ไม่พบรหัสนิสิต</div>

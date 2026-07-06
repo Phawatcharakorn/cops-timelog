@@ -92,10 +92,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Same studentId/month query builds the same REST URL every time — without
 // forcing no-store, the browser's HTTP cache can silently serve a stale
-// response from an earlier visit instead of hitting PostgREST again, which
-// showed up as print-worklog/payroll (server-side, force-dynamic) staying
-// fresh while this client's own reads (StudentClient history, print-worklog)
-// lagged behind by however long the browser felt like caching that GET.
+// response from an earlier visit instead of hitting PostgREST again.
 export const supabase = createClient(url, anonKey, {
   global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
 })
