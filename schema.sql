@@ -266,3 +266,36 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS bank_book_url       TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS github_username TEXT;
 
 UPDATE students SET github_username = 'Phawatcharakorn' WHERE student_id = '6630202571';
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Server-side backstop for the "max 3 self-reports/month" rule already
+-- checked client-side in app/student/StudentClient.tsx. That check can be
+-- bypassed by hitting Supabase directly with the public anon key (same as
+-- every other client-side check in this app — see the RLS note above), so
+-- this trigger is the real enforcement. Counts by created_at (submission
+-- time, Bangkok calendar month), matching the client-side logic exactly.
+-- Only fires on INSERT, so editing/resubmitting an existing self-report
+-- (an UPDATE) is never blocked by it.
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION enforce_self_report_monthly_limit() RETURNS TRIGGER AS $$
+DECLARE
+  existing_count INT;
+BEGIN
+  IF NEW.is_self_reported THEN
+    SELECT COUNT(*) INTO existing_count FROM time_logs
+      WHERE student_id = NEW.student_id
+        AND is_self_reported = true
+        AND date_trunc('month', created_at AT TIME ZONE 'Asia/Bangkok')
+          = date_trunc('month', NOW() AT TIME ZONE 'Asia/Bangkok');
+    IF existing_count >= 3 THEN
+      RAISE EXCEPTION 'ลงเวลาย้อนหลังได้ไม่เกิน 3 ครั้ง/เดือน (เดือนนี้เต็มแล้ว)';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_self_report_monthly_limit ON time_logs;
+CREATE TRIGGER trg_self_report_monthly_limit
+  BEFORE INSERT ON time_logs
+  FOR EACH ROW EXECUTE FUNCTION enforce_self_report_monthly_limit();

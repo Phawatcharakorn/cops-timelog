@@ -7,6 +7,7 @@ import SdecHeader from '@/app/components/SdecHeader'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner from '@/app/components/RetentionBanner'
+import { monthRangeISO, thaiMonthOf } from '@/lib/retention'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
@@ -20,6 +21,7 @@ type HistoryLog = {
 type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
 const BKK = 'Asia/Bangkok'
+const SELF_REPORT_MONTHLY_LIMIT = 3
 
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
@@ -492,6 +494,19 @@ export default function StudentPage() {
       if (outISO) {
         const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
         if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
+      }
+
+      // Cap new self-reports at 3/month — counted by the month the request
+      // is submitted in (not the backdated date), resetting every month.
+      // Editing an existing (already-counted) self-report doesn't count again.
+      if (!editingLog) {
+        const { startISO, endISO } = monthRangeISO(thaiMonthOf(new Date().toISOString()))
+        const { count } = await supabase.from('time_logs').select('id', { count: 'exact', head: true })
+          .eq('student_id', form.student_id).eq('is_self_reported', true)
+          .gte('created_at', startISO).lte('created_at', endISO)
+        if ((count ?? 0) >= SELF_REPORT_MONTHLY_LIMIT) {
+          return showMsg('error', `ลงเวลาย้อนหลังได้ไม่เกิน ${SELF_REPORT_MONTHLY_LIMIT} ครั้ง/เดือน (เดือนนี้เต็มแล้ว)`)
+        }
       }
 
       // PIN verification and the overlap check are independent of each
