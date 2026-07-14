@@ -83,6 +83,7 @@ export default function StudentPage() {
   const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
   const [selfReportUsedCount, setSelfReportUsedCount] = useState<number | null>(null)
+  const selfReportResetAt = useRef<string | null>(null)
   const [editingLog, setEditingLog]             = useState<HistoryLog | null>(null)
 
   const [playing, setPlaying] = useState(false)
@@ -143,7 +144,7 @@ export default function StudentPage() {
       // follow-up fetch afterward — the badges used to visibly pop in a
       // beat later than the rest of the student info for no real reason.
       const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
-        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url, self_report_reset_at').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
         fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
         historyMonth ? fetchHistory(historyMonth) : Promise.resolve(),
@@ -152,6 +153,7 @@ export default function StudentPage() {
         const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
         const hasBank = !!(student.bank_account_number && student.bank_account_name && student.bank_book_url)
         setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
+        selfReportResetAt.current = student.self_report_reset_at ?? null
         setStudentLocked(true)
         setStudentNotFound(false)
         setHasPin(hp)
@@ -437,9 +439,14 @@ export default function StudentPage() {
 
   const fetchSelfReportUsedCount = async () => {
     const { startISO, endISO } = monthRangeISO(thaiMonthOf(new Date().toISOString()))
+    // A dev/manager "รีเซ็ต" stamps self_report_reset_at with NOW() — only
+    // self-reports created after that point still count toward this
+    // month's cap, so an admin can clear a mistaken 3/3 without touching
+    // the student's already-submitted logs.
+    const effectiveStart = selfReportResetAt.current && selfReportResetAt.current > startISO ? selfReportResetAt.current : startISO
     const { count } = await supabase.from('time_logs').select('id', { count: 'exact', head: true })
       .eq('student_id', form.student_id).eq('is_self_reported', true)
-      .gte('created_at', startISO).lte('created_at', endISO)
+      .gte('created_at', effectiveStart).lte('created_at', endISO)
     setSelfReportUsedCount(count ?? 0)
   }
 
@@ -512,9 +519,10 @@ export default function StudentPage() {
       // Editing an existing (already-counted) self-report doesn't count again.
       if (!editingLog) {
         const { startISO, endISO } = monthRangeISO(thaiMonthOf(new Date().toISOString()))
+        const effectiveStart = selfReportResetAt.current && selfReportResetAt.current > startISO ? selfReportResetAt.current : startISO
         const { count } = await supabase.from('time_logs').select('id', { count: 'exact', head: true })
           .eq('student_id', form.student_id).eq('is_self_reported', true)
-          .gte('created_at', startISO).lte('created_at', endISO)
+          .gte('created_at', effectiveStart).lte('created_at', endISO)
         if ((count ?? 0) >= SELF_REPORT_MONTHLY_LIMIT) {
           return showMsg('error', `ลงเวลาย้อนหลังได้ไม่เกิน ${SELF_REPORT_MONTHLY_LIMIT} ครั้ง/เดือน (เดือนนี้เต็มแล้ว)`)
         }

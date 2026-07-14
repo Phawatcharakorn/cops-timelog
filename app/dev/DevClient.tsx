@@ -315,7 +315,11 @@ export default function DevPage() {
           totalMinutes: totalMin % 60,
           taskCount: logs.length,
           pendingCount: studentLogs.filter(l => l.status === 'pending').length,
-          selfReportCount: studentLogs.filter(l => l.is_self_reported).length,
+          // A "รีเซ็ต" only counts self-reports created after the reset
+          // stamp — matches the cap check in StudentClient.tsx, which is
+          // keyed off created_at rather than check_in.
+          selfReportCount: studentLogs.filter(l =>
+            l.is_self_reported && (!s.self_report_reset_at || l.created_at >= s.self_report_reset_at)).length,
         }
       })
       setOverview(result)
@@ -490,6 +494,23 @@ export default function DevPage() {
     await fetch(`/api/students?id=${encodeURIComponent(student.student_id)}`, { method: 'DELETE', headers: { 'x-token': token } })
     if (selectedStudentId === student.student_id) { setSelectedStudentId(''); setSummary(null) }
     await loadStudents()
+  }
+
+  // Doesn't touch the student's already-submitted self-report logs — just
+  // stamps self_report_reset_at with NOW() so this month's cap (checked
+  // against created_at in StudentClient.tsx) starts counting fresh from
+  // this point on.
+  const handleResetSelfReportCount = async (student: Student) => {
+    if (!confirm(`รีเซ็ตจำนวนลงเวลาย้อนหลังของ "${student.name}" กลับเป็น 0/3 ใช่ไหม?`)) return
+    const token = localStorage.getItem('dev_token') || ''
+    const res = await fetch(`/api/students?id=${encodeURIComponent(student.student_id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-token': token },
+      body: JSON.stringify({ self_report_reset_at: new Date().toISOString() }),
+    })
+    if (!res.ok) { showToast('รีเซ็ตไม่สำเร็จ', 'error'); return }
+    showToast(`รีเซ็ตจำนวนลงเวลาย้อนหลังของ "${student.name}" แล้ว`, 'success')
+    if (overview.length > 0) void fetchOverview()
   }
 
   const openEdit = (log: TimeLog) => {
@@ -1548,6 +1569,11 @@ export default function DevPage() {
                             <div className="flex items-center gap-2">
                               {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
                               <span>{student.name}</span>
+                              <button onClick={() => handleResetSelfReportCount(student)}
+                                title="รีเซ็ตจำนวนลงเวลาย้อนหลัง (3/เดือน) กลับเป็น 0"
+                                className="text-[10px] text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-300 rounded-full px-1.5 py-0.5 flex-shrink-0 whitespace-nowrap">
+                                รีเซ็ต
+                              </button>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
