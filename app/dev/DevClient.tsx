@@ -52,6 +52,8 @@ type AddLogForm   = { date: string; check_in: string; check_out: string; check_o
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string)         { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
+// git_repos is stored as "owner/repo,owner/repo" — show just the repo name(s).
+function fmtRepos(gitRepos: string | null) { return (gitRepos ?? '').split(',').filter(Boolean).map(r => r.split('/').pop()).join(', ') }
 // Fixed Thai (+07:00) offset, not the browser's local timezone — see the
 // same fix in ManagerClient.tsx for why.
 function toDatetimeLocal(iso: string) { return new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 16) }
@@ -1288,7 +1290,7 @@ export default function DevPage() {
                             <td className="text-gray-600 whitespace-nowrap" style={{ padding: '12px 16px', lineHeight: 1.8 }}>
                               {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
-                              {log.is_git_derived && <span className="block text-[10px] text-purple-500 font-medium">จาก Git</span>}
+                              {log.is_git_derived && <span className="block text-[10px] text-purple-500 font-medium">จาก Git{log.git_repos ? ` · ${fmtRepos(log.git_repos)}` : ''}</span>}
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>

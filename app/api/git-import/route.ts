@@ -12,7 +12,7 @@ const GITHUB_REPOS = (process.env.GITHUB_REPOS || process.env.GITHUB_REPO || 'Ph
   .split(',').map(r => r.trim()).filter(Boolean)
 const HOUR_MS = 60 * 60 * 1000
 
-type GhCommit = { sha: string; commit: { author: { date: string }; message: string } }
+type GhCommit = { sha: string; repo: string; commit: { author: { date: string }; message: string } }
 
 const HALF_HOUR_MS = 30 * 60 * 1000
 // Reports only ever show :00/:30 minute marks — round the session's start
@@ -29,7 +29,8 @@ async function fetchCommitsSinceInRepo(repo: string, author: string, sinceISO: s
   if (sinceISO) params.set('since', sinceISO)
   const res = await fetch(`https://api.github.com/repos/${repo}/commits?${params}`, { headers })
   if (!res.ok) throw new Error(`GitHub API ${repo} ${res.status}: ${await res.text()}`)
-  return (await res.json()) as GhCommit[]
+  const commits = (await res.json()) as Omit<GhCommit, 'repo'>[]
+  return commits.map(c => ({ ...c, repo }))
 }
 
 // Merges commits from every configured repo into one oldest-first list —
@@ -52,7 +53,7 @@ const SESSION_GAP_MS = 2 * HOUR_MS
 // so 3 commits 10 minutes apart total ~10 minutes of measured time, not 3h.
 // Only the session's start is a guess (PREP_MS before the first commit).
 function groupIntoSessions(commits: GhCommit[]) {
-  const sessions: { checkIn: string; checkOut: string; lastCommitMs: number; lastSha: string; messages: string[] }[] = []
+  const sessions: { checkIn: string; checkOut: string; lastCommitMs: number; lastSha: string; messages: string[]; repos: Set<string> }[] = []
   for (const c of commits) {
     const t = new Date(c.commit.author.date).getTime()
     const last = sessions[sessions.length - 1]
@@ -61,6 +62,7 @@ function groupIntoSessions(commits: GhCommit[]) {
       last.lastCommitMs = t
       last.lastSha = c.sha
       last.messages.push(c.commit.message.split('\n')[0])
+      last.repos.add(c.repo)
     } else {
       sessions.push({
         checkIn: new Date(t - PREP_MS).toISOString(),
@@ -68,6 +70,7 @@ function groupIntoSessions(commits: GhCommit[]) {
         lastCommitMs: t,
         lastSha: c.sha,
         messages: [c.commit.message.split('\n')[0]],
+        repos: new Set([c.repo]),
       })
     }
   }
@@ -115,6 +118,7 @@ export async function POST(req: NextRequest) {
         status: 'pending' as const,
         is_git_derived: true,
         git_commit_sha: s.lastSha,
+        git_repos: Array.from(s.repos).join(','),
       }))
       const { error: insertError } = await db.from('time_logs').insert(rows)
       if (insertError) { errors.push(`${student.student_id}: ${insertError.message}`); continue }

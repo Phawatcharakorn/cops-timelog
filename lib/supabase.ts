@@ -48,6 +48,7 @@ export type TimeLog = {
   is_auto_closed: boolean
   is_git_derived: boolean
   git_commit_sha: string | null
+  git_repos: string | null
 }
 
 export type Manager = {
