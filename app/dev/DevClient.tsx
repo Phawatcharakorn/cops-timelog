@@ -52,8 +52,10 @@ type AddLogForm   = { date: string; check_in: string; check_out: string; check_o
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string)         { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
-function toDatetimeLocal(iso: string) { return format(new Date(iso), "yyyy-MM-dd'T'HH:mm") }
-function fromDatetimeLocal(local: string) { if (!local) return null; return new Date(local).toISOString() }
+// Fixed Thai (+07:00) offset, not the browser's local timezone — see the
+// same fix in ManagerClient.tsx for why.
+function toDatetimeLocal(iso: string) { return new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 16) }
+function fromDatetimeLocal(local: string) { if (!local) return null; return new Date(`${local}:00+07:00`).toISOString() }
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() {
   return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -519,6 +521,11 @@ export default function DevPage() {
           check_out:    editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
           project_name: editForm.project_name || null,
           work_summary: editForm.work_summary || null,
+          // See ManagerClient.tsx's handleEditSave — a manually entered
+          // check_out is real, not the auto-close fallback, so the display
+          // (which ignores check_out entirely while this flag is true)
+          // stops hiding it.
+          is_auto_closed: editForm.check_out ? false : editingLog.is_auto_closed,
         }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
