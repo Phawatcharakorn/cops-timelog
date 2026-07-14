@@ -4,7 +4,12 @@ import { getAuth, unauthorized } from '@/lib/apiAuth'
 
 export const dynamic = 'force-dynamic'
 
-const GITHUB_REPO = process.env.GITHUB_REPO || 'Phawatcharakorn/cops-timelog'
+// One person's work can span several of their own repos (not just this
+// timelog app's own repo) — GITHUB_REPOS is a comma-separated list, all
+// scanned for every student's github_username. Falls back to the old
+// singular GITHUB_REPO for anyone who already has that env var set.
+const GITHUB_REPOS = (process.env.GITHUB_REPOS || process.env.GITHUB_REPO || 'Phawatcharakorn/cops-timelog')
+  .split(',').map(r => r.trim()).filter(Boolean)
 const HOUR_MS = 60 * 60 * 1000
 
 type GhCommit = { sha: string; commit: { author: { date: string }; message: string } }
@@ -16,17 +21,24 @@ const HALF_HOUR_MS = 30 * 60 * 1000
 function floorToHalfHour(ms: number): number { return Math.floor(ms / HALF_HOUR_MS) * HALF_HOUR_MS }
 function ceilToHalfHour(ms: number): number { return Math.ceil(ms / HALF_HOUR_MS) * HALF_HOUR_MS }
 
-async function fetchCommitsSince(author: string, sinceISO: string | null): Promise<GhCommit[]> {
+async function fetchCommitsSinceInRepo(repo: string, author: string, sinceISO: string | null): Promise<GhCommit[]> {
   const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
 
   const params = new URLSearchParams({ author, per_page: '100' })
   if (sinceISO) params.set('since', sinceISO)
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?${params}`, { headers })
-  if (!res.ok) throw new Error(`GitHub API ${res.status}: ${await res.text()}`)
-  const commits = (await res.json()) as GhCommit[]
-  // GitHub returns newest-first; process oldest-first so sessions group correctly.
-  return commits.reverse()
+  const res = await fetch(`https://api.github.com/repos/${repo}/commits?${params}`, { headers })
+  if (!res.ok) throw new Error(`GitHub API ${repo} ${res.status}: ${await res.text()}`)
+  return (await res.json()) as GhCommit[]
+}
+
+// Merges commits from every configured repo into one oldest-first list —
+// groupIntoSessions needs a single chronological stream across all of a
+// person's repos so sessions group correctly regardless of which repo
+// each commit landed in.
+async function fetchCommitsSince(author: string, sinceISO: string | null): Promise<GhCommit[]> {
+  const perRepo = await Promise.all(GITHUB_REPOS.map(repo => fetchCommitsSinceInRepo(repo, author, sinceISO)))
+  return perRepo.flat().sort((a, b) => a.commit.author.date.localeCompare(b.commit.author.date))
 }
 
 // Assumed work time before a session's first commit (we don't know when
