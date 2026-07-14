@@ -454,7 +454,17 @@ export default function ManagerPage() {
       const res = await fetch(`/api/time-logs?id=${editingLog.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-token': token },
-        body: JSON.stringify({ check_in: fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in, check_out: editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null, project_name: editForm.project_name || null, work_summary: editForm.work_summary || null }),
+        body: JSON.stringify({
+          check_in: fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in,
+          check_out: editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
+          project_name: editForm.project_name || null,
+          work_summary: editForm.work_summary || null,
+          // A manager-entered check_out is a real one, not the auto-close
+          // fallback — the table's "ยังไม่กดเวลาออก" display ignores
+          // check_out entirely while this flag is true, so leaving it set
+          // after the edit made the new time invisible even though it saved.
+          is_auto_closed: editForm.check_out ? false : editingLog.is_auto_closed,
+        }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('บันทึกเรียบร้อยแล้ว', 'success')
