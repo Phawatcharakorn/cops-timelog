@@ -44,8 +44,15 @@ type AddLogForm = { date: string; check_in: string; check_out: string; check_out
 
 function fmtTime(iso: string) { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string) { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
-function toDatetimeLocal(iso: string) { return format(new Date(iso), "yyyy-MM-dd'T'HH:mm") }
-function fromDatetimeLocal(local: string) { if (!local) return null; return new Date(local).toISOString() }
+// These must use a fixed Thai (+07:00) offset, not the browser's local
+// timezone — unlike almost every other date helper in this codebase, these
+// two used `new Date(...)`/`.toISOString()` directly, which reads/writes in
+// whatever timezone the manager's OS/browser happens to be set to. On a
+// machine not set to +07:00, editing a log silently saved a shifted instant
+// — the row still showed the *old* time after save, looking like the edit
+// never took effect.
+function toDatetimeLocal(iso: string) { return new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 16) }
+function fromDatetimeLocal(local: string) { if (!local) return null; return new Date(`${local}:00+07:00`).toISOString() }
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
 
