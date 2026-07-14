@@ -467,6 +467,14 @@ export default function DevPage() {
 
   const [deletingMonth, setDeletingMonth] = useState(false)
   const handleManualDeleteMonth = async () => {
+    // The month picker defaults to the current month, so a dev who forgets
+    // to change it before hitting delete would otherwise wipe data people
+    // are actively logging today — this button is for reclaiming old
+    // months, not the one in progress, so block current/future outright.
+    if (backupMonth >= todayThai().slice(0, 7)) {
+      showToast('ลบได้เฉพาะเดือนที่ผ่านไปแล้วเท่านั้น (ห้ามลบเดือนปัจจุบัน/อนาคต)', 'error')
+      return
+    }
     if (!confirm(
       `ลบข้อมูลลงเวลาเดือน ${backupMonth} ทั้งหมดทันที (ทุกคน ทุกสถานะ)?\n\nการลบนี้ถาวรและกู้คืนไม่ได้ — แนะนำให้กด "สำรองข้อมูล" ไว้ก่อนหน้านี้แล้ว`
     )) return

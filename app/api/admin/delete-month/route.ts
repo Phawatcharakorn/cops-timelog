@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getAuth, unauthorized } from '@/lib/apiAuth'
-import { monthRangeISO } from '@/lib/retention'
+import { monthRangeISO, thaiMonthOf } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +16,16 @@ export async function POST(req: NextRequest) {
   const { month } = await req.json()
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
     return NextResponse.json({ error: 'Missing/invalid month (expected YYYY-MM)' }, { status: 400 })
+  }
+
+  // Defense in depth alongside the client-side check in DevClient.tsx — this
+  // button is for reclaiming old months, not deleting data people are
+  // actively logging today, so reject the current/a future month even if
+  // some other caller skips the client guard.
+  const currentMonth = thaiMonthOf(new Date().toISOString())
+  const currentKey = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}`
+  if (month >= currentKey) {
+    return NextResponse.json({ error: 'ลบได้เฉพาะเดือนที่ผ่านไปแล้วเท่านั้น' }, { status: 400 })
   }
 
   const [year, m] = month.split('-').map(Number)
