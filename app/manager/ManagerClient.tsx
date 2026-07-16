@@ -1606,6 +1606,10 @@ export default function ManagerPage() {
                 <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-1.5 px-1">ข้อมูลบัญชีธนาคาร</p>
                 <div className="space-y-1.5">
                   <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
+                    <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">ธนาคาร</span>
+                    <span className="text-sm text-gray-800 font-medium break-all">{detailStudentModal.bank_name || <span className="text-gray-400 font-normal">ยังไม่ได้กรอก</span>}</span>
+                  </div>
+                  <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-2.5">
                     <span className="text-xs text-gray-400 w-28 flex-shrink-0 pt-0.5">เลขบัญชี</span>
                     <span className="text-sm text-gray-800 font-medium break-all">{detailStudentModal.bank_account_number || <span className="text-gray-400 font-normal">ยังไม่ได้กรอก</span>}</span>
                   </div>

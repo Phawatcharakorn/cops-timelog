@@ -22,6 +22,7 @@ export type Student = {
   position: string | null
   bank_account_number: string | null
   bank_account_name: string | null
+  bank_name: string | null
   bank_book_url: string | null
   github_username: string | null
   self_report_reset_at: string | null

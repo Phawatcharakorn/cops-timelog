@@ -23,6 +23,11 @@ type SelfReportForm = { date: string; check_in: string; check_out: string; check
 
 const BKK = 'Asia/Bangkok'
 const SELF_REPORT_MONTHLY_LIMIT = 3
+const THAI_BANKS = [
+  'กรุงไทย', 'กสิกรไทย', 'ไทยพาณิชย์', 'กรุงเทพ', 'กรุงศรีอยุธยา',
+  'ทหารไทยธนชาต (ttb)', 'ออมสิน', 'ธ.ก.ส.', 'ธนาคารอาคารสงเคราะห์ (GHB)',
+  'เกียรตินาคินภัทร', 'ซีไอเอ็มบี ไทย', 'ยูโอบี', 'แลนด์ แอนด์ เฮ้าส์', 'ทิสโก้', 'อื่นๆ',
+]
 
 function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time}:00+07:00`).toISOString() }
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
@@ -70,7 +75,8 @@ export default function StudentPage() {
 
   const [hasBankInfo, setHasBankInfo] = useState(false)
   const [bankSetStep, setBankSetStep] = useState(false)
-  const [bankForm, setBankForm]       = useState({ bank_account_number: '', bank_account_name: '', bank_book_url: null as string | null })
+  const [bankForm, setBankForm]       = useState({ bank_account_number: '', bank_account_name: '', bank_name: '', bank_book_url: null as string | null })
+  const [bankNameCustom, setBankNameCustom] = useState('')
   const [bankSaving, setBankSaving]   = useState(false)
 
   // SA departments weren't asked their specific position when first added
@@ -153,14 +159,14 @@ export default function StudentPage() {
       // follow-up fetch afterward — the badges used to visibly pop in a
       // beat later than the rest of the student info for no real reason.
       const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
-        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url, self_report_reset_at, position').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_name, bank_book_url, self_report_reset_at, position').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
         fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
         historyMonth ? fetchHistory(historyMonth) : Promise.resolve(),
       ])
       if (student) {
         const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
-        const hasBank = !!(student.bank_account_number && student.bank_account_name && student.bank_book_url)
+        const hasBank = !!(student.bank_account_number && student.bank_account_name && student.bank_name && student.bank_book_url)
         const needsPos = student.department === SA_DEPARTMENT && !student.position
         setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
         selfReportResetAt.current = student.self_report_reset_at ?? null
@@ -172,7 +178,8 @@ export default function StudentPage() {
         setPositionSetStep(false)
         setPositionInput('')
         setBankSetStep(false)
-        setBankForm({ bank_account_number: '', bank_account_name: '', bank_book_url: null })
+        setBankForm({ bank_account_number: '', bank_account_name: '', bank_name: '', bank_book_url: null })
+        setBankNameCustom('')
         if (!hp) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
         else if (needsPos) { setPositionSetStep(true) }
         else if (!hasBank) { setBankSetStep(true) }
@@ -321,8 +328,11 @@ export default function StudentPage() {
   }
 
   const handleSaveBankInfo = async () => {
+    const bankNameToSave = bankForm.bank_name === 'อื่นๆ' ? bankNameCustom.trim() : bankForm.bank_name
     if (!bankForm.bank_account_number.trim() || !bankForm.bank_account_name.trim())
       return showMsg('error', 'กรุณากรอกเลขบัญชีและชื่อบัญชีธนาคาร')
+    if (!bankNameToSave)
+      return showMsg('error', 'กรุณาเลือกธนาคาร')
     if (!bankForm.bank_book_url)
       return showMsg('error', 'กรุณาแนบไฟล์หน้าสมุดบัญชี (bookbank)')
     setBankSaving(true)
@@ -330,6 +340,7 @@ export default function StudentPage() {
       const { error } = await supabase.from('students').update({
         bank_account_number: bankForm.bank_account_number.trim(),
         bank_account_name:   bankForm.bank_account_name.trim(),
+        bank_name:           bankNameToSave,
         bank_book_url:       bankForm.bank_book_url,
       }).eq('student_id', form.student_id)
       if (error) throw error
@@ -870,6 +881,20 @@ export default function StudentPage() {
                 <p className="text-xs text-gray-400 leading-relaxed">
                   กรุณากรอกข้อมูลบัญชีธนาคารสำหรับรับเงิน (กรอกครั้งเดียว) ก่อนบันทึกเวลาเข้า
                 </p>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">ธนาคาร</label>
+                  <select
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    value={bankForm.bank_name}
+                    onChange={e => { setBankForm(f => ({ ...f, bank_name: e.target.value })); if (e.target.value !== 'อื่นๆ') setBankNameCustom('') }}>
+                    <option value="">เลือกธนาคาร...</option>
+                    {THAI_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                  {bankForm.bank_name === 'อื่นๆ' && (
+                    <input className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent mt-1.5"
+                      placeholder="ระบุชื่อธนาคาร" value={bankNameCustom} onChange={e => setBankNameCustom(e.target.value)} />
+                  )}
+                </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">เลขที่บัญชี</label>
                   <input
