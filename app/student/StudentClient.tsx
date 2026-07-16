@@ -178,8 +178,19 @@ export default function StudentPage() {
         setPositionSetStep(false)
         setPositionInput('')
         setBankSetStep(false)
-        setBankForm({ bank_account_number: '', bank_account_name: '', bank_name: '', bank_book_url: null })
-        setBankNameCustom('')
+        // Pre-fill with whatever's already saved so someone who's only
+        // missing bank_name (added after account_number/name/bookbank were
+        // already collected) isn't forced to redo the whole form, including
+        // re-uploading the bookbank file, just to add the one missing field.
+        const savedBankName = student.bank_name ?? ''
+        const bankNameKnown = !savedBankName || THAI_BANKS.includes(savedBankName)
+        setBankForm({
+          bank_account_number: student.bank_account_number ?? '',
+          bank_account_name:   student.bank_account_name ?? '',
+          bank_name:           bankNameKnown ? savedBankName : 'อื่นๆ',
+          bank_book_url:       student.bank_book_url ?? null,
+        })
+        setBankNameCustom(bankNameKnown ? '' : savedBankName)
         if (!hp) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
         else if (needsPos) { setPositionSetStep(true) }
         else if (!hasBank) { setBankSetStep(true) }
