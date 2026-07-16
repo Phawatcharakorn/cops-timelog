@@ -10,7 +10,6 @@ import GroupBadge from '@/app/components/GroupBadge'
 import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
-import { deleteAttachment } from '@/lib/upload'
 import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
 import RetentionCountdown from '@/app/components/RetentionCountdown'
 
@@ -439,6 +438,12 @@ export default function ManagerPage() {
     void downloadExport(`/api/export-backup?${params}`, token)
   }
 
+  const handleExportStudentDetails = () => {
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams({ month: backupMonth })
+    void downloadExport(`/api/export-student-details?${params}`, token)
+  }
+
   const handleDeleteStudent = async (student: Student) => {
     if (!confirm(`ลบ "${student.name}" (${student.student_id}) และข้อมูลลงเวลาทั้งหมด?`)) return
     const token = localStorage.getItem('mgr_token') || ''
@@ -663,35 +668,6 @@ export default function ManagerPage() {
       const err = await putTimeLog(logId, patch)
       if (err) { showToast('ยกเลิกการตีกลับไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
       showToast('ยกเลิกการตีกลับแล้ว', 'info')
-      await fetchSummary()
-    } finally { endBusy(logId) }
-  }
-
-  const handlePay = async (logId: string) => {
-    if (busyLogIdsRef.current.has(logId)) return
-    const photoUrl = summary?.logs.find(l => l.id === logId)?.photo_url ?? null
-    if (photoUrl && !window.confirm('ยืนยันบันทึกการจ่ายใช่ไหม?\n\nไฟล์แนบของรายการนี้จะถูกลบออกจากระบบทันทีหลังยืนยัน (กู้คืนไม่ได้)')) return
-    beginBusy(logId)
-    try {
-      const now = new Date().toISOString()
-      const patch = { paid: true, paid_at: now, ...(photoUrl ? { photo_url: null } : {}) }
-      patchLog(logId, patch)
-      const err = await putTimeLog(logId, patch)
-      if (err) { showToast('บันทึกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
-      if (photoUrl) void deleteAttachment(photoUrl)
-      showToast('บันทึกการจ่ายเรียบร้อยแล้ว', 'success')
-      await fetchSummary()
-    } finally { endBusy(logId) }
-  }
-
-  const handleUnpay = async (logId: string) => {
-    if (busyLogIdsRef.current.has(logId)) return
-    beginBusy(logId)
-    try {
-      patchLog(logId, { paid: false, paid_at: null })
-      const err = await putTimeLog(logId, { paid: false, paid_at: null })
-      if (err) { showToast('ยกเลิกไม่สำเร็จ: ' + err, 'error'); await fetchSummary(); return }
-      showToast('ยกเลิกการจ่ายแล้ว', 'info')
       await fetchSummary()
     } finally { endBusy(logId) }
   }
@@ -971,26 +947,10 @@ export default function ManagerPage() {
                                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                                   อนุมัติแล้ว
                                 </span>
-                                {log.paid && (
-                                  <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2.5 py-1 rounded-full border border-teal-200 font-medium">
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a4 4 0 00-8 0v2M5 9h14l1 11H4L5 9z"/></svg>
-                                    จ่ายแล้ว
-                                  </span>
-                                )}
                               </div>
                               <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
                               <div className="flex flex-wrap gap-2 items-center">
-                                {!log.paid && (
-                                  <button onClick={() => handlePay(log.id)} disabled={busyLogIds.has(log.id)}
-                                    className="text-xs bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
-                                    บันทึกการจ่าย
-                                  </button>
-                                )}
-                                {log.paid ? (
-                                  <button onClick={() => handleUnpay(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
-                                ) : (
-                                  <button onClick={() => handleUnapprove(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
-                                )}
+                                <button onClick={() => handleUnapprove(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
                               </div>
                             </div>
                           ) : log.is_rejected ? (
@@ -1068,26 +1028,10 @@ export default function ManagerPage() {
                                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                                       อนุมัติแล้ว
                                     </span>
-                                    {log.paid && (
-                                      <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-xs px-2.5 py-1 rounded-full border border-teal-200 font-medium">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a4 4 0 00-8 0v2M5 9h14l1 11H4L5 9z"/></svg>
-                                        จ่ายแล้ว
-                                      </span>
-                                    )}
                                   </div>
                                   <p className="text-xs text-gray-400">{log.approved_by} · {log.approved_at ? fmtDate(log.approved_at) : ''}</p>
                                   <div className="flex flex-wrap gap-2 items-center">
-                                    {!log.paid && (
-                                      <button onClick={() => handlePay(log.id)} disabled={busyLogIds.has(log.id)}
-                                        className="text-xs bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap">
-                                        บันทึกการจ่าย
-                                      </button>
-                                    )}
-                                    {log.paid ? (
-                                      <button onClick={() => handleUnpay(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกการจ่าย</button>
-                                    ) : (
-                                      <button onClick={() => handleUnapprove(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
-                                    )}
+                                    <button onClick={() => handleUnapprove(log.id)} disabled={busyLogIds.has(log.id)} className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors whitespace-nowrap">ยกเลิกอนุมัติ</button>
                                   </div>
                                 </div>
                               ) : log.is_rejected ? (
@@ -1217,6 +1161,14 @@ export default function ManagerPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   ใบเบิกจ่ายเงิน
+                </button>
+                <button onClick={handleExportStudentDetails}
+                  title="รายละเอียดเลขที่บัญชีนิสิตช่วยปฏิบัติงาน (Excel) ตามฝ่ายของคุณ"
+                  className="bg-teal-700 hover:bg-teal-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  โหลดรายละเอียดนิสิต
                 </button>
                 <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
               </div>
