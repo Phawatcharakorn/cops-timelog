@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
 import { monthRangeISO } from '@/lib/retention'
 import { HOURLY_RATE, THAI_MONTHS, hoursInMonth } from '@/lib/payroll'
+import { SA_DEPARTMENT } from '@/lib/studentGroup'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   const dept = auth?.role === 'manager' && auth.department ? auth.department : (searchParams.get('dept') || '')
 
   const db = supabaseAdmin()
-  let sq = db.from('students').select('student_id, name, department, faculty, major, bank_name, bank_account_number').order('department').order('name')
+  let sq = db.from('students').select('student_id, name, department, faculty, major, position, bank_name, bank_account_number').order('department').order('name')
   if (dept) sq = sq.eq('department', dept)
   const { data: allStudents, error: sErr } = await sq
   if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 })
@@ -73,8 +74,9 @@ export async function GET(req: NextRequest) {
   students.forEach((s, idx) => {
     const amount = Math.round(hoursInMonth(logs.filter(l => l.student_id === s.student_id), year, m) * HOURLY_RATE)
     grandTotal += amount
+    const unit = s.department === SA_DEPARTMENT ? `SA${s.position ? ` (${s.position})` : ''}` : s.department
     ws.getCell(r, 1).value = idx + 1
-    ws.getCell(r, 2).value = s.department
+    ws.getCell(r, 2).value = unit
     ws.getCell(r, 3).value = s.name
     ws.getCell(r, 4).value = s.student_id
     ws.getCell(r, 5).value = s.major ?? ''

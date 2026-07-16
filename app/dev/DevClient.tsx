@@ -1537,6 +1537,7 @@ export default function DevPage() {
                   <table className="w-full min-w-[600px] text-sm">
                     <thead className="bg-gray-50 text-gray-500 text-xs">
                       <tr>
+                        <th className="px-4 py-3 text-center font-medium w-10">ลำดับ</th>
                         <th className="px-4 py-3 text-left font-medium whitespace-nowrap">ชื่อ-นามสกุล</th>
                         <th className="px-4 py-3 text-left font-medium whitespace-nowrap">รหัส</th>
                         <th className="px-4 py-3 text-left font-medium whitespace-nowrap">ฝ่าย</th>
@@ -1549,8 +1550,9 @@ export default function DevPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount, pendingCount, selfReportCount }) => (
+                      {filteredOverview.map(({ student, totalDays, totalHours, totalMinutes, taskCount, pendingCount, selfReportCount }, idx) => (
                         <tr key={student.student_id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-center text-xs text-gray-400">{idx + 1}</td>
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <GroupBadge department={student.department} />
@@ -1638,6 +1640,7 @@ export default function DevPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500 text-xs">
                     <tr>
+                      <th className="px-4 py-3 text-center font-medium w-10">ลำดับ</th>
                       <th className="px-4 py-3 text-left font-medium">ชื่อ-นามสกุล</th>
                       <th className="px-4 py-3 text-left font-medium">รหัสนิสิต</th>
                       <th className="px-4 py-3 text-left font-medium">ฝ่าย / คณะ-สาขา</th>
@@ -1647,8 +1650,9 @@ export default function DevPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredStudentsManage.map(s => (
+                    {filteredStudentsManage.map((s, idx) => (
                       <tr key={s.student_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-center text-xs text-gray-400">{idx + 1}</td>
                         <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <GroupBadge department={s.department} />
