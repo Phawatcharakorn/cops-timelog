@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
 import { hashPassword } from '@/lib/crypto'
+import { SA_DEPARTMENT } from '@/lib/studentGroup'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,9 +30,10 @@ export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
   const { searchParams } = new URL(req.url)
-  const id   = searchParams.get('id')
-  const dept = searchParams.get('dept')
-  const db   = supabaseAdmin()
+  const id    = searchParams.get('id')
+  const dept  = searchParams.get('dept')
+  const group = searchParams.get('group')
+  const db    = supabaseAdmin()
 
   if (id) {
     if (await forbiddenForDepartment(req, id)) return NextResponse.json(null)
@@ -42,6 +44,8 @@ export async function GET(req: NextRequest) {
 
   let q = db.from('students').select('*').order('name')
   if (dept) q = q.eq('department', dept)
+  if (group === 'sa') q = q.eq('department', SA_DEPARTMENT)
+  else if (group === 'cops') q = q.neq('department', SA_DEPARTMENT)
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

@@ -8,6 +8,7 @@ import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner from '@/app/components/RetentionBanner'
 import { monthRangeISO, thaiMonthOf } from '@/lib/retention'
+import { SA_DEPARTMENT } from '@/lib/studentGroup'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
@@ -71,6 +72,14 @@ export default function StudentPage() {
   const [bankSetStep, setBankSetStep] = useState(false)
   const [bankForm, setBankForm]       = useState({ bank_account_number: '', bank_account_name: '', bank_book_url: null as string | null })
   const [bankSaving, setBankSaving]   = useState(false)
+
+  // SA departments weren't asked their specific position when first added
+  // (see add_sa_position.sql), so let them fill it in themselves once,
+  // right after setting their PIN and before bank info.
+  const [needsPosition, setNeedsPosition]   = useState(false)
+  const [positionSetStep, setPositionSetStep] = useState(false)
+  const [positionInput, setPositionInput]   = useState('')
+  const [positionSaving, setPositionSaving] = useState(false)
 
   const [now, setNow] = useState<Date | null>(null)
 
@@ -144,7 +153,7 @@ export default function StudentPage() {
       // follow-up fetch afterward — the badges used to visibly pop in a
       // beat later than the rest of the student info for no real reason.
       const [{ data: student }, { data: activeLogData }, pinRes] = await Promise.all([
-        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url, self_report_reset_at').eq('student_id', form.student_id).maybeSingle(),
+        supabase.from('students').select('name, department, faculty, major, bank_account_number, bank_account_name, bank_book_url, self_report_reset_at, position').eq('student_id', form.student_id).maybeSingle(),
         supabase.from('time_logs').select('id, check_in').eq('student_id', form.student_id).is('check_out', null).maybeSingle(),
         fetch(`/api/student-pin?student_id=${encodeURIComponent(form.student_id)}`),
         historyMonth ? fetchHistory(historyMonth) : Promise.resolve(),
@@ -152,15 +161,20 @@ export default function StudentPage() {
       if (student) {
         const { hasPin: hp } = pinRes.ok ? await pinRes.json() : { hasPin: false }
         const hasBank = !!(student.bank_account_number && student.bank_account_name && student.bank_book_url)
+        const needsPos = student.department === SA_DEPARTMENT && !student.position
         setForm(f => ({ ...f, name: student.name, department: student.department, faculty: student.faculty ?? '', major: student.major ?? '' }))
         selfReportResetAt.current = student.self_report_reset_at ?? null
         setStudentLocked(true)
         setStudentNotFound(false)
         setHasPin(hp)
         setHasBankInfo(hasBank)
+        setNeedsPosition(needsPos)
+        setPositionSetStep(false)
+        setPositionInput('')
         setBankSetStep(false)
         setBankForm({ bank_account_number: '', bank_account_name: '', bank_book_url: null })
         if (!hp) { setPinSetStep(true); setPinFirst(''); setPinConfirm('') }
+        else if (needsPos) { setPositionSetStep(true) }
         else if (!hasBank) { setBankSetStep(true) }
         if (activeLogData) {
           if (isRecentCheckIn(activeLogData.check_in)) {
@@ -274,7 +288,10 @@ export default function StudentPage() {
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       setHasPin(true); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
-      if (!hasBankInfo) {
+      if (needsPosition) {
+        setPositionSetStep(true)
+        showMsg('success', 'ตั้ง PIN สำเร็จ! กรุณากรอกตำแหน่งของคุณ')
+      } else if (!hasBankInfo) {
         setBankSetStep(true)
         showMsg('success', 'ตั้ง PIN สำเร็จ! กรุณากรอกข้อมูลบัญชีธนาคารก่อนบันทึกเวลาเข้า')
       } else {
@@ -283,6 +300,24 @@ export default function StudentPage() {
     } catch (e) {
       showMsg('error', 'ตั้ง PIN ไม่สำเร็จ: ' + (e as Error).message)
     } finally { setPinSetting(false) }
+  }
+
+  const handleSetPosition = async () => {
+    if (!positionInput.trim()) return showMsg('error', 'กรุณากรอกตำแหน่งของคุณ')
+    setPositionSaving(true)
+    try {
+      const { error } = await supabase.from('students').update({ position: positionInput.trim() }).eq('student_id', form.student_id)
+      if (error) throw error
+      setNeedsPosition(false); setPositionSetStep(false)
+      if (!hasBankInfo) {
+        setBankSetStep(true)
+        showMsg('success', 'บันทึกตำแหน่งสำเร็จ! กรุณากรอกข้อมูลบัญชีธนาคารก่อนบันทึกเวลาเข้า')
+      } else {
+        showMsg('success', 'บันทึกตำแหน่งสำเร็จ! กรอก PIN เพื่อบันทึกเวลาเข้า')
+      }
+    } catch (e) {
+      showMsg('error', 'บันทึกตำแหน่งไม่สำเร็จ: ' + (e as Error).message)
+    } finally { setPositionSaving(false) }
   }
 
   const handleSaveBankInfo = async () => {
@@ -718,7 +753,7 @@ export default function StudentPage() {
             )}
 
             {/* Month summary + status breakdown */}
-            {studentLocked && !pinSetStep && !bankSetStep && (
+            {studentLocked && !pinSetStep && !positionSetStep && !bankSetStep && (
               <div className="anim-slide-up space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">สรุปเดือน</p>
@@ -801,8 +836,35 @@ export default function StudentPage() {
               </div>
             )}
 
+            {/* Position self-fill (SA only, first time — see add_sa_position.sql) */}
+            {studentLocked && !pinSetStep && positionSetStep && (
+              <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">กรอกตำแหน่งของคุณ</p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  กรุณากรอกตำแหน่งของคุณใน Student Assistant (กรอกครั้งเดียว)
+                </p>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">ตำแหน่ง</label>
+                  <input
+                    autoFocus
+                    className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    placeholder="เช่น ต้อนรับ, ลงทะเบียน..."
+                    value={positionInput}
+                    onChange={e => setPositionInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSetPosition()}
+                  />
+                </div>
+                <button
+                  onClick={handleSetPosition}
+                  disabled={positionSaving || !positionInput.trim()}
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                  {positionSaving ? 'กำลังบันทึก...' : 'บันทึกตำแหน่ง'}
+                </button>
+              </div>
+            )}
+
             {/* Bank info (required once, before check-in is allowed) */}
-            {studentLocked && !pinSetStep && bankSetStep && (
+            {studentLocked && !pinSetStep && !positionSetStep && bankSetStep && (
               <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
                 <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">ข้อมูลบัญชีธนาคาร</p>
                 <p className="text-xs text-gray-400 leading-relaxed">
@@ -846,7 +908,7 @@ export default function StudentPage() {
             )}
 
             {/* PIN verify (has PIN) */}
-            {studentLocked && hasPin && !pinSetStep && !bankSetStep && !activeLog && (
+            {studentLocked && hasPin && !pinSetStep && !positionSetStep && !bankSetStep && !activeLog && (
               <div className="anim-slide-up">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">PIN 🔒</label>
                 <input
@@ -886,7 +948,7 @@ export default function StudentPage() {
             )}
 
             {/* Action button */}
-            {!pinSetStep && !(bankSetStep && !activeLog) && (!activeLog ? (
+            {!pinSetStep && !positionSetStep && !(bankSetStep && !activeLog) && (!activeLog ? (
               <button
                 onClick={handleCheckIn}
                 disabled={loading || studentNotFound || cooldown > 0 || !studentLocked}
@@ -905,7 +967,7 @@ export default function StudentPage() {
             ))}
 
             {/* Self-report backdated log */}
-            {studentLocked && !activeLog && !pinSetStep && !bankSetStep && (
+            {studentLocked && !activeLog && !pinSetStep && !positionSetStep && !bankSetStep && (
               <button onClick={openSelfReport}
                 className="w-full text-xs text-gray-400 hover:text-blue-600 font-medium py-1 transition-colors flex items-center justify-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

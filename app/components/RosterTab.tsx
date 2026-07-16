@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { type Student } from '@/lib/supabase'
 import { showToast } from './Toast'
+import GroupBadge from './GroupBadge'
+import { studentGroup, type StudentGroup } from '@/lib/studentGroup'
 
 function SkeletonRow() {
   return (
@@ -79,7 +81,7 @@ type EditForm = {
   name: string; nickname: string; department: string; faculty: string; major: string
   gen: string; phone: string; email: string; religion: string
   nationality: string; birthdate: string; gender: string; national_id: string
-  note: string; status: string
+  note: string; status: string; position: string
 }
 
 interface Props {
@@ -92,8 +94,9 @@ interface Props {
 }
 
 export default function RosterTab({ students, loading, onRefresh, lockedDept, canEditStudentId = false }: Props) {
-  const [genFilter,  setGenFilter]  = useState<number | null>(null)
-  const [deptFilter, setDeptFilter] = useState('')
+  const [genFilter,   setGenFilter]   = useState<number | null>(null)
+  const [deptFilter,  setDeptFilter]  = useState('')
+  const [groupFilter, setGroupFilter] = useState<StudentGroup | ''>('')
   const [detail,     setDetail]     = useState<Student | null>(null)
   const [editing,    setEditing]    = useState(false)
   const [saving,     setSaving]     = useState(false)
@@ -102,7 +105,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
     name: '', nickname: '', department: '', faculty: '', major: '',
     gen: '', phone: '', email: '', religion: '',
     nationality: '', birthdate: '', gender: '', national_id: '',
-    note: '', status: '',
+    note: '', status: '', position: '',
   })
   const [customDept, setCustomDept] = useState('')
 
@@ -128,6 +131,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
       national_id: s.national_id ?? '',
       note:        s.note ?? '',
       status:      s.status ?? '',
+      position:    s.position ?? '',
     })
     setCustomDept(deptInList ? '' : s.department)
     setEditing(true)
@@ -156,6 +160,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
         national_id: editForm.national_id.trim() || null,
         note:        editForm.note.trim() || null,
         status:      editForm.status || null,
+        position:    deptToSave === 'Student Assistant' ? (editForm.position.trim() || null) : null,
       }
       if (idChanged) updates.student_id = newId
       const token = localStorage.getItem('mgr_token') || localStorage.getItem('dev_token') || ''
@@ -177,12 +182,14 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
 
   const filtered = students.filter(s =>
     (genFilter === null || s.gen === genFilter) &&
-    (!deptFilter || s.department === deptFilter)
+    (!deptFilter || s.department === deptFilter) &&
+    (!groupFilter || studentGroup(s.department) === groupFilter)
   )
 
   const exportParams = new URLSearchParams()
   if (lockedDept || deptFilter) exportParams.set('dept', lockedDept || deptFilter)
   if (genFilter) exportParams.set('gen', String(genFilter))
+  if (groupFilter) exportParams.set('group', groupFilter.toLowerCase())
 
   return (
     <>
@@ -204,6 +211,17 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                   </button>
                 )
               })}
+              <span className="w-px h-5 bg-gray-200 mx-0.5" />
+              {(['COPS', 'SA'] as const).map(g => (
+                <button key={g} onClick={() => setGroupFilter(groupFilter === g ? '' : g)}
+                  className={`text-xs px-3 py-2 min-h-[36px] rounded-full border font-bold tracking-wide transition-colors ${
+                    groupFilter === g
+                      ? (g === 'SA' ? 'bg-emerald-600 text-white border-transparent' : 'bg-indigo-600 text-white border-transparent')
+                      : (g === 'SA' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200')
+                  }`}>
+                  {g}
+                </button>
+              ))}
             </div>
             <div className="flex gap-2">
               <button onClick={async () => {
@@ -272,6 +290,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                       <td className="px-3 py-2.5 whitespace-nowrap"><StatusBadge status={s.status} /></td>
                       <td className="px-3 py-2.5 text-sm whitespace-nowrap">
                         <div className="flex items-center gap-1.5 flex-wrap">
+                          <GroupBadge department={s.department} />
                           <span className="font-medium text-gray-800">{s.name}</span>
                           <NicknameBadge nickname={s.nickname} department={s.department} />
                         </div>
@@ -295,6 +314,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
+                  <GroupBadge department={detail.department} />
                   <h3 className="font-bold text-base text-gray-800">{detail.name}</h3>
                   <NicknameBadge nickname={detail.nickname} department={detail.department} />
                   <button
@@ -324,6 +344,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                   {[
                     { label: 'ชื่อเล่น',       value: detail.nickname },
                     { label: 'ฝ่าย',          value: detail.department },
+                    ...(detail.department === 'Student Assistant' ? [{ label: 'ตำแหน่ง', value: detail.position }] : []),
                     { label: 'คณะ',            value: detail.faculty },
                     { label: 'สาขาวิชา',       value: detail.major },
                     { label: 'เพศ',            value: detail.gender },
@@ -372,6 +393,12 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                     <input className={inputCls + ' mt-1.5'} placeholder="กรอกฝ่าย" value={customDept} onChange={e => setCustomDept(e.target.value)} />
                   )}
                 </div>
+                {editForm.department === 'Student Assistant' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
+                    <input className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..." value={editForm.position} onChange={set('position')} />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">คณะ</label>
                   <select className={inputCls} value={editForm.faculty} onChange={set('faculty')}>

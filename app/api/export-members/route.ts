@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 import { checkAuth, unauthorized } from '@/lib/apiAuth'
+import { SA_DEPARTMENT } from '@/lib/studentGroup'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const dept      = searchParams.get('dept')      || ''
   const gen       = searchParams.get('gen')       || ''
+  const group     = searchParams.get('group')     || ''
   const studentId = searchParams.get('studentId') || ''
 
   const db = supabaseAdmin()
@@ -19,6 +21,8 @@ export async function GET(req: NextRequest) {
   else {
     if (dept) q = q.eq('department', dept)
     if (gen)  q = q.eq('gen', Number(gen))
+    if (group === 'sa') q = q.eq('department', SA_DEPARTMENT)
+    else if (group === 'cops') q = q.neq('department', SA_DEPARTMENT)
   }
 
   const { data: students } = await q
@@ -29,6 +33,7 @@ export async function GET(req: NextRequest) {
     'ชื่อ-นามสกุล':             s.name,
     'รหัสนิสิต':                s.student_id,
     'ฝ่าย':                     s.department,
+    'ตำแหน่ง':                  s.position ?? '',
     'คณะ':                      s.faculty ?? '',
     'สาขาวิชา':                 s.major ?? '',
     'เพศ':                      s.gender ?? '',
@@ -48,6 +53,7 @@ export async function GET(req: NextRequest) {
     { wch: 22 }, // ชื่อ
     { wch: 14 }, // รหัสนิสิต
     { wch: 14 }, // ฝ่าย
+    { wch: 16 }, // ตำแหน่ง
     { wch: 22 }, // คณะ
     { wch: 22 }, // สาขา
     { wch: 8  }, // เพศ
@@ -65,7 +71,7 @@ export async function GET(req: NextRequest) {
   XLSX.utils.book_append_sheet(wb, ws, 'ทำเนียบสมาชิก')
   const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
 
-  const label = [dept && `dept-${dept}`, gen && `gen${gen}`].filter(Boolean).join('_') || 'all'
+  const label = [dept && `dept-${dept}`, gen && `gen${gen}`, group && `group-${group}`].filter(Boolean).join('_') || 'all'
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

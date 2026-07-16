@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { type Student } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { th } from 'date-fns/locale'
+import { studentGroup } from '@/lib/studentGroup'
 
 const GEN_COLORS: Record<number, string> = {
   1: '#7c3aed', 2: '#2563eb', 3: '#16a34a', 4: '#ea580c', 5: '#e11d48',
@@ -33,6 +34,7 @@ export default function PrintRosterClient() {
   const params      = useSearchParams()
   const dept        = params.get('dept') || ''
   const genParam    = params.get('gen')
+  const groupParam  = params.get('group') || ''
   const studentId   = params.get('studentId') || ''
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading]   = useState(true)
@@ -42,7 +44,10 @@ export default function PrintRosterClient() {
       const token = localStorage.getItem('mgr_token') || localStorage.getItem('dev_token') || ''
       const qs = new URLSearchParams()
       if (studentId) qs.set('id', studentId)
-      else if (dept) qs.set('dept', dept)
+      else {
+        if (dept) qs.set('dept', dept)
+        if (groupParam) qs.set('group', groupParam)
+      }
 
       const res = await fetch(`/api/students?${qs}`, { headers: { 'x-token': token } })
       let data: Student[] = res.ok ? await res.json() : []
@@ -56,7 +61,7 @@ export default function PrintRosterClient() {
       setStudents(data)
       setLoading(false)
     })()
-  }, [dept, genParam, studentId])
+  }, [dept, genParam, groupParam, studentId])
 
   useEffect(() => {
     if (!loading && students.length > 0) setTimeout(() => window.print(), 700)
@@ -123,6 +128,7 @@ export default function PrintRosterClient() {
             <InfoRow label="ชื่อ-นามสกุล"   value={s.name} />
             <InfoRow label="รหัสนิสิต"        value={s.student_id} />
             <InfoRow label="ฝ่าย / กลุ่มงาน" value={s.department} />
+            {s.department === 'Student Assistant' && <InfoRow label="ตำแหน่ง" value={s.position} />}
             <InfoRow label="รุ่นที่ (Gen)"     value={s.gen != null ? `รุ่นที่ ${s.gen}` : null} />
             <InfoRow label="สถานะ"             value={s.status} />
           </div>
@@ -160,7 +166,7 @@ export default function PrintRosterClient() {
   const withGen    = students.filter(s => s.gen != null)
   const withoutGen = students.filter(s => s.gen == null)
   const gens       = Array.from(new Set(withGen.map(s => s.gen as number))).sort()
-  const subtitle   = [dept, genParam ? `รุ่นที่ ${genParam}` : ''].filter(Boolean).join(' · ')
+  const subtitle   = [dept, groupParam ? groupParam.toUpperCase() : '', genParam ? `รุ่นที่ ${genParam}` : ''].filter(Boolean).join(' · ')
 
   // Continuous numbering across all groups
   let globalIdx = 0
@@ -208,7 +214,7 @@ export default function PrintRosterClient() {
             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 10 }}>
               <thead>
                 <tr>
-                  {['#','ชื่อ-นามสกุล','รหัสนิสิต','ฝ่าย','คณะ / สาขาวิชา','เพศ','วันเกิด','ศาสนา','สัญชาติ','เบอร์โทร','E-mail','เลขบัตรประชาชน','สถานะ','หมายเหตุ'].map(h => (
+                  {['#','ชื่อ-นามสกุล','รหัสนิสิต','ฝ่าย','ตำแหน่ง','คณะ / สาขาวิชา','เพศ','วันเกิด','ศาสนา','สัญชาติ','เบอร์โทร','E-mail','เลขบัตรประชาชน','สถานะ','หมายเหตุ'].map(h => (
                     <th key={h} style={{ background: '#1a3a5c', color: 'white', padding: '5px 8px', textAlign: 'left', border: '1px solid #0f2744', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -223,6 +229,7 @@ export default function PrintRosterClient() {
                       <td style={{ ...tdS, fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
                       <td style={{ ...tdS, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{s.student_id}</td>
                       <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.department}</td>
+                      <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.position ?? '-'}</td>
                       <td style={tdS}>{[s.faculty, s.major].filter(Boolean).join(' · ') || '-'}</td>
                       <td style={{ ...tdS, textAlign: 'center' }}>{s.gender ?? '-'}</td>
                       <td style={{ ...tdS, whiteSpace: 'nowrap' }}>{s.birthdate ? new Date(s.birthdate).toLocaleDateString('th-TH') : '-'}</td>

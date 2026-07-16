@@ -6,6 +6,7 @@ import { format, differenceInMinutes } from 'date-fns'
 import { th } from 'date-fns/locale'
 import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import RosterTab from '@/app/components/RosterTab'
+import GroupBadge from '@/app/components/GroupBadge'
 import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
@@ -1577,6 +1578,7 @@ export default function DevPage() {
                         <tr key={student.student_id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             <div className="flex items-center gap-2">
+                              <GroupBadge department={student.department} />
                               {student.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[student.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{student.nickname}</span>}
                               <span>{student.name}</span>
                               <button onClick={() => handleResetSelfReportCount(student)}
@@ -1674,6 +1676,7 @@ export default function DevPage() {
                       <tr key={s.student_id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                           <div className="flex items-center gap-2">
+                            <GroupBadge department={s.department} />
                             {s.nickname && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border flex-shrink-0 ${DEPT_CHIP[s.department] ?? 'bg-gray-100 text-gray-600 border-gray-300'}`}>{s.nickname}</span>}
                             {s.name}
                           </div>
