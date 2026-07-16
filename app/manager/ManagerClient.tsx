@@ -225,6 +225,11 @@ export default function ManagerPage() {
   // ignore its own result if a newer call has since started.
   const summaryReqId  = useRef(0)
   const overviewReqId = useRef(0)
+  // Tracks which (student, month) the log list is currently showing, so a
+  // refetch of the SAME context (after approve/reject/pay, a realtime
+  // update, or the background poll) doesn't reset the page — only actually
+  // switching student or month should jump back to page 1.
+  const summaryContextRef = useRef('')
 
   const fetchSummary = useCallback(async (overrideId?: string) => {
     const sid = overrideId ?? selectedStudentId
@@ -250,7 +255,11 @@ export default function ManagerPage() {
       const toThaiDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600000).toISOString().slice(0, 10)
       const totalMin = processed.reduce((s, l) => s + Math.max(0, l.durationMinutes), 0)
       setSummary({ totalDays: new Set(processed.map(l => toThaiDate(l.check_in))).size, totalHours: Math.floor(totalMin / 60), totalMinutes: totalMin % 60, taskCount: processed.length, logs: processed, student, dateFrom: toThaiDate(start), dateTo: toThaiDate(end) })
-      setCurrentPage(1)
+      const context = `${sid}:${exportMonth}`
+      if (summaryContextRef.current !== context) {
+        summaryContextRef.current = context
+        setCurrentPage(1)
+      }
     } finally { if (reqId === summaryReqId.current) setLoading(false) }
   }, [selectedStudentId, exportMonth, logout])
 
@@ -319,7 +328,7 @@ export default function ManagerPage() {
   // Safety net: the Realtime websocket can silently drop (network blips,
   // idle tab throttling, proxy timeouts) without the client ever firing an
   // error, so postgres_changes above can go quiet with no visible sign.
-  // Poll on top of it so data still catches up within 5s even if the
+  // Poll on top of it so data still catches up within 60s even if the
   // socket is dead.
   useEffect(() => {
     if (!authed) return
@@ -330,7 +339,7 @@ export default function ManagerPage() {
       if (busyLogIdsRef.current.size > 0) return
       void fetchSummary()
       if (overviewRef.current.length > 0) void fetchOverview()
-    }, 20000)
+    }, 60000)
     return () => clearInterval(id)
   }, [authed, fetchSummary, fetchOverview])
 
@@ -429,6 +438,7 @@ export default function ManagerPage() {
   const handleExportPayroll = () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams({ month: backupMonth })
+    if (overviewDept) params.set('dept', overviewDept)
     void downloadExport(`/api/export-payroll?${params}`, token)
   }
 
@@ -441,6 +451,7 @@ export default function ManagerPage() {
   const handleExportStudentDetails = () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams({ month: backupMonth })
+    if (overviewDept) params.set('dept', overviewDept)
     void downloadExport(`/api/export-student-details?${params}`, token)
   }
 
