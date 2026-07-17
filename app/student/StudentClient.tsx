@@ -9,6 +9,7 @@ import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner from '@/app/components/RetentionBanner'
 import { monthRangeISO, thaiMonthOf } from '@/lib/retention'
 import { SA_DEPARTMENT } from '@/lib/studentGroup'
+import { workWindowError } from '@/lib/attendance'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
@@ -377,6 +378,8 @@ export default function StudentPage() {
   const handleCheckIn = async () => {
     if (checkInLock.current) return
     if (!studentLocked) return showMsg('error', 'ไม่พบรหัสนิสิตในระบบ กรุณาติดต่อผู้ดูแลระบบ')
+    const windowErr = workWindowError(new Date().toISOString())
+    if (windowErr) return showMsg('error', windowErr)
     checkInLock.current = true
     setLoading(true)
     try {
@@ -454,6 +457,11 @@ export default function StudentPage() {
   const finishCheckOut = async (duration: number) => {
     if (!activeLog) return
     const checkOutISO = new Date(new Date(activeLog.check_in).getTime() + duration * 60000).toISOString()
+    const windowErr = workWindowError(activeLog.check_in, checkOutISO)
+    if (windowErr) {
+      showMsg('error', `ไม่สามารถบันทึกเวลาออกได้ เนื่องจาก${windowErr} กรุณาติดต่อผู้ดูแลระบบ`, 0)
+      return
+    }
     setLoading(true)
     try {
       const { error } = await supabase.from('time_logs').update({
@@ -570,6 +578,8 @@ export default function StudentPage() {
         const mins = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 60000
         if (mins > 16 * 60) return showMsg('error', 'ไม่สามารถลงเวลาเกิน 16 ชั่วโมงต่อครั้งได้')
       }
+      const windowErr = workWindowError(inISO, outISO)
+      if (windowErr) return showMsg('error', windowErr)
 
       // Cap new self-reports at 3/month — counted by the month the request
       // is submitted in (not the backdated date), resetting every month.

@@ -12,6 +12,7 @@ import { showToast } from '@/app/components/Toast'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
 import RetentionCountdown from '@/app/components/RetentionCountdown'
+import { workWindowError } from '@/lib/attendance'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -563,6 +564,11 @@ export default function DevPage() {
       const co = new Date(editForm.check_out)
       if (co <= ci) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
     }
+    const windowErr = workWindowError(
+      fromDatetimeLocal(editForm.check_in) ?? editingLog.check_in,
+      editForm.check_out ? fromDatetimeLocal(editForm.check_out) : null,
+    )
+    if (windowErr) { showToast(windowErr, 'warning'); return }
     const prevLog = editingLog
     setEditSaving(true)
     try {
@@ -640,11 +646,13 @@ export default function DevPage() {
     const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = addLogForm
     if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
     const outDate = check_out_date || date
-    if (check_out) {
-      const inISO  = thaiToUTC(date, check_in)
-      const outISO = thaiToUTC(outDate, check_out)
+    const inISO  = thaiToUTC(date, check_in)
+    const outISO = check_out ? thaiToUTC(outDate, check_out) : null
+    if (outISO) {
       if (outISO <= inISO) { showToast('เวลาออกต้องมากกว่าเวลาเข้า', 'warning'); return }
     }
+    const windowErr = workWindowError(inISO, outISO)
+    if (windowErr) { showToast(windowErr, 'warning'); return }
     setAddLogSaving(true)
     try {
       const token = localStorage.getItem('dev_token') || ''
@@ -653,8 +661,8 @@ export default function DevPage() {
         headers: { 'Content-Type': 'application/json', 'x-token': token },
         body: JSON.stringify({
           student_id:   selectedStudentId,
-          check_in:     thaiToUTC(date, check_in),
-          check_out:    check_out ? thaiToUTC(outDate, check_out) : null,
+          check_in:     inISO,
+          check_out:    outISO,
           project_name: project_name || null,
           work_summary: work_summary || null,
           photo_url,

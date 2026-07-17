@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
+import { workWindowError } from '@/lib/attendance'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,6 +91,8 @@ export async function POST(req: NextRequest) {
   if (typeof body.student_id === 'string' && await forbiddenForStudent(req, body.student_id)) return unauthorized()
 
   if (typeof body.student_id === 'string' && typeof body.check_in === 'string') {
+    const windowError = workWindowError(body.check_in, body.check_out ?? null)
+    if (windowError) return NextResponse.json({ error: windowError }, { status: 400 })
     if (await hasOverlap(body.student_id, body.check_in, body.check_out ?? null)) {
       return NextResponse.json({ error: 'ช่วงเวลานี้ทับกับ log ที่มีอยู่แล้วของนิสิตคนนี้' }, { status: 409 })
     }
@@ -115,6 +118,8 @@ export async function PATCH(req: NextRequest) {
     if (current) {
       const checkIn  = body.check_in ?? current.check_in
       const checkOut = body.check_out !== undefined ? body.check_out : current.check_out
+      const windowError = workWindowError(checkIn, checkOut)
+      if (windowError) return NextResponse.json({ error: windowError }, { status: 400 })
       if (await hasOverlap(current.student_id, checkIn, checkOut, id)) {
         return NextResponse.json({ error: 'ช่วงเวลานี้ทับกับ log ที่มีอยู่แล้วของนิสิตคนนี้' }, { status: 409 })
       }

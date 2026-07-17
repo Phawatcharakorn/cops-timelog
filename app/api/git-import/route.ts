@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getAuth, unauthorized } from '@/lib/apiAuth'
+import { thaiDayIndex, thaiDayStartMs, thaiMinuteOfDay, workWindowError, WORK_START_MIN } from '@/lib/attendance'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,65 @@ function groupIntoSessions(commits: GhCommit[]) {
   return sessions
 }
 
+// นิสิตทำงานได้เฉพาะ 08:30-24:00 — commit ตอนดึกจึงต้อง "ยก" ทั้ง session ไป
+// เริ่มเช้าถัดไปแทน โดยคงระยะเวลาทำงานเดิม (ดู lib/attendance.ts)
+//   - ถ้า check_in ก่อน 08:30 (เช่นตี 1) นับว่ายังเป็นงานดึกของ "วันเดียวกัน"
+//     ตามปฏิทิน จึงยกไปแค่ 08:30 ของวันนั้นเอง ไม่ใช่วันถัดไป
+//   - ถ้า check_in ผ่าน 08:30 แล้วแต่ check_out ล้นเที่ยงคืน (เช่น ทำถึงตี 2)
+//     ต้องยกทั้ง session ไปเริ่มเช้าของวันถัดไป
+function targetDayForShift(checkInISO: string): number {
+  const inDay = thaiDayIndex(checkInISO)
+  return thaiMinuteOfDay(checkInISO) < WORK_START_MIN ? inDay : inDay + 1
+}
+
+// เวลาเริ่ม 08:30 ของ dayIndex + ระยะเวลาเดิม แต่ไม่ล้นเกิน 24:00 ของวันนั้น
+// (session ที่ยาวเกิน 15.5 ชม. ซึ่งแทบเป็นไปไม่ได้จาก commit gap 2 ชม. จะถูกตัดพอดีเที่ยงคืน)
+function buildCandidate(dayIndex: number, durationMs: number): { checkInMs: number; checkOutMs: number } {
+  const dayStart  = thaiDayStartMs(dayIndex)
+  const checkInMs = dayStart + WORK_START_MIN * 60_000
+  const dayEndMs  = dayStart + 24 * 60 * 60_000
+  const checkOutMs = Math.min(checkInMs + durationMs, dayEndMs)
+  return { checkInMs, checkOutMs }
+}
+
+function msOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && bStart < aEnd
+}
+
+// จัดสรร session ทีละอันให้ตกอยู่ในช่วง 08:30-24:00 และไม่ทับกับ log ที่มีอยู่
+// (ทั้งของเดิมใน DB และ session อื่นที่เพิ่งจัดไปแล้วใน batch นี้) — ถ้าทับ ก็
+// เลื่อนไปเริ่มเช้าวันถัดไปเรื่อยๆ จนกว่าจะว่าง (จำกัดไว้กันวนไม่รู้จบ)
+function placeSession(
+  session: { checkIn: string; checkOut: string },
+  reserved: { start: number; end: number }[],
+): { checkInMs: number; checkOutMs: number } {
+  const rawCheckInMs  = new Date(session.checkIn).getTime()
+  const rawCheckOutMs = new Date(session.checkOut).getTime()
+  const durationMs = rawCheckOutMs - rawCheckInMs
+  const withinWindow = workWindowError(session.checkIn, session.checkOut) === null
+
+  // Reports only ever show :00/:30 marks — round after placing, not before,
+  // so the overlap check below always compares the times that actually get stored.
+  const round = (c: { checkInMs: number; checkOutMs: number }) => ({
+    checkInMs: floorToHalfHour(c.checkInMs),
+    checkOutMs: ceilToHalfHour(c.checkOutMs),
+  })
+
+  let dayIndex = withinWindow ? thaiDayIndex(session.checkIn) : targetDayForShift(session.checkIn)
+  let candidate = round(withinWindow
+    ? { checkInMs: rawCheckInMs, checkOutMs: rawCheckOutMs }
+    : buildCandidate(dayIndex, durationMs))
+
+  const MAX_ATTEMPTS = 60 // ~2 เดือนเป็นเพดานกันวนไม่รู้จบ ในทางปฏิบัติไม่มีทางถึง
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const hasClash = reserved.some(r => msOverlap(candidate.checkInMs, candidate.checkOutMs, r.start, r.end))
+    if (!hasClash) return candidate
+    dayIndex += 1
+    candidate = round(buildCandidate(dayIndex, durationMs))
+  }
+  return candidate // เต็มทุกวันจริงๆ (แทบเป็นไปไม่ได้) — ใส่ไปตามที่จัดได้ล่าสุด
+}
+
 // Dev-only: pull new commits (per student, matched by github_username) since
 // the last git-derived import, fold them into 1h-per-commit work sessions,
 // and insert them as pending time_logs for a manager/dev to review like any
@@ -110,16 +170,30 @@ export async function POST(req: NextRequest) {
       const sessions = groupIntoSessions(commits)
       if (sessions.length === 0) continue
 
-      const rows = sessions.map(s => ({
-        student_id: student.student_id,
-        check_in: new Date(floorToHalfHour(new Date(s.checkIn).getTime())).toISOString(),
-        check_out: new Date(ceilToHalfHour(new Date(s.checkOut).getTime())).toISOString(),
-        work_summary: s.messages.join(' / '),
-        status: 'pending' as const,
-        is_git_derived: true,
-        git_commit_sha: s.lastSha,
-        git_repos: Array.from(s.repos).join(','),
+      // Existing logs this student already has (any source) — sessions that
+      // get shifted into 08:30-24:00 must not land on top of these.
+      const { data: existingLogs } = await db
+        .from('time_logs').select('check_in, check_out')
+        .eq('student_id', student.student_id).limit(50_000)
+      const reserved = (existingLogs ?? []).map(l => ({
+        start: new Date(l.check_in).getTime(),
+        end: l.check_out ? new Date(l.check_out).getTime() : new Date(l.check_in).getTime() + 24 * 60 * 60_000,
       }))
+
+      const rows = sessions.map(s => {
+        const placed = placeSession({ checkIn: s.checkIn, checkOut: s.checkOut }, reserved)
+        reserved.push({ start: placed.checkInMs, end: placed.checkOutMs }) // ไม่ให้ session ถัดไปใน batch เดียวกันทับตัวนี้
+        return {
+          student_id: student.student_id,
+          check_in: new Date(placed.checkInMs).toISOString(),
+          check_out: new Date(placed.checkOutMs).toISOString(),
+          work_summary: s.messages.join(' / '),
+          status: 'pending' as const,
+          is_git_derived: true,
+          git_commit_sha: s.lastSha,
+          git_repos: Array.from(s.repos).join(','),
+        }
+      })
       const { error: insertError } = await db.from('time_logs').insert(rows)
       if (insertError) { errors.push(`${student.student_id}: ${insertError.message}`); continue }
       imported += rows.length
