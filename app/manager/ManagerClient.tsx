@@ -39,7 +39,7 @@ type Summary = { totalDays: number; totalHours: number; totalMinutes: number; ta
 type StudentOverview = { student: Student; totalDays: number; totalHours: number; totalMinutes: number; taskCount: number; pendingCount: number; selfReportCount: number }
 type EditForm = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat = { month: string; days: number; hours: number; minutes: number; tasks: number }
-type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
+type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string; position: string }
 type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
 function fmtTime(iso: string) { return format(new Date(iso), 'HH:mm', { locale: th }) }
@@ -108,7 +108,7 @@ export default function ManagerPage() {
   const [editSaving, setEditSaving] = useState(false)
 
   const [addStudentOpen, setAddStudentOpen]   = useState(false)
-  const [addStudentForm, setAddStudentForm]   = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+  const [addStudentForm, setAddStudentForm]   = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '', position: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
   const [addStudentCustomDept, setAddStudentCustomDept] = useState('')
 
@@ -448,6 +448,13 @@ export default function ManagerPage() {
     void downloadExport(`/api/export-backup?${params}`, token)
   }
 
+  const handleExportMembers = () => {
+    const token = localStorage.getItem('mgr_token') || ''
+    const params = new URLSearchParams()
+    if (overviewDept) params.set('dept', overviewDept)
+    void downloadExport(`/api/export-members?${params}`, token)
+  }
+
   const handleExportStudentDetails = () => {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams({ month: backupMonth })
@@ -502,7 +509,7 @@ export default function ManagerPage() {
   }
 
   const handleAddStudent = async () => {
-    const { student_id, name, nickname, department, faculty, major, pin } = addStudentForm
+    const { student_id, name, nickname, department, faculty, major, pin, position } = addStudentForm
     if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
@@ -512,11 +519,11 @@ export default function ManagerPage() {
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-token': token },
-        body: JSON.stringify({ student_id: student_id.trim(), name: name.trim(), nickname: nickname.trim() || null, department: deptToSave, faculty, major: major.trim() || null, pin: pin || null }),
+        body: JSON.stringify({ student_id: student_id.trim(), name: name.trim(), nickname: nickname.trim() || null, department: deptToSave, faculty, major: major.trim() || null, pin: pin || null, position: deptToSave === 'Student Assistant' ? (position.trim() || null) : null }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
-      setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' }); setAddStudentCustomDept('')
+      setAddStudentOpen(false); setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '', position: '' }); setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) { showToast('เพิ่มนิสิตไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddStudentSaving(false) }
   }
@@ -1181,6 +1188,14 @@ export default function ManagerPage() {
                   </svg>
                   โหลดรายละเอียดนิสิต
                 </button>
+                <button onClick={handleExportMembers}
+                  title={overviewDept ? `รายชื่อสมาชิกฝ่าย ${overviewDept} (Excel)` : 'รายชื่อสมาชิกทุกฝ่าย (Excel)'}
+                  className="bg-cyan-700 hover:bg-cyan-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  รายชื่อสมาชิก
+                </button>
                 <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
               </div>
             </div>
@@ -1477,6 +1492,12 @@ export default function ManagerPage() {
               </select>
               {addStudentForm.department === 'อื่นๆ' && <input className={inputCls + ' mt-2'} placeholder="ระบุฝ่าย..." value={addStudentCustomDept} onChange={e => setAddStudentCustomDept(e.target.value)} />}
             </div>
+            {addStudentForm.department === 'Student Assistant' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
+                <input className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..." value={addStudentForm.position} onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))} />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">คณะ</label>
               <select className={inputCls} value={addStudentForm.faculty} onChange={e => setAddStudentForm(f => ({ ...f, faculty: e.target.value }))}>

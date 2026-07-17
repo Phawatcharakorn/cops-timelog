@@ -47,7 +47,7 @@ type StudentOverview = {
 }
 type EditForm     = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat    = { month: string; days: number; hours: number; minutes: number; tasks: number }
-type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string }
+type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string; position: string }
 type AddLogForm   = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
 
 function fmtTime(iso: string)         { return format(new Date(iso), 'HH:mm', { locale: th }) }
@@ -135,7 +135,7 @@ export default function DevPage() {
 
   // Add Student modal
   const [addStudentOpen, setAddStudentOpen]     = useState(false)
-  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+  const [addStudentForm, setAddStudentForm]     = useState<AddStudentForm>({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '', position: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
 
   // Add Log modal
@@ -460,6 +460,13 @@ export default function DevPage() {
     void downloadExport(`/api/export-student-details?${params}`, token)
   }
 
+  const handleExportMembers = () => {
+    const token = localStorage.getItem('dev_token') || ''
+    const params = new URLSearchParams()
+    if (overviewDept) params.set('dept', overviewDept)
+    void downloadExport(`/api/export-members?${params}`, token)
+  }
+
   const [importingGit, setImportingGit] = useState(false)
   const handleGitImport = async () => {
     setImportingGit(true)
@@ -596,7 +603,7 @@ export default function DevPage() {
 
   // ── NEW: เพิ่มนิสิตใหม่ ────────────────────────────────────────────────────
   const handleAddStudent = async () => {
-    const { student_id, name, nickname, department, faculty, major, pin } = addStudentForm
+    const { student_id, name, nickname, department, faculty, major, pin, position } = addStudentForm
     if (!student_id.trim() || !name.trim()) { showToast('กรุณากรอกรหัสนิสิตและชื่อ', 'warning'); return }
     if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { showToast('PIN ต้องเป็นตัวเลข 4 หลัก', 'warning'); return }
     const deptToSave = department === 'อื่นๆ' ? (addStudentCustomDept.trim() || 'อื่นๆ') : department
@@ -614,12 +621,13 @@ export default function DevPage() {
           faculty,
           major:      major.trim() || null,
           pin:        pin || null,
+          position:   deptToSave === 'Student Assistant' ? (position.trim() || null) : null,
         }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('เพิ่มนิสิตเรียบร้อยแล้ว', 'success')
       setAddStudentOpen(false)
-      setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '' })
+      setAddStudentForm({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', pin: '', position: '' })
       setAddStudentCustomDept('')
       await loadStudents()
     } catch (e) {
@@ -1509,6 +1517,14 @@ export default function DevPage() {
                   </svg>
                   โหลดรายละเอียดนิสิต
                 </button>
+                <button onClick={handleExportMembers}
+                  title={overviewDept ? `รายชื่อสมาชิกฝ่าย ${overviewDept} (Excel)` : 'รายชื่อสมาชิกทุกฝ่าย (Excel)'}
+                  className="bg-cyan-700 hover:bg-cyan-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  รายชื่อสมาชิก
+                </button>
                 <button onClick={handleManualDeleteMonth} disabled={deletingMonth}
                   title="ลบข้อมูลเดือนนี้ทันที ข้ามคูลดาวน์ 3 วัน (เฉพาะ dev)"
                   className="bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
@@ -2031,6 +2047,14 @@ export default function DevPage() {
                   onChange={e => setAddStudentCustomDept(e.target.value)} />
               )}
             </div>
+            {addStudentForm.department === 'Student Assistant' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
+                <input type="text" className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..."
+                  value={addStudentForm.position}
+                  onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))} />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
               <select className={inputCls} value={addStudentForm.faculty}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
-import { checkAuth, unauthorized } from '@/lib/apiAuth'
+import { checkAuth, getAuth, unauthorized } from '@/lib/apiAuth'
 import { SA_DEPARTMENT } from '@/lib/studentGroup'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
   const { searchParams } = new URL(req.url)
-  const dept      = searchParams.get('dept')      || ''
+  const auth = getAuth(req)
+  // A department-locked manager only ever sees their own department's data.
+  const dept      = auth?.role === 'manager' && auth.department ? auth.department : (searchParams.get('dept') || '')
   const gen       = searchParams.get('gen')       || ''
   const group     = searchParams.get('group')     || ''
   const studentId = searchParams.get('studentId') || ''
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
   const rows = students.map(s => ({
     'รุ่น':                     s.gen ?? '-',
     'ชื่อ-นามสกุล':             s.name,
+    'ชื่อเล่น':                 s.nickname ?? '',
     'รหัสนิสิต':                s.student_id,
     'ฝ่าย':                     s.department,
     'ตำแหน่ง':                  s.position ?? '',
@@ -51,6 +54,7 @@ export async function GET(req: NextRequest) {
   ws['!cols'] = [
     { wch: 6  }, // รุ่น
     { wch: 22 }, // ชื่อ
+    { wch: 14 }, // ชื่อเล่น
     { wch: 14 }, // รหัสนิสิต
     { wch: 14 }, // ฝ่าย
     { wch: 16 }, // ตำแหน่ง
