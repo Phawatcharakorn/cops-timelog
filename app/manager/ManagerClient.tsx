@@ -9,7 +9,6 @@ import RosterTab from '@/app/components/RosterTab'
 import GroupBadge from '@/app/components/GroupBadge'
 import SdecHeader from '@/app/components/SdecHeader'
 import { showToast } from '@/app/components/Toast'
-import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
 import RetentionCountdown from '@/app/components/RetentionCountdown'
 import { workWindowError } from '@/lib/attendance'
@@ -41,7 +40,7 @@ type StudentOverview = { student: Student; totalDays: number; totalHours: number
 type EditForm = { check_in: string; check_out: string; project_name: string; work_summary: string }
 type MonthStat = { month: string; days: number; hours: number; minutes: number; tasks: number }
 type AddStudentForm = { student_id: string; name: string; nickname: string; department: string; faculty: string; major: string; pin: string; position: string }
-type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
+type AddLogForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string }
 
 function fmtTime(iso: string) { return format(new Date(iso), 'HH:mm', { locale: th }) }
 function fmtDate(iso: string) { return format(new Date(iso), 'd MMM yyyy', { locale: th }) }
@@ -114,7 +113,7 @@ export default function ManagerPage() {
   const [addStudentCustomDept, setAddStudentCustomDept] = useState('')
 
   const [addLogOpen, setAddLogOpen]   = useState(false)
-  const [addLogForm, setAddLogForm]   = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
+  const [addLogForm, setAddLogForm]   = useState<AddLogForm>({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' })
   const [addLogSaving, setAddLogSaving] = useState(false)
 
   const [pinModal, setPinModal] = useState<{ student_id: string; name: string } | null>(null)
@@ -535,7 +534,7 @@ export default function ManagerPage() {
   }
 
   const handleAddLog = async () => {
-    const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = addLogForm
+    const { date, check_in, check_out, check_out_date, project_name, work_summary } = addLogForm
     if (!date || !check_in) { showToast('กรุณากรอกวันที่และเวลาเข้า', 'warning'); return }
     const outDate = check_out_date || date
     const inISO  = thaiToUTC(date, check_in)
@@ -555,14 +554,13 @@ export default function ManagerPage() {
           check_out:    outISO,
           project_name: project_name || null,
           work_summary: work_summary || null,
-          photo_url,
         }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       const newLog = await res.json()
       if (newLog) setUndoAction({ type: 'add', id: newLog.id })
       showToast('เพิ่ม Log เรียบร้อยแล้ว', 'success')
-      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null }); await fetchSummary(); if (overview.length > 0) void fetchOverview()
+      setAddLogOpen(false); setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' }); await fetchSummary(); if (overview.length > 0) void fetchOverview()
     } catch (e) { showToast('เพิ่ม Log ไม่สำเร็จ: ' + (e as Error).message, 'error') } finally { setAddLogSaving(false) }
   }
 
@@ -828,7 +826,7 @@ export default function ManagerPage() {
                   className="bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                   {loading ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>กำลังโหลด...</> : 'ดึงข้อมูล'}
                 </button>
-                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null }); setAddLogOpen(true) }}
+                <button onClick={() => { setAddLogForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' }); setAddLogOpen(true) }}
                   disabled={!selectedStudentId}
                   className="py-2.5 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-40 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -930,6 +928,7 @@ export default function ManagerPage() {
                               #{globalIdx + 1} · {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="ml-1.5 text-blue-500 font-medium">· นิสิตลงเอง</span>}
                               {log.is_git_derived && <span className="ml-1.5 text-purple-500 font-medium">· จาก Git{log.git_repos ? ` (${fmtRepos(log.git_repos)})` : ''}</span>}
+                              {log.is_student_edited && <span className="ml-1.5 text-orange-500 font-medium">· นิสิตแก้ไขเวลา</span>}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className="text-sm font-semibold text-green-600">{fmtTime(log.check_in)}</span>
@@ -959,9 +958,6 @@ export default function ManagerPage() {
                             {log.project_name && <div className="font-semibold text-gray-700">{log.project_name}</div>}
                             {log.work_summary && <div className="line-clamp-2">{log.work_summary}</div>}
                           </div>
-                        )}
-                        {log.photo_url && (
-                          <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">📎 ดูไฟล์แนบ</a>
                         )}
                         <div>
                           {log.status === 'approved' ? (
@@ -1030,6 +1026,7 @@ export default function ManagerPage() {
                               {fmtDate(log.check_in)}
                               {log.is_self_reported && <span className="block text-[10px] text-blue-500 font-medium">นิสิตลงเอง</span>}
                               {log.is_git_derived && <span className="block text-[10px] text-purple-500 font-medium">จาก Git{log.git_repos ? ` · ${fmtRepos(log.git_repos)}` : ''}</span>}
+                              {log.is_student_edited && <span className="block text-[10px] text-orange-500 font-medium">นิสิตแก้ไขเวลา</span>}
                             </td>
                             <td className="font-medium text-green-600" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{fmtTime(log.check_in)}</td>
                             <td className="font-medium text-rose-500" style={{ padding: '12px 16px', lineHeight: 1.8 }}>{log.is_auto_closed ? <span className="text-yellow-500">ยังไม่กดเวลาออก</span> : log.check_out ? fmtTime(log.check_out) : <span className="text-yellow-500">ยังไม่ออก</span>}</td>
@@ -1040,9 +1037,6 @@ export default function ManagerPage() {
                               onClick={() => setLogDetailModal(log)} title="คลิกเพื่อดูรายละเอียดเต็ม">
                               {log.project_name && <div className="truncate font-semibold text-gray-700">{log.project_name}</div>}
                               <div className="truncate">{log.work_summary || '-'}</div>
-                              {log.photo_url && (
-                                <a href={log.photo_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
-                              )}
                             </td>
                             <td style={{ padding: '10px 16px', minWidth: '180px' }}>
                               {log.status === 'approved' ? (
@@ -1381,12 +1375,6 @@ export default function ManagerPage() {
               <p className="text-xs text-gray-400 font-medium mb-1">สรุปงาน</p>
               <p className="text-sm text-gray-800 bg-gray-50 rounded-lg px-4 py-3 whitespace-pre-wrap break-words">{logDetailModal.work_summary || '-'}</p>
             </div>
-            {logDetailModal.photo_url && (
-              <a href={logDetailModal.photo_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline font-medium">
-                📎 ดูไฟล์ที่แนบ
-              </a>
-            )}
           </div>
         </div>
       )}
@@ -1470,11 +1458,6 @@ export default function ManagerPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
               <textarea rows={2} className={inputCls + ' resize-none'} placeholder="งานที่ทำ..." value={addLogForm.work_summary} onChange={e => setAddLogForm(f => ({ ...f, work_summary: e.target.value }))} />
             </div>
-            <AttachmentInput
-              value={addLogForm.photo_url}
-              onChange={url => setAddLogForm(f => ({ ...f, photo_url: url }))}
-              studentId={selectedStudentId}
-            />
             <div className="flex gap-3 pt-1">
               <button onClick={() => setAddLogOpen(false)} className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
               <button onClick={handleAddLog} disabled={addLogSaving} className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">{addLogSaving ? 'กำลังเพิ่ม...' : 'เพิ่ม Log'}</button>

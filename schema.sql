@@ -14,14 +14,15 @@ CREATE TABLE time_logs (
   check_in     TIMESTAMPTZ NOT NULL,
   check_out    TIMESTAMPTZ,
   work_summary TEXT,
-  photo_url    TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_time_logs_student_id ON time_logs(student_id);
 CREATE INDEX idx_time_logs_check_in   ON time_logs(check_in);
 
--- Supabase Storage bucket for photos
+-- Supabase Storage bucket "work-photos" — used for students.bank_book_url only
+-- (the time_logs work-proof-photo feature that used to share this bucket was
+-- removed to save storage space; see git history if it's ever needed again)
 -- ไปสร้างที่ Storage > New bucket > ชื่อ "work-photos" > Public
 
 -- ──────────────────────────────────────────────────────────────────────────────
@@ -69,9 +70,8 @@ CREATE UNIQUE INDEX idx_feedback_unique ON feedback_responses(campaign_id, respo
 ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_self_reported BOOLEAN NOT NULL DEFAULT false;
 
 -- ──────────────────────────────────────────────────────────────────────────────
--- Attachments (photo_url column above was defined from the start but unused
--- until now — student/manager/dev "add log" forms can attach an image or PDF)
--- Reuses the "work-photos" Storage bucket. Run this if the bucket isn't public yet.
+-- Attachments (bookbank photo/PDF for students.bank_book_url).
+-- Run this if the "work-photos" bucket isn't public yet.
 -- ──────────────────────────────────────────────────────────────────────────────
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('work-photos', 'work-photos', true)
@@ -299,3 +299,17 @@ DROP TRIGGER IF EXISTS trg_self_report_monthly_limit ON time_logs;
 CREATE TRIGGER trg_self_report_monthly_limit
   BEFORE INSERT ON time_logs
   FOR EACH ROW EXECUTE FUNCTION enforce_self_report_monthly_limit();
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- นิสิตแก้ไขเวลาของตัวเอง (เช่น ลงเวลาออกผิดจากเวลาจริง หรือแก้ log ที่ระบบ
+-- ปิดอัตโนมัติเพราะลืมกดออก) — flag นี้ทำให้ dev/manager เห็นว่ารายการนี้
+-- นิสิตแก้เวลาเองจากของเดิม ไม่ใช่ log ใหม่ที่เพิ่งสร้าง (ดู StudentClient.tsx
+-- handleSelfReport, ใช้โมดัลเดียวกับ "ลงเวลาย้อนหลัง" แต่แก้ log จริงแทน)
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs ADD COLUMN IF NOT EXISTS is_student_edited BOOLEAN NOT NULL DEFAULT false;
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- ลบฟีเจอร์แนบไฟล์หลักฐานงาน (time_logs.photo_url) เพื่อประหยัดพื้นที่เก็บข้อมูล
+-- — students.bank_book_url ยังใช้ bucket "work-photos" เดิมอยู่ ไม่เกี่ยวข้องกัน
+-- ──────────────────────────────────────────────────────────────────────────────
+ALTER TABLE time_logs DROP COLUMN IF EXISTS photo_url;

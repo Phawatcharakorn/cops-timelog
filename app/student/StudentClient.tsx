@@ -14,13 +14,13 @@ import { workWindowError } from '@/lib/attendance'
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
 type ActiveLog  = { id: string; check_in: string }
 type HistoryLog = {
-  id: string; check_in: string; check_out: string | null; work_summary: string | null; project_name: string | null; photo_url: string | null
+  id: string; check_in: string; check_out: string | null; work_summary: string | null; project_name: string | null
   dateStr: string; checkInStr: string; checkOutStr: string; durationStr: string
   status: 'pending' | 'approved'; isSelfReported: boolean
   isRejected: boolean; rejectedReason: string | null
-  isAutoClosed: boolean
+  isAutoClosed: boolean; isGitDerived: boolean; isStudentEdited: boolean
 }
-type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string; photo_url: string | null }
+type SelfReportForm = { date: string; check_in: string; check_out: string; check_out_date: string; project_name: string; work_summary: string }
 
 const BKK = 'Asia/Bangkok'
 const SELF_REPORT_MONTHLY_LIMIT = 3
@@ -61,7 +61,6 @@ export default function StudentPage() {
   const [activeLog, setActiveLog]     = useState<ActiveLog | null>(null)
   const [checkOutProject, setCheckOutProject] = useState('')
   const [workSummary, setWorkSummary] = useState('')
-  const [checkOutPhoto, setCheckOutPhoto] = useState<string | null>(null)
   const [loading, setLoading]         = useState(false)
   const [cooldown, setCooldown]       = useState(0)
   const [idLooking, setIdLooking]     = useState(false)
@@ -96,7 +95,7 @@ export default function StudentPage() {
   const [historyMonth, setHistoryMonth]     = useState('')
 
   const [selfReportOpen, setSelfReportOpen]     = useState(false)
-  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
+  const [selfReportForm, setSelfReportForm]     = useState<SelfReportForm>({ date: '', check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' })
   const [selfReportSaving, setSelfReportSaving] = useState(false)
   const [selfReportUsedCount, setSelfReportUsedCount] = useState<number | null>(null)
   const selfReportResetAt = useRef<string | null>(null)
@@ -241,7 +240,7 @@ export default function StudentPage() {
       const dur = (!isAutoClosed && log.check_out) ? differenceInMinutes(new Date(log.check_out), new Date(log.check_in)) : 0
       return {
         id: log.id, check_in: log.check_in, check_out: log.check_out,
-        work_summary: log.work_summary, project_name: log.project_name, photo_url: log.photo_url,
+        work_summary: log.work_summary, project_name: log.project_name,
         dateStr:     fmtShortDate(log.check_in),
         checkInStr:  fmtHHMM(log.check_in),
         checkOutStr: isAutoClosed ? 'ยังไม่กดเวลาออก' : log.check_out ? fmtHHMM(log.check_out) : '-',
@@ -249,7 +248,7 @@ export default function StudentPage() {
         status: (log.status ?? 'pending') as 'pending' | 'approved',
         isSelfReported: !!log.is_self_reported,
         isRejected: !!log.is_rejected, rejectedReason: log.rejected_reason,
-        isAutoClosed,
+        isAutoClosed, isGitDerived: !!log.is_git_derived, isStudentEdited: !!log.is_student_edited,
       }
     }))
     setHistoryLoading(false)
@@ -468,14 +467,13 @@ export default function StudentPage() {
         check_out:    checkOutISO,
         work_summary: workSummary,
         project_name: checkOutProject || null,
-        photo_url:    checkOutPhoto,
       }).eq('id', activeLog.id)
       if (error) throw error
       const studentId = form.student_id
       const studentName = form.name
       startCooldown(3)
       showMsg('success', `บันทึกเวลาออก ทำงาน ${duration} นาที สำเร็จ`)
-      setActiveLog(null); setWorkSummary(''); setCheckOutProject(''); setCheckOutPhoto(null)
+      setActiveLog(null); setWorkSummary(''); setCheckOutProject('')
       setStudentLocked(false); setStudentNotFound(false)
       setHasPin(false); setPinInput(''); setPinSetStep(false); setPinFirst(''); setPinConfirm('')
       setShowHistory(false); setHistoryLogs([])
@@ -517,7 +515,7 @@ export default function StudentPage() {
 
   const openSelfReport = () => {
     setEditingLog(null)
-    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '', photo_url: null })
+    setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' })
     setSelfReportOpen(true)
     void fetchSelfReportUsedCount()
   }
@@ -532,7 +530,7 @@ export default function StudentPage() {
       outTime = thaiOut.toISOString().slice(11, 16)
       outDate = thaiOut.toISOString().slice(0, 10)
     }
-    setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, project_name: log.project_name || '', work_summary: log.work_summary || '', photo_url: log.photo_url })
+    setSelfReportForm({ date: inDate, check_in: inTime, check_out: outTime, check_out_date: outDate, project_name: log.project_name || '', work_summary: log.work_summary || '' })
     setEditingLog(log)
     setSelfReportOpen(true)
     void fetchSelfReportUsedCount()
@@ -564,7 +562,7 @@ export default function StudentPage() {
       // that gate, so the handler enforces it independently too.
       if (!hasPin) return showMsg('error', 'กรุณาตั้ง PIN ก่อนใช้งานฟีเจอร์นี้')
 
-      const { date, check_in, check_out, check_out_date, project_name, work_summary, photo_url } = selfReportForm
+      const { date, check_in, check_out, check_out_date, project_name, work_summary } = selfReportForm
       if (!date || !check_in) return showMsg('error', 'กรุณากรอกวันที่และเวลาเข้า')
       if (!work_summary.trim() || work_summary.trim().length < 5)
         return showMsg('error', 'กรุณาสรุปงานที่ทำ (อย่างน้อย 5 ตัวอักษร) เพื่อให้ผู้ดูแลตรวจสอบได้')
@@ -613,16 +611,21 @@ export default function StudentPage() {
       setSelfReportSaving(true)
       try {
         if (editingLog) {
+          // เดิมเป็น log จริง (เข้า-ออกงานสด หรือระบบปิดอัตโนมัติเพราะลืมกดออก)
+          // ไม่ใช่ self-report มาก่อน — is_student_edited ทำให้ dev/manager
+          // เห็นว่านิสิตแก้เวลาเองจากของเดิม, ไม่ใช่ log ใหม่ที่ยังไม่เคยมี
+          // is_auto_closed ต้องเคลียร์ด้วย เพราะตอนนี้มีเวลาออกจริงที่นิสิตยืนยันแล้ว
           const { error } = await supabase.from('time_logs').update({
-            check_in: inISO, check_out: outISO, project_name: project_name || null, work_summary: work_summary || null, photo_url,
+            check_in: inISO, check_out: outISO, project_name: project_name || null, work_summary: work_summary || null,
             is_rejected: false, rejected_reason: null, rejected_at: null,
+            is_student_edited: true, is_auto_closed: false,
           }).eq('id', editingLog.id)
           if (error) throw error
           showMsg('success', 'แก้ไขคำขอสำเร็จ ส่งกลับไปรออนุมัติอีกครั้ง')
         } else {
           const { error } = await supabase.from('time_logs').insert({
             student_id: form.student_id, check_in: inISO, check_out: outISO,
-            project_name: project_name || null, work_summary: work_summary || null, is_self_reported: true, photo_url,
+            project_name: project_name || null, work_summary: work_summary || null, is_self_reported: true,
           })
           if (error) throw error
           showMsg('success', 'ส่งคำขอลงเวลาย้อนหลังแล้ว รอผู้ดูแลตรวจสอบ')
@@ -989,7 +992,6 @@ export default function StudentPage() {
                     onChange={e => setWorkSummary(e.target.value)}
                   />
                 </div>
-                <AttachmentInput value={checkOutPhoto} onChange={setCheckOutPhoto} studentId={form.student_id} />
               </div>
             )}
 
@@ -1112,6 +1114,7 @@ export default function StudentPage() {
                         <td className="px-3 py-2 text-gray-600" style={{ lineHeight: 1.8 }}>
                           {log.dateStr}
                           {log.isSelfReported && <span className="block text-[10px] text-blue-500 font-medium whitespace-nowrap">ลงเองย้อนหลัง</span>}
+                          {log.isStudentEdited && <span className="block text-[10px] text-orange-500 font-medium whitespace-nowrap">แก้ไขเวลาแล้ว</span>}
                         </td>
                         <td className="px-3 py-2 text-green-600 font-medium" style={{ lineHeight: 1.8 }}>{log.checkInStr}</td>
                         <td className={`px-3 py-2 font-medium ${log.isAutoClosed ? 'text-yellow-500' : 'text-rose-500'}`} style={{ lineHeight: 1.8 }}>{log.checkOutStr}</td>
@@ -1119,9 +1122,6 @@ export default function StudentPage() {
                         <td className="px-3 py-2 text-gray-400 max-w-[100px]" style={{ lineHeight: 1.8 }}>
                           {log.project_name && <div className="truncate font-medium text-gray-600">{log.project_name}</div>}
                           <div className="truncate">{log.work_summary || '-'}</div>
-                          {log.photo_url && (
-                            <a href={log.photo_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline whitespace-nowrap">📎 ไฟล์แนบ</a>
-                          )}
                         </td>
                         <td className="px-3 py-2" style={{ lineHeight: 1.8 }}>
                           {log.status === 'approved'
@@ -1133,10 +1133,12 @@ export default function StudentPage() {
                           {log.isRejected && log.rejectedReason && (
                             <p className="text-[10px] text-red-500 mt-0.5 max-w-[100px]">เหตุผล: {log.rejectedReason}</p>
                           )}
-                          {log.isSelfReported && log.status === 'pending' && (
+                          {!log.isGitDerived && log.status === 'pending' && (
                             <div className="flex gap-2 mt-0.5">
                               <button onClick={() => openEditSelfReport(log)} className="text-[10px] text-blue-500 hover:text-blue-700 font-medium">แก้ไข</button>
-                              <button onClick={() => handleDeleteSelfReport(log)} className="text-[10px] text-red-400 hover:text-red-600 font-medium">ลบ</button>
+                              {log.isSelfReported && (
+                                <button onClick={() => handleDeleteSelfReport(log)} className="text-[10px] text-red-400 hover:text-red-600 font-medium">ลบ</button>
+                              )}
                             </div>
                           )}
                         </td>
@@ -1296,12 +1298,6 @@ export default function StudentPage() {
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
               />
             </div>
-
-            <AttachmentInput
-              value={selfReportForm.photo_url}
-              onChange={url => setSelfReportForm(f => ({ ...f, photo_url: url }))}
-              studentId={form.student_id}
-            />
 
             <div className="flex gap-3">
               <button onClick={() => { setSelfReportOpen(false); setEditingLog(null) }}

@@ -36,7 +36,6 @@ export type TimeLog = {
   check_out: string | null
   work_summary: string | null
   project_name: string | null
-  photo_url: string | null
   created_at: string
   status: 'pending' | 'approved'
   approved_by: string | null
@@ -49,6 +48,7 @@ export type TimeLog = {
   rejected_at: string | null
   is_auto_closed: boolean
   is_git_derived: boolean
+  is_student_edited: boolean
   git_commit_sha: string | null
   git_repos: string | null
 }
