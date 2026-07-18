@@ -1,0 +1,16 @@
+-- Removes anon/public access to the `managers` table.
+--
+-- managers.password_hash was readable by anyone with the public anon key
+-- (NEXT_PUBLIC_SUPABASE_ANON_KEY, shipped in the client bundle) because
+-- schema.sql's baseline RLS pass gave every table a blanket "allow
+-- everything" policy — see the comment above that block. Unlike
+-- students/time_logs, nothing in the app actually needs anon access to
+-- managers: every read/write goes through server-side API routes using
+-- supabaseAdmin() (service role), which bypasses RLS entirely and is
+-- unaffected by this change. See app/api/manager/login/route.ts,
+-- app/api/managers/route.ts, app/api/manager/settings/route.ts.
+--
+-- After this, dropping the permissive policy leaves managers with RLS
+-- enabled and zero policies, which means PostgREST denies all access by
+-- default for anon/authenticated roles — exactly what we want.
+DROP POLICY IF EXISTS "managers all access" ON managers;

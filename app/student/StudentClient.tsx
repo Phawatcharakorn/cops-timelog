@@ -424,9 +424,19 @@ export default function StudentPage() {
     try {
       const rawMinutes = Math.round((Date.now() - new Date(activeLog.check_in).getTime()) / 60000)
 
-      // > 8h30m: refuse — staff must handle it manually
+      // > 8h30m: same "forgot to check out" path used when re-entering the
+      // student ID after 18h (see isRecentCheckIn) — flag it is_auto_closed
+      // for staff review instead of leaving the student stuck with no way
+      // to ever check out (the old behavior just refused forever, since
+      // rawMinutes only grows and re-clicking hit this same branch again).
       if (rawMinutes > 510) {
-        showMsg('error', 'ไม่สามารถบันทึกเวลาออกได้ เนื่องจากทำงานเกิน 8 ชั่วโมงครึ่งแล้ว กรุณาติดต่อผู้ดูแลระบบ', 0)
+        await supabase.from('time_logs').update({
+          check_out:      new Date(new Date(activeLog.check_in).getTime() + 8 * 60 * 60000).toISOString(),
+          work_summary:   workSummary || '(ปิดอัตโนมัติ — ลืม check-out)',
+          is_auto_closed: true,
+        }).eq('id', activeLog.id)
+        setActiveLog(null); setWorkSummary(''); setCheckOutProject('')
+        showMsg('warn', 'ทำงานเกิน 8 ชั่วโมงครึ่งแล้ว ระบบปิดเวลาออกให้อัตโนมัติและส่งให้ผู้ดูแลระบบตรวจสอบ', 0)
         return
       }
 
