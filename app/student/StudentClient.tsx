@@ -524,6 +524,10 @@ export default function StudentPage() {
   }
 
   const openSelfReport = () => {
+    // Filling out the whole form only to be told at submit time that a PIN
+    // is required (and losing everything typed) is why this checks hasPin
+    // up front and routes to PIN setup instead of opening the form at all.
+    if (!hasPin) { showMsg('error', 'กรุณาตั้ง PIN ก่อนลงเวลาย้อนหลัง'); setPinSetStep(true); setPinFirst(''); setPinConfirm(''); return }
     setEditingLog(null)
     setSelfReportForm({ date: todayThai(), check_in: '09:00', check_out: '', check_out_date: '', project_name: '', work_summary: '' })
     setSelfReportOpen(true)
@@ -531,6 +535,7 @@ export default function StudentPage() {
   }
 
   const openEditSelfReport = (log: HistoryLog) => {
+    if (!hasPin) { showMsg('error', 'กรุณาตั้ง PIN ก่อนแก้ไขรายการนี้'); setPinSetStep(true); setPinFirst(''); setPinConfirm(''); return }
     const thaiIn  = new Date(new Date(log.check_in).getTime() + 7 * 3600000)
     const inDate  = thaiIn.toISOString().slice(0, 10)
     const inTime  = thaiIn.toISOString().slice(11, 16)
@@ -743,6 +748,7 @@ export default function StudentPage() {
                     setHasPin(false); setPinInput('')
                   }}
                   onBlur={handleStudentIdBlur}
+                  onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 />
                 {idLooking && (
                   // animate-pulse (opacity fading in/out on a loop) looked
@@ -815,6 +821,12 @@ export default function StudentPage() {
                       title="พิมพ์รายงาน PDF"
                       className="text-xs border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-40 rounded-lg px-2 py-1 font-medium">
                       PDF
+                    </button>
+                    <button
+                      onClick={() => window.open(`/print-bookbank?studentId=${encodeURIComponent(form.student_id)}`, '_blank')}
+                      title="ดูหน้าสมุดบัญชีและรายละเอียดบัญชี"
+                      className="text-xs border border-teal-200 text-teal-700 hover:bg-teal-50 rounded-lg px-2 py-1 font-medium whitespace-nowrap">
+                      Bookbank
                     </button>
                   </div>
                 </div>
