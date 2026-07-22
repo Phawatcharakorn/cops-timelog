@@ -4,6 +4,11 @@
 // print-roster, and export-members all agree on the same classification.
 export const SA_DEPARTMENT = 'Student Assistant'
 
+// The 4 units SA members are actually placed in. Standardized so each unit
+// can eventually get its own manager/admin account scoped by position.
+export const SA_POSITIONS = ['กีฬา', 'SDEC', 'กิจกรรมนิสิต', 'ห้องพยาบาล'] as const
+export type SAPosition = typeof SA_POSITIONS[number]
+
 export type StudentGroup = 'COPS' | 'SA'
 
 export function studentGroup(department: string): StudentGroup {

@@ -8,7 +8,7 @@ import TimeWheelPicker from '@/app/components/TimeWheelPicker'
 import AttachmentInput from '@/app/components/AttachmentInput'
 import RetentionBanner from '@/app/components/RetentionBanner'
 import { monthRangeISO, thaiMonthOf } from '@/lib/retention'
-import { SA_DEPARTMENT } from '@/lib/studentGroup'
+import { SA_DEPARTMENT, SA_POSITIONS } from '@/lib/studentGroup'
 import { workWindowError } from '@/lib/attendance'
 
 type FormState  = { name: string; student_id: string; department: string; faculty: string; major: string }
@@ -886,18 +886,19 @@ export default function StudentPage() {
               <div className="anim-slide-up space-y-3 border-t border-gray-100 pt-4">
                 <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest">กรอกตำแหน่งของคุณ</p>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  กรุณากรอกตำแหน่งของคุณใน Student Assistant (กรอกครั้งเดียว)
+                  กรุณาเลือกตำแหน่งของคุณใน Student Assistant (เลือกครั้งเดียว)
                 </p>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">ตำแหน่ง</label>
-                  <input
+                  <select
                     autoFocus
                     className="w-full border border-blue-300 rounded-xl px-4 py-3 text-sm bg-blue-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                    placeholder="เช่น ต้อนรับ, ลงทะเบียน..."
                     value={positionInput}
                     onChange={e => setPositionInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSetPosition()}
-                  />
+                  >
+                    <option value="">เลือกตำแหน่ง...</option>
+                    {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </div>
                 <button
                   onClick={handleSetPosition}

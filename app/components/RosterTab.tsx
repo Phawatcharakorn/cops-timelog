@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { type Student } from '@/lib/supabase'
 import { showToast } from './Toast'
 import GroupBadge from './GroupBadge'
-import { studentGroup, type StudentGroup } from '@/lib/studentGroup'
+import { studentGroup, type StudentGroup, SA_DEPARTMENT, SA_POSITIONS } from '@/lib/studentGroup'
 
 function SkeletonRow() {
   return (
@@ -393,10 +393,13 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                     <input className={inputCls + ' mt-1.5'} placeholder="กรอกฝ่าย" value={customDept} onChange={e => setCustomDept(e.target.value)} />
                   )}
                 </div>
-                {editForm.department === 'Student Assistant' && (
+                {editForm.department === SA_DEPARTMENT && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
-                    <input className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..." value={editForm.position} onChange={set('position')} />
+                    <select className={inputCls} value={editForm.position} onChange={set('position')}>
+                      <option value="">เลือกตำแหน่ง...</option>
+                      {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
                   </div>
                 )}
                 <div>

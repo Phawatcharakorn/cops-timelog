@@ -12,6 +12,7 @@ import { showToast } from '@/app/components/Toast'
 import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
 import RetentionCountdown from '@/app/components/RetentionCountdown'
 import { workWindowError } from '@/lib/attendance'
+import { SA_DEPARTMENT, SA_POSITIONS } from '@/lib/studentGroup'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -147,7 +148,7 @@ export default function ManagerPage() {
     setRevealedPins(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
   const [editStudentModal, setEditStudentModal]   = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]     = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '' })
+  const [editStudentForm, setEditStudentForm]     = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', position: '' })
   const [editStudentSaving, setEditStudentSaving] = useState(false)
   const [editStudentCustomDept, setEditStudentCustomDept] = useState('')
 
@@ -616,7 +617,7 @@ export default function ManagerPage() {
       const res = await fetch(`/api/students?id=${encodeURIComponent(editStudentModal.student_id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-token': token },
-        body: JSON.stringify({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), nickname: editStudentForm.nickname.trim() || null, department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null }),
+        body: JSON.stringify({ student_id: newId || editStudentModal.student_id, name: editStudentForm.name.trim(), nickname: editStudentForm.nickname.trim() || null, department: deptToSave, faculty: editStudentForm.faculty, major: editStudentForm.major.trim() || null, position: deptToSave === SA_DEPARTMENT ? (editStudentForm.position || null) : null }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
       showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
@@ -1235,7 +1236,14 @@ export default function ManagerPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
-                          <td className="px-4 py-3"><span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span></td>
+                          <td className="px-4 py-3">
+                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{student.department}</span>
+                            {student.department === SA_DEPARTMENT && (
+                              student.position
+                                ? <span className="ml-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{student.position}</span>
+                                : <span className="ml-1 text-gray-300 text-xs">ยังไม่ระบุตำแหน่ง</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalDays === 0 ? 'text-gray-300' : 'text-blue-600'}`}>{totalDays}</span></td>
                           <td className="px-4 py-3 text-center"><span className={`font-semibold ${totalHours === 0 && totalMinutes === 0 ? 'text-gray-300' : 'text-green-600'}`}>{totalHours}h {totalMinutes}m</span></td>
                           <td className="px-4 py-3 text-center text-blue-700 font-semibold">{taskCount}</td>
@@ -1306,6 +1314,11 @@ export default function ManagerPage() {
                           <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
                           <td className="px-4 py-3 text-xs max-w-[180px]">
                             <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{s.department}</span>
+                            {s.department === SA_DEPARTMENT && (
+                              s.position
+                                ? <span className="ml-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{s.position}</span>
+                                : <span className="ml-1 text-gray-300 text-xs">ยังไม่ระบุตำแหน่ง</span>
+                            )}
                             <div className="mt-1 text-gray-600 truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
                             {s.major && <div className="text-gray-400 truncate">{s.major}</div>}
                           </td>
@@ -1330,7 +1343,7 @@ export default function ManagerPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-3">
-                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ student_id: s.student_id, name: s.name, nickname: s.nickname ?? '', department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
+                              <button onClick={() => { const deptInList = DEPARTMENTS.includes(s.department); setEditStudentModal(s); setEditStudentForm({ student_id: s.student_id, name: s.name, nickname: s.nickname ?? '', department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', position: s.position ?? '' }); setEditStudentCustomDept(deptInList ? '' : s.department) }} className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
                               <button onClick={() => { setPinModal({ student_id: s.student_id, name: s.name }); setPinInput(s.pin ?? '') }} className="text-xs text-blue-700 hover:text-blue-800 font-medium">{s.pin ? 'เปลี่ยน PIN' : 'ตั้ง PIN'}</button>
                               <button onClick={() => handleDeleteStudent(s)} className="text-xs text-red-500 hover:text-red-700 font-medium">ลบ</button>
                             </div>
@@ -1481,10 +1494,13 @@ export default function ManagerPage() {
               </select>
               {addStudentForm.department === 'อื่นๆ' && <input className={inputCls + ' mt-2'} placeholder="ระบุฝ่าย..." value={addStudentCustomDept} onChange={e => setAddStudentCustomDept(e.target.value)} />}
             </div>
-            {addStudentForm.department === 'Student Assistant' && (
+            {addStudentForm.department === SA_DEPARTMENT && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
-                <input className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..." value={addStudentForm.position} onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))} />
+                <select className={inputCls} value={addStudentForm.position} onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))}>
+                  <option value="">เลือกตำแหน่ง...</option>
+                  {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
             )}
             <div>
@@ -1518,6 +1534,15 @@ export default function ManagerPage() {
               </select>
               {editStudentForm.department === 'อื่นๆ' && <input className={inputCls + ' mt-2'} placeholder="ระบุฝ่าย..." value={editStudentCustomDept} onChange={e => setEditStudentCustomDept(e.target.value)} />}
             </div>
+            {editStudentForm.department === SA_DEPARTMENT && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
+                <select className={inputCls} value={editStudentForm.position} onChange={e => setEditStudentForm(f => ({ ...f, position: e.target.value }))}>
+                  <option value="">เลือกตำแหน่ง...</option>
+                  {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">คณะ</label>
               <select className={inputCls} value={editStudentForm.faculty} onChange={e => setEditStudentForm(f => ({ ...f, faculty: e.target.value }))}>
@@ -1561,6 +1586,7 @@ export default function ManagerPage() {
               {[
                 { label: 'ชื่อเล่น',            value: detailStudentModal.nickname },
                 { label: 'ฝ่าย',               value: detailStudentModal.department },
+                ...(detailStudentModal.department === SA_DEPARTMENT ? [{ label: 'ตำแหน่ง', value: detailStudentModal.position }] : []),
                 { label: 'คณะ',                value: detailStudentModal.faculty },
                 { label: 'สาขาวิชา',           value: detailStudentModal.major },
                 { label: 'รุ่น (Gen)',         value: detailStudentModal.gen ? `Gen ${detailStudentModal.gen}` : null },

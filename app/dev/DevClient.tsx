@@ -12,6 +12,7 @@ import { showToast } from '@/app/components/Toast'
 import RetentionBanner, { type RetentionRow } from '@/app/components/RetentionBanner'
 import RetentionCountdown from '@/app/components/RetentionCountdown'
 import { workWindowError } from '@/lib/attendance'
+import { SA_DEPARTMENT, SA_POSITIONS } from '@/lib/studentGroup'
 
 const DEPARTMENTS = ['Marketing', 'Event Organizer', 'Human Resource Development', 'Catering', 'Student Assistant', 'อื่นๆ']
 function deptOrder(dept: string) { const i = DEPARTMENTS.indexOf(dept); return i === -1 ? 99 : i }
@@ -189,7 +190,7 @@ export default function DevPage() {
 
   // Edit Student modal
   const [editStudentModal, setEditStudentModal]     = useState<Student | null>(null)
-  const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '' })
+  const [editStudentForm, setEditStudentForm]       = useState({ student_id: '', name: '', nickname: '', department: 'Marketing', faculty: FACULTIES[0], major: '', gen: '', phone: '', position: '' })
   const [editStudentSaving, setEditStudentSaving]   = useState(false)
 
   // View-details modal (read-only — full student record, incl. bank info)
@@ -756,6 +757,7 @@ export default function DevPage() {
           major:      editStudentForm.major.trim() || null,
           gen:        editStudentForm.gen ? Number(editStudentForm.gen) : null,
           phone:      editStudentForm.phone.trim() || null,
+          position:   deptToSave === SA_DEPARTMENT ? (editStudentForm.position || null) : null,
         }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.statusText) }
@@ -1587,7 +1589,12 @@ export default function DevPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-500">{student.student_id}</td>
                           <td className="px-4 py-3">
-                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{student.department}</span>
+                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{student.department}</span>
+                            {student.department === SA_DEPARTMENT && (
+                              student.position
+                                ? <span className="ml-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{student.position}</span>
+                                : <span className="ml-1 text-gray-300 text-xs">ยังไม่ระบุตำแหน่ง</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className={`font-semibold ${totalDays === 0 ? 'text-gray-300' : 'text-blue-600'}`}>{totalDays}</span>
@@ -1683,6 +1690,11 @@ export default function DevPage() {
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{s.student_id}</td>
                         <td className="px-4 py-3 text-xs max-w-[180px]">
                           <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{s.department}</span>
+                          {s.department === SA_DEPARTMENT && (
+                            s.position
+                              ? <span className="ml-1 bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{s.position}</span>
+                              : <span className="ml-1 text-gray-300 text-xs">ยังไม่ระบุตำแหน่ง</span>
+                          )}
                           <div className="mt-1 text-gray-600 truncate">{s.faculty ?? <span className="text-gray-300">-</span>}</div>
                           {s.major && <div className="text-gray-400 truncate">{s.major}</div>}
                         </td>
@@ -1715,7 +1727,7 @@ export default function DevPage() {
                             <button onClick={() => {
                               const deptInList = DEPARTMENTS.includes(s.department)
                               setEditStudentModal(s)
-                              setEditStudentForm({ student_id: s.student_id, name: s.name, nickname: s.nickname ?? '', department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '' })
+                              setEditStudentForm({ student_id: s.student_id, name: s.name, nickname: s.nickname ?? '', department: deptInList ? s.department : 'อื่นๆ', faculty: s.faculty ?? FACULTIES[0], major: s.major ?? '', gen: s.gen != null ? String(s.gen) : '', phone: s.phone ?? '', position: s.position ?? '' })
                               setEditStudentCustomDept(deptInList ? '' : s.department)
                             }}
                               className="text-xs text-blue-700 hover:text-blue-800 font-medium">แก้ไข</button>
@@ -2051,12 +2063,14 @@ export default function DevPage() {
                   onChange={e => setAddStudentCustomDept(e.target.value)} />
               )}
             </div>
-            {addStudentForm.department === 'Student Assistant' && (
+            {addStudentForm.department === SA_DEPARTMENT && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
-                <input type="text" className={inputCls} placeholder="เช่น ต้อนรับ, ลงทะเบียน..."
-                  value={addStudentForm.position}
-                  onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))} />
+                <select className={inputCls} value={addStudentForm.position}
+                  onChange={e => setAddStudentForm(f => ({ ...f, position: e.target.value }))}>
+                  <option value="">เลือกตำแหน่ง...</option>
+                  {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
             )}
             <div>
@@ -2208,6 +2222,16 @@ export default function DevPage() {
                   onChange={e => setEditStudentCustomDept(e.target.value)} />
               )}
             </div>
+            {editStudentForm.department === SA_DEPARTMENT && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
+                <select className={inputCls} value={editStudentForm.position}
+                  onChange={e => setEditStudentForm(f => ({ ...f, position: e.target.value }))}>
+                  <option value="">เลือกตำแหน่ง...</option>
+                  {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
               <select className={inputCls} value={editStudentForm.faculty}
@@ -2307,6 +2331,7 @@ export default function DevPage() {
               {[
                 { label: 'ชื่อเล่น',            value: detailStudentModal.nickname },
                 { label: 'ฝ่าย',               value: detailStudentModal.department },
+                ...(detailStudentModal.department === SA_DEPARTMENT ? [{ label: 'ตำแหน่ง', value: detailStudentModal.position }] : []),
                 { label: 'คณะ',                value: detailStudentModal.faculty },
                 { label: 'สาขาวิชา',           value: detailStudentModal.major },
                 { label: 'รุ่น (Gen)',         value: detailStudentModal.gen ? `Gen ${detailStudentModal.gen}` : null },
