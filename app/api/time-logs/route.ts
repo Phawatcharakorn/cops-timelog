@@ -7,12 +7,16 @@ export const dynamic = 'force-dynamic'
 
 // A department-locked manager token only has authority over logs
 // belonging to students in that department. Dev tokens and managers with
-// no department (null = "sees every department") are unrestricted.
+// no department (null = "sees every department") are unrestricted. A
+// manager additionally locked to a position (SA department only) is
+// further narrowed to students in that exact position.
 async function forbiddenForStudent(req: NextRequest, studentId: string): Promise<boolean> {
   const auth = getAuth(req)
   if (!auth || auth.role !== 'manager' || !auth.department) return false
-  const { data } = await supabaseAdmin().from('students').select('department').eq('student_id', studentId).maybeSingle()
-  return !data || data.department !== auth.department
+  const { data } = await supabaseAdmin().from('students').select('department, position').eq('student_id', studentId).maybeSingle()
+  if (!data || data.department !== auth.department) return true
+  if (auth.position && data.position !== auth.position) return true
+  return false
 }
 
 async function forbiddenForLog(req: NextRequest, logId: string): Promise<boolean> {

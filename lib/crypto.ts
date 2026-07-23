@@ -40,6 +40,7 @@ export type TokenPayload = {
   role: 'dev' | 'manager'
   username: string
   department: string | null
+  position: string | null
   exp: number // unix seconds
 }
 
@@ -75,12 +76,12 @@ export function verifyToken(token: string | null): TokenPayload | null {
 
 /** Issue a dev-role token. */
 export function makeDevToken(secret: string, username: string): string {
-  return issueToken({ role: 'dev', username, department: null }, secret)
+  return issueToken({ role: 'dev', username, department: null, position: null }, secret)
 }
 
-/** Issue a manager-role token, carrying that manager's identity/department. */
-export function makeMgrToken(secret: string, username: string, department: string | null): string {
-  return issueToken({ role: 'manager', username, department }, secret)
+/** Issue a manager-role token, carrying that manager's identity/department/position. */
+export function makeMgrToken(secret: string, username: string, department: string | null, position: string | null = null): string {
+  return issueToken({ role: 'manager', username, department, position }, secret)
 }
 
 /** Validate x-dev-token header (or ?token=). */

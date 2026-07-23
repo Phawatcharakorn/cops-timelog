@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   const { data: manager, error } = await supabaseAdmin()
     .from('managers')
-    .select('username, password_hash, name, department')
+    .select('username, password_hash, name, department, position')
     .eq('username', username)
     .single()
 
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     name: manager.name,
     department: manager.department,
-    mgrToken: makeMgrToken(process.env.ADMIN_PASSWORD!, manager.username, manager.department ?? null),
+    position: manager.position,
+    mgrToken: makeMgrToken(process.env.ADMIN_PASSWORD!, manager.username, manager.department ?? null, manager.position ?? null),
   })
 }

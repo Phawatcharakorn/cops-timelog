@@ -65,6 +65,7 @@ export default function ManagerPage() {
   const [authed, setAuthed]     = useState(false)
   const [mgrName, setMgrName]   = useState('')
   const [mgrDept, setMgrDept]   = useState<string | null>(null)
+  const [mgrPosition, setMgrPosition] = useState<string | null>(null)
   const [userInput, setUserInput] = useState('')
   const [pwInput, setPwInput]     = useState('')
   const [pwError, setPwError]     = useState(false)
@@ -180,6 +181,7 @@ export default function ManagerPage() {
       setAuthed(true)
       setMgrName(localStorage.getItem('mgr_name') || '')
       setMgrDept(localStorage.getItem('mgr_dept') || null)
+      setMgrPosition(localStorage.getItem('mgr_position') || null)
     }
   }, [])
 
@@ -202,7 +204,7 @@ export default function ManagerPage() {
   // issued one - without this, an expired/stale token just silently 401s
   // forever (mgr_authed stays '1', so the login form never comes back).
   const logout = useCallback(() => {
-    ;['mgr_authed', 'mgr_name', 'mgr_username', 'mgr_dept', 'mgr_token'].forEach(k => localStorage.removeItem(k))
+    ;['mgr_authed', 'mgr_name', 'mgr_username', 'mgr_dept', 'mgr_position', 'mgr_token'].forEach(k => localStorage.removeItem(k))
     setAuthed(false)
     showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning')
   }, [])
@@ -211,10 +213,11 @@ export default function ManagerPage() {
     const token = localStorage.getItem('mgr_token') || ''
     const params = new URLSearchParams()
     if (mgrDept) params.set('dept', mgrDept)
+    if (mgrPosition) params.set('position', mgrPosition)
     const res = await fetch(`/api/students?${params}`, { headers: { 'x-token': token } })
     if (res.status === 401) return logout()
     if (res.ok) setStudents(await res.json())
-  }, [mgrDept, logout])
+  }, [mgrDept, mgrPosition, logout])
 
   useEffect(() => { if (authed) { loadStudents(); checkFeedback() } }, [authed, loadStudents, checkFeedback])
 
@@ -275,6 +278,7 @@ export default function ManagerPage() {
       const mgrToken = localStorage.getItem('mgr_token') || ''
       const params = new URLSearchParams()
       if (mgrDept) params.set('dept', mgrDept)
+      if (mgrPosition) params.set('position', mgrPosition)
       const logsParams = new URLSearchParams({ start, end })
       const [studentsRes, logsRes] = await Promise.all([
         fetch(`/api/students?${params}`, { headers: { 'x-token': mgrToken } }),
@@ -298,7 +302,7 @@ export default function ManagerPage() {
       })
       setOverview(result)
     } finally { if (reqId === overviewReqId.current) setOverviewLoading(false) }
-  }, [backupMonth, mgrDept])
+  }, [backupMonth, mgrDept, mgrPosition])
 
   // Live refresh: auto-refetch when time_logs changes anywhere (self-report
   // submitted, another manager/dev approves, edits, etc.) instead of needing
@@ -409,12 +413,13 @@ export default function ManagerPage() {
       const token = localStorage.getItem('mgr_token') || ''
       const params = new URLSearchParams()
       if (mgrDept) params.set('dept', mgrDept)
+      if (mgrPosition) params.set('position', mgrPosition)
       const res = await fetch(`/api/students?${params}`, { headers: { 'x-token': token } })
       const data: Student[] = res.ok ? await res.json() : []
       data.sort((a, b) => (a.gen ?? Infinity) - (b.gen ?? Infinity) || a.name.localeCompare(b.name, 'th'))
       setRosterStudents(data)
     } finally { setRosterLoading(false) }
-  }, [mgrDept])
+  }, [mgrDept, mgrPosition])
 
   const downloadExport = async (url: string, token: string) => {
     try {
@@ -699,11 +704,12 @@ export default function ManagerPage() {
     setPwError(false)
     const res = await fetch('/api/manager/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: userInput, password: pwInput }) })
     if (res.ok) {
-      const { name, department, mgrToken } = await res.json()
+      const { name, department, position, mgrToken } = await res.json()
       localStorage.setItem('mgr_authed', '1'); localStorage.setItem('mgr_name', name)
       localStorage.setItem('mgr_username', userInput); localStorage.setItem('mgr_dept', department || '')
+      localStorage.setItem('mgr_position', position || '')
       if (mgrToken) localStorage.setItem('mgr_token', mgrToken)
-      setMgrName(name); setMgrDept(department || null); setAuthed(true)
+      setMgrName(name); setMgrDept(department || null); setMgrPosition(position || null); setAuthed(true)
     } else { setPwError(true) }
   }
 
@@ -744,7 +750,7 @@ export default function ManagerPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <SdecHeader
-        subtitle={`${mgrName}${mgrDept ? ` · ${mgrDept}` : ' · ทุกแผนก'}`}
+        subtitle={`${mgrName}${mgrDept ? ` · ${mgrDept}${mgrPosition ? ` (${mgrPosition})` : ''}` : ' · ทุกแผนก'}`}
         center={<RetentionCountdown schedule={retentionSchedule} />}
         right={<>
           <button onClick={() => { setSettingsTab('info'); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwSettingsError(''); setPwSettingsSuccess(false); setSettingsOpen(true) }}
@@ -754,7 +760,7 @@ export default function ManagerPage() {
             </svg>
           </button>
           <a href="/student" className="text-xs text-white/80 hover:text-white font-medium whitespace-nowrap transition-colors">หน้าบันทึก</a>
-          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept','mgr_token'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }}
+          <button onClick={() => { ['mgr_authed','mgr_name','mgr_username','mgr_dept','mgr_position','mgr_token'].forEach(k => localStorage.removeItem(k)); setAuthed(false) }}
             className="text-xs text-white/50 hover:text-white/80 whitespace-nowrap transition-colors">ออกจากระบบ</button>
         </>}
       />
@@ -1787,7 +1793,7 @@ export default function ManagerPage() {
                 </div>
                 <div className="bg-gray-50 rounded-lg px-4 py-3">
                   <p className="text-xs text-gray-400 mb-0.5">ฝ่าย</p>
-                  <p className="text-sm font-medium text-gray-800">{mgrDept || 'ทุกแผนก'}</p>
+                  <p className="text-sm font-medium text-gray-800">{mgrDept ? `${mgrDept}${mgrPosition ? ` (${mgrPosition})` : ''}` : 'ทุกแผนก'}</p>
                 </div>
               </div>
             )}

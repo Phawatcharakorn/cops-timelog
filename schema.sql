@@ -33,7 +33,9 @@ CREATE TABLE managers (
   username      TEXT        UNIQUE NOT NULL,
   password_hash TEXT        NOT NULL,
   name          TEXT        NOT NULL,
+  role          TEXT,          -- 'MD' | 'Manager'
   department    TEXT,          -- NULL = เห็นทุกแผนก
+  position      TEXT,          -- SA_POSITIONS value; only meaningful when department = 'Student Assistant'
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 

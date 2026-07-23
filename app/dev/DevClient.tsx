@@ -96,11 +96,11 @@ export default function DevPage() {
   // Managers tab
   const [managers, setManagers]             = useState<Manager[]>([])
   const [managersLoading, setManagersLoading] = useState(false)
-  const [newMgrForm, setNewMgrForm]         = useState({ username: '', password: '', name: '', role: 'MD', department: '' })
+  const [newMgrForm, setNewMgrForm]         = useState({ username: '', password: '', name: '', role: 'MD', department: '', position: '' })
   const [newMgrSaving, setNewMgrSaving]     = useState(false)
   const [newMgrError, setNewMgrError]       = useState('')
   const [editMgrModal, setEditMgrModal]     = useState<Manager | null>(null)
-  const [editMgrForm, setEditMgrForm]       = useState({ name: '', role: 'MD', department: '', password: '' })
+  const [editMgrForm, setEditMgrForm]       = useState({ name: '', role: 'MD', department: '', position: '', password: '' })
   const [editMgrSaving, setEditMgrSaving]   = useState(false)
   const [editMgrError, setEditMgrError]     = useState('')
 
@@ -1013,7 +1013,7 @@ export default function DevPage() {
       body: JSON.stringify(newMgrForm),
     })
     if (res.ok) {
-      setNewMgrForm({ username: '', password: '', name: '', role: 'MD', department: '' })
+      setNewMgrForm({ username: '', password: '', name: '', role: 'MD', department: '', position: '' })
       await loadManagers()
     } else {
       const { error } = await res.json()
@@ -1034,7 +1034,7 @@ export default function DevPage() {
 
   const openEditMgr = (m: Manager) => {
     setEditMgrModal(m)
-    setEditMgrForm({ name: m.name, role: m.role || 'MD', department: m.department || '', password: '' })
+    setEditMgrForm({ name: m.name, role: m.role || 'MD', department: m.department || '', position: m.position || '', password: '' })
     setEditMgrError('')
   }
 
@@ -1045,7 +1045,7 @@ export default function DevPage() {
     const res = await fetch('/api/managers', {
       method: 'PATCH',
       headers: devHeaders(),
-      body: JSON.stringify({ id: editMgrModal.id, name: editMgrForm.name, role: editMgrForm.role || null, department: editMgrForm.department || null, password: editMgrForm.password || undefined }),
+      body: JSON.stringify({ id: editMgrModal.id, name: editMgrForm.name, role: editMgrForm.role || null, department: editMgrForm.department || null, position: editMgrForm.position || null, password: editMgrForm.password || undefined }),
     })
     if (res.ok) { setEditMgrModal(null); await loadManagers() }
     else { const { error } = await res.json(); setEditMgrError(error || 'เกิดข้อผิดพลาด') }
@@ -1878,18 +1878,28 @@ export default function DevPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">ยศ</label>
                   <select className={inputCls} value={newMgrForm.role}
                     onChange={e => setNewMgrForm(f => ({ ...f, role: e.target.value }))}>
-                    <option value="MD">⭐ MD (Managing Director)</option>
+                    <option value="MD">MD (Managing Director)</option>
                     <option value="Manager">Manager</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">แผนก (ว่าง = เห็นทุกแผนก)</label>
                   <select className={inputCls} value={newMgrForm.department}
-                    onChange={e => setNewMgrForm(f => ({ ...f, department: e.target.value }))}>
+                    onChange={e => setNewMgrForm(f => ({ ...f, department: e.target.value, position: e.target.value === SA_DEPARTMENT ? f.position : '' }))}>
                     <option value="">ทุกแผนก</option>
                     {DEPARTMENTS.filter(d => d !== 'อื่นๆ').map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
+                {newMgrForm.department === SA_DEPARTMENT && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง SA (ว่าง = เห็นทุกตำแหน่ง)</label>
+                    <select className={inputCls} value={newMgrForm.position}
+                      onChange={e => setNewMgrForm(f => ({ ...f, position: e.target.value }))}>
+                      <option value="">ทุกตำแหน่ง</option>
+                      {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
               <button onClick={addManager} disabled={newMgrSaving}
                 className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
@@ -1911,10 +1921,10 @@ export default function DevPage() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium text-gray-800">{m.name} <span className="text-gray-400 font-normal">(@{m.username})</span></p>
-                          {m.role === 'MD' && <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-300">⭐ MD</span>}
+                          {m.role === 'MD' && <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-300">MD</span>}
                           {m.role === 'Manager' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 border border-blue-300">Manager</span>}
                         </div>
-                        <p className="text-xs text-gray-400">{m.department || 'ทุกแผนก'}</p>
+                        <p className="text-xs text-gray-400">{m.department ? `${m.department}${m.position ? ` (${m.position})` : ''}` : 'ทุกแผนก'}</p>
                       </div>
                       <div className="flex gap-3">
                         <button onClick={() => openEditMgr(m)} className="text-xs text-blue-600 hover:text-blue-700 transition-colors">แก้ไข</button>
@@ -1944,17 +1954,27 @@ export default function DevPage() {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">ยศ</label>
               <select className={inputCls} value={editMgrForm.role} onChange={e => setEditMgrForm(f => ({ ...f, role: e.target.value }))}>
-                <option value="MD">⭐ MD (Managing Director)</option>
+                <option value="MD">MD (Managing Director)</option>
                 <option value="Manager">Manager</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">แผนก (ว่าง = เห็นทุกแผนก)</label>
-              <select className={inputCls} value={editMgrForm.department} onChange={e => setEditMgrForm(f => ({ ...f, department: e.target.value }))}>
+              <select className={inputCls} value={editMgrForm.department}
+                onChange={e => setEditMgrForm(f => ({ ...f, department: e.target.value, position: e.target.value === SA_DEPARTMENT ? f.position : '' }))}>
                 <option value="">ทุกแผนก</option>
                 {DEPARTMENTS.filter(d => d !== 'อื่นๆ').map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
+            {editMgrForm.department === SA_DEPARTMENT && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง SA (ว่าง = เห็นทุกตำแหน่ง)</label>
+                <select className={inputCls} value={editMgrForm.position} onChange={e => setEditMgrForm(f => ({ ...f, position: e.target.value }))}>
+                  <option value="">ทุกตำแหน่ง</option>
+                  {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">รหัสผ่านใหม่ (ว่าง = ไม่เปลี่ยน)</label>
               <input type="password" className={inputCls} placeholder="ใส่เพื่อเปลี่ยนรหัสผ่าน" value={editMgrForm.password} onChange={e => setEditMgrForm(f => ({ ...f, password: e.target.value }))} />

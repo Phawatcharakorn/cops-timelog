@@ -18,22 +18,27 @@ function hashPinInBody(body: Record<string, unknown>) {
 // A department-locked manager token only has authority over students in
 // that department. Dev tokens and managers with no department (department:
 // null = "sees every department", matching the app's existing dashboard
-// filtering) are unrestricted.
+// filtering) are unrestricted. A manager additionally locked to a position
+// (only meaningful within the SA department) is further narrowed to
+// students in that exact position.
 async function forbiddenForDepartment(req: NextRequest, studentId: string): Promise<boolean> {
   const auth = getAuth(req)
   if (!auth || auth.role !== 'manager' || !auth.department) return false
-  const { data } = await supabaseAdmin().from('students').select('department').eq('student_id', studentId).maybeSingle()
-  return !data || data.department !== auth.department
+  const { data } = await supabaseAdmin().from('students').select('department, position').eq('student_id', studentId).maybeSingle()
+  if (!data || data.department !== auth.department) return true
+  if (auth.position && data.position !== auth.position) return true
+  return false
 }
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return unauthorized()
 
   const { searchParams } = new URL(req.url)
-  const id    = searchParams.get('id')
-  const dept  = searchParams.get('dept')
-  const group = searchParams.get('group')
-  const db    = supabaseAdmin()
+  const id       = searchParams.get('id')
+  const dept     = searchParams.get('dept')
+  const position = searchParams.get('position')
+  const group    = searchParams.get('group')
+  const db       = supabaseAdmin()
 
   if (id) {
     if (await forbiddenForDepartment(req, id)) return NextResponse.json(null)
@@ -44,6 +49,7 @@ export async function GET(req: NextRequest) {
 
   let q = db.from('students').select('*').order('name')
   if (dept) q = q.eq('department', dept)
+  if (position) q = q.eq('position', position)
   if (group === 'sa') q = q.eq('department', SA_DEPARTMENT)
   else if (group === 'cops') q = q.neq('department', SA_DEPARTMENT)
   const { data, error } = await q
