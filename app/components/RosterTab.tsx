@@ -89,11 +89,12 @@ interface Props {
   loading: boolean
   onRefresh: () => void
   lockedDept?: string
+  lockedPosition?: string
   accentColor?: string
   canEditStudentId?: boolean
 }
 
-export default function RosterTab({ students, loading, onRefresh, lockedDept, canEditStudentId = false }: Props) {
+export default function RosterTab({ students, loading, onRefresh, lockedDept, lockedPosition, canEditStudentId = false }: Props) {
   const [genFilter,   setGenFilter]   = useState<number | null>(null)
   const [deptFilter,  setDeptFilter]  = useState('')
   const [groupFilter, setGroupFilter] = useState<StudentGroup | ''>('')
@@ -131,7 +132,7 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
       national_id: s.national_id ?? '',
       note:        s.note ?? '',
       status:      s.status ?? '',
-      position:    s.position ?? '',
+      position:    s.position ?? lockedPosition ?? '',
     })
     setCustomDept(deptInList ? '' : s.department)
     setEditing(true)
@@ -396,10 +397,14 @@ export default function RosterTab({ students, loading, onRefresh, lockedDept, ca
                 {editForm.department === SA_DEPARTMENT && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">ตำแหน่ง</label>
-                    <select className={inputCls} value={editForm.position} onChange={set('position')}>
-                      <option value="">เลือกตำแหน่ง...</option>
-                      {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    {lockedPosition ? (
+                      <input className={inputCls + ' bg-gray-50 text-gray-500'} value={lockedPosition} disabled />
+                    ) : (
+                      <select className={inputCls} value={editForm.position} onChange={set('position')}>
+                        <option value="">เลือกตำแหน่ง...</option>
+                        {SA_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    )}
                   </div>
                 )}
                 <div>

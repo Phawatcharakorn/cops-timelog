@@ -1722,6 +1722,7 @@ export default function ManagerPage() {
           loading={rosterLoading}
           onRefresh={fetchRoster}
           lockedDept={mgrDept || undefined}
+          lockedPosition={mgrPosition || undefined}
           canEditStudentId
         />
       )}
