@@ -60,6 +60,7 @@ function thaiToUTC(date: string, time: string) { return new Date(`${date}T${time
 function todayThai() { return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) }
 
 const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
+const exportBtnCls = 'inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors whitespace-nowrap'
 
 export default function ManagerPage() {
   const [authed, setAuthed]     = useState(false)
@@ -1156,54 +1157,58 @@ export default function ManagerPage() {
         {/* ── Overview ────────────────────────────────────────────────────── */}
         {tab === 'overview' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end justify-between gap-3">
-              <div className="flex flex-wrap items-end gap-3">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <div><label className="block text-xs font-medium text-gray-500 mb-1.5">ฝ่าย</label>
                   <select className={inputCls + ' w-auto'} value={overviewDept} onChange={e => setOverviewDept(e.target.value)}>
                     <option value="">ทุกฝ่าย</option>
                     {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="flex flex-wrap items-end gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่ Export</label>
-                  <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
-                    className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                <div className="flex flex-wrap items-end gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">เดือนที่ Export</label>
+                    <input type="month" value={backupMonth} onChange={e => setBackupMonth(e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  </div>
+                  <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
                 </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
+                <span className="text-xs font-medium text-gray-400 mr-1">Export:</span>
                 <button onClick={handleExportBackup}
                   title="สำรองข้อมูลดิบทั้งหมดของทุกคนในเดือนนี้ (ทุกสถานะ) เป็นไฟล์ Excel"
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  className={exportBtnCls}>
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   สำรองข้อมูล
                 </button>
                 <button onClick={handleExportPayroll}
                   title="ใบเบิกจ่ายเงินนิสิตช่วยปฏิบัติงาน (Excel) ตามฝ่ายของคุณ"
-                  className="bg-green-700 hover:bg-green-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  className={exportBtnCls}>
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   ใบเบิกจ่ายเงิน
                 </button>
                 <button onClick={handleExportStudentDetails}
                   title="รายละเอียดเลขที่บัญชีนิสิตช่วยปฏิบัติงาน (Excel) ตามฝ่ายของคุณ"
-                  className="bg-teal-700 hover:bg-teal-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  className={exportBtnCls}>
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   โหลดรายละเอียดนิสิต
                 </button>
                 <button onClick={handleExportMembers}
                   title={overviewDept ? `รายชื่อสมาชิกฝ่าย ${overviewDept} (Excel)` : 'รายชื่อสมาชิกทุกฝ่าย (Excel)'}
-                  className="bg-cyan-700 hover:bg-cyan-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition-colors whitespace-nowrap">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  className={exportBtnCls}>
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   รายชื่อสมาชิก
                 </button>
-                <button onClick={fetchOverview} disabled={overviewLoading} className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">{overviewLoading ? 'กำลังโหลด...' : 'ดูภาพรวม'}</button>
               </div>
             </div>
             {overview.length > 0 && (() => {
